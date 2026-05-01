@@ -284,58 +284,98 @@ window.announceResult = function(){
     return;
   }
 
-  // 🔥 เรียงคะแนนมาก → น้อย
-  let top = [...cache]
-    .sort((a,b)=>(b.totalScore||0)-(a.totalScore||0))
-    .slice(0,4);
+  // 🔥 เรียงคะแนนมาก → น้อย (ทุกคน)
+  let sorted = [...cache]
+    .sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
 
   let html = `
   <html>
   <head>
   <meta charset="UTF-8">
   <style>
+    @page { size: A4; margin: 20mm; }
+
     body{
-      font-family:sans-serif;
-      text-align:center;
-      background:black;
-      color:white;
+      font-family: "TH Sarabun New", sans-serif;
+      text-align: center;
     }
-    .rank{
-      margin:30px;
-      font-size:40px;
-      font-weight:bold;
+
+    h1{
+      font-size: 36px;
+      margin-bottom: 20px;
     }
-    .gold{color:gold;font-size:60px;}
-    .silver{color:#ddd;}
-    .bronze{color:#cd7f32;}
+
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td{
+      border: 1px solid #000;
+      padding: 8px;
+      font-size: 20px;
+    }
+
+    th{
+      background: #f0f0f0;
+    }
+
+    .top1{
+      background: gold;
+      font-weight: bold;
+    }
+
+    .top2{
+      background: #ddd;
+    }
+
+    .top3{
+      background: #cd7f32;
+      color: white;
+    }
+
   </style>
   </head>
   <body>
 
-  <h1>🏆 ผลการประกวด</h1>
+  <h1>🏆 ผลการประกวดร้องเพลง</h1>
+
+  <table>
+    <tr>
+      <th>อันดับ</th>
+      <th>ชื่อผู้เข้าแข่งขัน</th>
+      <th>คะแนนรวม</th>
+    </tr>
   `;
 
-  top.forEach((c,i)=>{
+  sorted.forEach((c,i)=>{
 
     let cls="";
-    if(i===0) cls="gold";
-    else if(i===1) cls="silver";
-    else if(i===2) cls="bronze";
+    if(i===0) cls="top1";
+    else if(i===1) cls="top2";
+    else if(i===2) cls="top3";
 
     html+=`
-    <div class="rank ${cls}">
-      No.${i+1}<br>
-      ${c.name}<br>
-      ${c.totalScore} คะแนน
-    </div>
+      <tr class="${cls}">
+        <td>อันดับที่ ${i+1}</td>
+        <td>${c.name}</td>
+        <td>${c.totalScore || 0}</td>
+      </tr>
     `;
   });
 
-  html+=`</body></html>`;
+  html+=`
+    </table>
+  </body>
+  </html>
+  `;
 
   let w = window.open("");
   w.document.write(html);
   w.document.close();
+
+  setTimeout(()=>w.print(),500);
 };
 
 // FORM
