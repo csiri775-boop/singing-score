@@ -515,12 +515,20 @@ onSnapshot(collection(db,"contestants"),snap=>{
     if(data.locked) done++;   // 🔥 นับคนที่ให้คะแนนแล้ว
 
     list.push({
-      id:d.id,
-      name:data.name,
-      order:data.order || 9999,
-      totalScore:data.totalScore||0,
-      locked:data.locked || false
-    });
+  id:d.id,
+  name:data.name,
+  order:data.order || 9999,
+  totalScore:data.totalScore||0,
+  locked:data.locked || false,
+
+  // 🔥 เพิ่มตรงนี้
+  score1: data.score1 || [],
+  score2: data.score2 || [],
+  score3: data.score3 || [],
+  j1: data.j1 || 0,
+  j2: data.j2 || 0,
+  j3: data.j3 || 0
+});
   });
 
   // 🔥 เรียง No.
