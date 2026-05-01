@@ -167,6 +167,7 @@ button:hover{background:#2e7d32;}
 <br>
 <button onclick="exportExcel()">📊 Excel</button>
 <button onclick="printDetail()">🖨️ รายงาน</button>
+<button onclick="announceResult()">📢 ประกาศผล</button>
 
 </div>
 
@@ -276,59 +277,65 @@ const items = [
   {name:"แต่งกาย",max:10}
 ];
 
-window.printDetail = function(){
+window.announceResult = function(){
 
-  let html = "";
+  if(cache.length === 0){
+    alert("ยังไม่มีข้อมูล");
+    return;
+  }
 
-  cache.forEach((c,i)=>{
+  // 🔥 เรียงคะแนนมาก → น้อย
+  let top = [...cache]
+    .sort((a,b)=>(b.totalScore||0)-(a.totalScore||0))
+    .slice(0,4);
 
-    html += `
-    <div style="page-break-inside:avoid;margin-bottom:20px;">
-      <b>No.${i+1} ${c.name}</b>
+  let html = `
+  <html>
+  <head>
+  <meta charset="UTF-8">
+  <style>
+    body{
+      font-family:sans-serif;
+      text-align:center;
+      background:black;
+      color:white;
+    }
+    .rank{
+      margin:30px;
+      font-size:40px;
+      font-weight:bold;
+    }
+    .gold{color:gold;font-size:60px;}
+    .silver{color:#ddd;}
+    .bronze{color:#cd7f32;}
+  </style>
+  </head>
+  <body>
 
-      <table border="1" style="width:100%;border-collapse:collapse;text-align:center;">
-        <tr>
-          <th>รายการ</th>
-          <th>เต็ม</th>
-          <th>กก1</th>
-          <th>กก2</th>
-          <th>กก3</th>
-        </tr>
-    `;
+  <h1>🏆 ผลการประกวด</h1>
+  `;
 
-    items.forEach((item,idx)=>{
+  top.forEach((c,i)=>{
 
-      html += `
-      <tr>
-        <td>${item.name}</td>
-        <td>${item.max}</td>
-        <td>${c.score1?.[idx] || 0}</td>
-        <td>${c.score2?.[idx] || 0}</td>
-        <td>${c.score3?.[idx] || 0}</td>
-      </tr>
-      `;
-    });
+    let cls="";
+    if(i===0) cls="gold";
+    else if(i===1) cls="silver";
+    else if(i===2) cls="bronze";
 
-    html += `
-      <tr>
-        <td colspan="2"><b>รวม</b></td>
-        <td><b>${c.j1 || 0}</b></td>
-        <td><b>${c.j2 || 0}</b></td>
-        <td><b>${c.j3 || 0}</b></td>
-      </tr>
-
-      <tr>
-        <td colspan="5"><b>รวมทั้งหมด ${c.totalScore || 0}</b></td>
-      </tr>
-
-      </table>
+    html+=`
+    <div class="rank ${cls}">
+      No.${i+1}<br>
+      ${c.name}<br>
+      ${c.totalScore} คะแนน
     </div>
     `;
   });
 
+  html+=`</body></html>`;
+
   let w = window.open("");
   w.document.write(html);
-  w.print();
+  w.document.close();
 };
 
 // FORM
