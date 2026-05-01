@@ -266,15 +266,70 @@ window.importExcel = function(){
 };
 
 // คะแนน
-const items=[
-{name:"น้ำเสียง",max:30},
-{name:"เทคนิค",max:10},
-{name:"จังหวะ",max:20},
-{name:"อักขระ",max:10},
-{name:"บุคลิก",max:10},
-{name:"ความยาก",max:10},
-{name:"แต่งกาย",max:10}
+const items = [
+  {name:"น้ำเสียง",max:30},
+  {name:"เทคนิค",max:10},
+  {name:"จังหวะ",max:20},
+  {name:"อักขระ",max:10},
+  {name:"บุคลิก",max:10},
+  {name:"ความยาก",max:10},
+  {name:"แต่งกาย",max:10}
 ];
+
+window.printDetail = function(){
+
+  let html = "";
+
+  cache.forEach((c,i)=>{
+
+    html += `
+    <div style="page-break-inside:avoid;margin-bottom:20px;">
+      <b>No.${i+1} ${c.name}</b>
+
+      <table border="1" style="width:100%;border-collapse:collapse;text-align:center;">
+        <tr>
+          <th>รายการ</th>
+          <th>เต็ม</th>
+          <th>กก1</th>
+          <th>กก2</th>
+          <th>กก3</th>
+        </tr>
+    `;
+
+    items.forEach((item,idx)=>{
+
+      html += `
+      <tr>
+        <td>${item.name}</td>
+        <td>${item.max}</td>
+        <td>${c.score1?.[idx] || 0}</td>
+        <td>${c.score2?.[idx] || 0}</td>
+        <td>${c.score3?.[idx] || 0}</td>
+      </tr>
+      `;
+    });
+
+    html += `
+      <tr>
+        <td colspan="2"><b>รวม</b></td>
+        <td><b>${c.j1 || 0}</b></td>
+        <td><b>${c.j2 || 0}</b></td>
+        <td><b>${c.j3 || 0}</b></td>
+      </tr>
+
+      <tr>
+        <td colspan="5"><b>รวมทั้งหมด ${c.totalScore || 0}</b></td>
+      </tr>
+
+      </table>
+    </div>
+    `;
+  });
+
+  let w = window.open("");
+  w.document.write(html);
+  w.print();
+};
 
 // FORM
 function createForm(){
@@ -284,7 +339,9 @@ html+=`<h3>กรรมการ ${j}</h3><table><tr>`;
 items.forEach(i=>html+=`<th>${i.name}(${i.max})</th>`);
 html+=`</tr><tr>`;
 items.forEach((i,idx)=>{
-html+=`<td><input type="number" id="j${j}_s${idx}"></td>`;
+  html+=`<td>
+    <input type="number" id="j${j}_s${idx}" data-j="${j}" data-i="${idx}">
+  </td>`;
 });
 html+=`</tr></table><br>`;
 }
@@ -353,13 +410,32 @@ async function loadContestants() {
 
 // CALC
 function calc(p){
-let arr=[],sum=0;
-items.forEach((it,i)=>{
-let v=Number(document.getElementById(p+"_s"+i).value)||0;
-if(v>it.max){alert("เกิน "+it.max);throw "err";}
-arr.push(v); sum+=v;
-});
-return {arr,sum};
+  let arr=[], sum=0;
+
+  for(let i=0;i<items.length;i++){
+
+    let el = document.querySelector(`[id="${p}_s${i}"]`);
+
+    if(!el){
+      console.log("❌ ไม่เจอ:", p+"_s"+i);
+      arr.push(0);
+      continue;
+    }
+
+    let v = Number(el.value) || 0;
+
+    if(v > items[i].max){
+      alert("เกิน "+items[i].max);
+      throw "err";
+    }
+
+    arr.push(v);
+    sum += v;
+  }
+
+  console.log("✅", p, arr);
+
+  return {arr,sum};
 }
 
 // SAVE
@@ -376,12 +452,16 @@ window.submitScore = async () => {
       j3 = calc("j3");
 
   await updateDoc(doc(db,"contestants",id),{
-  score1:j1.arr, score2:j2.arr, score3:j3.arr,
-  j1:j1.sum, j2:j2.sum, j3:j3.sum,
-  totalScore:j1.sum+j2.sum+j3.sum,
-
-  locked: true   // ✅ สำคัญมาก
+  score1: j1.arr,
+  score2: j2.arr,
+  score3: j3.arr,
+  j1: j1.sum,
+  j2: j2.sum,
+  j3: j3.sum,
+  totalScore: j1.sum + j2.sum + j3.sum,
+  locked: true   // 🔥 กันกรอกซ้ำ + ใช้กับสถานะ
 });
+ 
 
   // รีโหลด dropdown
   await loadContestants();
@@ -517,19 +597,42 @@ window.printDetail = function(){
     html+=`
     <div class="box">
     <b>No.${i+1} ${c.name}</b>
+
     <table>
-    <tr><th>รายการ</th><th>1</th><th>2</th><th>3</th></tr>`;
+    <tr>
+      <th>รายการ</th>
+      <th>เต็ม</th>
+      <th>กก1</th>
+      <th>กก2</th>
+      <th>กก3</th>
+    </tr>`;
 
     items.forEach((it,idx)=>{
-      html+=`<tr>
-      <td>${it.name}</td>
-      <td>${c.score1?.[idx]||0}</td>
-      <td>${c.score2?.[idx]||0}</td>
-      <td>${c.score3?.[idx]||0}</td>
+      html+=`
+      <tr>
+        <td>${it.name}</td>
+        <td>${it.max}</td>
+        <td>${c.score1?.[idx]||0}</td>
+        <td>${c.score2?.[idx]||0}</td>
+        <td>${c.score3?.[idx]||0}</td>
       </tr>`;
     });
 
-    html+=`</table><b>รวม ${c.totalScore||0}</b></div>`;
+    html+=`
+    <tr>
+      <td colspan="2"><b>รวม</b></td>
+      <td><b>${c.j1||0}</b></td>
+      <td><b>${c.j2||0}</b></td>
+      <td><b>${c.j3||0}</b></td>
+    </tr>
+
+    <tr>
+      <td colspan="5"><b>รวมทั้งหมด ${c.totalScore||0}</b></td>
+    </tr>
+
+    </table>
+    </div>
+    `;
 
     if((i+1)%10===0) html+=`<div class="page"></div>`;
   });
