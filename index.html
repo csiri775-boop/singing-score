@@ -154,6 +154,8 @@ button:hover{background:#2e7d32;}
 <button onclick="backupData()">💾 Backup</button>
 <button onclick="resetAll()">🧨 สิ้นสุด</button>
 
+<button onclick="openMonitor()">📢 แสดง Monitor</button>
+  
 <hr>
 
 <h2>🏆 ตารางคะแนน</h2>
@@ -701,6 +703,11 @@ window.printDetail = function(){
   setTimeout(()=>w.print(),500);
 };
 
+<script>
+function openMonitor() {
+  window.open("monitor.html", "_blank");
+}
+  
 </script>
 </body>
 </html>
