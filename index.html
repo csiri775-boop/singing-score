@@ -1,29 +1,120 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>ระบบให้คะแนนร้องเพลง</title>
+  <meta charset="UTF-8">
+  <title>
+ระบบประมวลผลและตัดสินการประกวดร้องเพลง | Singing Contest Scoring System
+</title>
 
-<style>
-body{font-family:sans-serif;margin:0;padding:10px;background:#f5f5f5;}
-#mainTitle{text-align:center;font-size:32px;margin:10px;}
-input{width:60px;padding:5px;margin:2px;}
-table{width:100%;border-collapse:collapse;background:white;}
-th,td{border:1px solid #000;padding:5px;text-align:center;}
-button{margin:5px;padding:6px 12px;background:#4CAF50;color:white;border:none;border-radius:6px;}
-.gold{background:gold;font-weight:bold;}
-
-#loginWrapper{display:flex;justify-content:center;align-items:center;height:100vh;}
-#loginWrapper.hidden{display:none;}
-#loginBox{background:white;padding:30px;border-radius:10px;}
-</style>
+  <style>
+    #mainTitle{
+      text-align: center;
+      font-size: 34px;
+      font-weight: bold;
+      margin: 20px 0;
+      color: #2c3e50;
+    }
+  </style>
 </head>
 
 <body>
 
-<h1 id="mainTitle">🎤 ระบบให้คะแนนประกวดร้องเพลง</h1>
+  <h1 id="mainTitle">
+    ระบบประมวลผลและตัดสินการประกวดร้องเพลง<br>
+    <span style="font-size:20px;">
+      Singing Contest Scoring System
+    </span>
+  </h1>
 
-<!-- LOGIN -->
+</div>
+
+</body>
+</html>
+
+<style>
+body{
+  font-family:sans-serif;
+  margin:0;                 /* 🔥 ตัดช่องว่าง */
+  padding:10px;             /* 🔥 ลดจาก 20 */
+  background:#f5f5f5;
+}
+
+/* input เดิม */
+input{
+  width:60px;
+  margin:2px;
+  padding:5px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+/* ตาราง */
+table{
+  border-collapse:collapse;
+  margin-top:10px;
+  width:100%;
+  background:white;
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+}
+
+th,td{
+  border:1px solid #000;
+  padding:4px;
+  text-align:center;
+}
+
+/* ปุ่ม */
+button{
+  margin:5px;
+  padding:6px 12px;
+  background:#4CAF50;
+  color:white;
+  border:none;
+  border-radius:6px;
+}
+button:hover{background:#2e7d32;}
+
+.gold{background:gold;font-weight:bold;}
+
+/* ===== LOGIN CENTER ===== */
+#loginWrapper{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+/* 🔥 สำคัญ: ซ่อน login หลังเข้า */
+#loginWrapper.hidden{
+  display:none;
+}
+
+/* 🔥 หน้า app ไม่ต้องมีระยะห่าง */
+#appBox{
+  margin:0;
+}
+
+/* กล่อง login */
+#loginBox{
+  background:white;
+  padding:30px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
+  text-align:center;
+}
+
+/* input login */
+#loginBox input{
+  width:220px;
+  height:35px;
+  font-size:16px;
+}
+
+</style>
+
+</head>
+<body>
+
 <div id="loginWrapper">
   <div id="loginBox">
     <h2>🔐 Login</h2>
@@ -33,20 +124,35 @@ button{margin:5px;padding:6px 12px;background:#4CAF50;color:white;border:none;bo
   </div>
 </div>
 
-<!-- APP -->
 <div id="appBox" style="display:none;">
 
-<h2>ระบบให้คะแนน</h2>
+<h2>🎤 ระบบให้คะแนน</h2>
 
-<select id="contestant" style="width:400px;height:40px;"></select>
+<div id="statusBox" style="font-size:18px;margin-bottom:10px;">
+  📊 กำลังโหลด...
+</div>
+
+<select id="contestant" style="width:600px;height:45px;font-size:18px;"></select>
+
+<br><br>
+
+<input id="newName" placeholder="ชื่อผู้เข้าแข่งขัน">
+<button onclick="addContestant()">➕ เพิ่ม</button>
+<button onclick="deleteContestant()">❌ ลบ</button>
+
+<br><br>
+
+<input type="file" id="excelFile" accept=".csv">
+<button onclick="importExcel()">📥 นำเข้า Excel</button>
 
 <br><br>
 
 <div id="formArea"></div>
 
 <button onclick="submitScore()">💾 บันทึก</button>
-<button onclick="clearScore()">🧹 ล้าง</button>
-<button onclick="openMonitor()">📺 Monitor</button>
+<button onclick="clearScore()">🧹 ล้างช่อง</button>
+<button onclick="backupData()">💾 Backup</button>
+<button onclick="resetAll()">🧨 สิ้นสุด</button>
 
 <hr>
 
@@ -58,13 +164,17 @@ button{margin:5px;padding:6px 12px;background:#4CAF50;color:white;border:none;bo
 <tbody id="table"></tbody>
 </table>
 
+<br>
+<button onclick="exportExcel()">📊 Excel</button>
+<button onclick="printDetail()">🖨️ รายงาน</button>
+<button onclick="announceResult()">📢 ประกาศผล</button>
+
 </div>
 
-<!-- 🔥 Firebase -->
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSy...",
@@ -77,25 +187,198 @@ const db = getFirestore(app);
 
 let cache=[];
 
-/* LOGIN */
-window.login=function(){
-  if(user.value==="admin" && pass.value==="admin1"){
-    loginWrapper.classList.add("hidden");
-    appBox.style.display="block";
-  }else alert("❌ ผิด");
+window.login = function(){
+
+  const u = document.getElementById("user").value.trim();
+  const p = document.getElementById("pass").value.trim();
+
+  if(u==="admin" && p==="admin1"){
+
+    // 🔥 ซ่อน login จริง ๆ
+    document.getElementById("loginWrapper").classList.add("hidden");
+
+    // แสดงระบบ
+    document.getElementById("appBox").style.display="block";
+
+  }else{
+    alert("❌ รหัสไม่ถูกต้อง");
+  }
 };
 
-/* FORM คะแนน */
-const items=[
-{name:"น้ำเสียง",max:30},
-{name:"เทคนิค",max:10},
-{name:"จังหวะ",max:20},
-{name:"อักขระ",max:10},
-{name:"บุคลิก",max:10},
-{name:"ความยาก",max:10},
-{name:"แต่งกาย",max:10}
+// เพิ่ม
+window.addContestant=async()=>{
+let name=newName.value.trim();
+if(!name) return alert("ใส่ชื่อ");
+await addDoc(collection(db,"contestants"),{
+name:name,totalScore:0,j1:0,j2:0,j3:0});
+newName.value="";
+};
+
+// ลบ
+window.deleteContestant=async()=>{
+let id=contestant.value;
+if(!confirm("ลบ?")) return;
+await deleteDoc(doc(db,"contestants",id));
+};
+
+// IMPORT EXCEL
+window.importExcel = function(){
+
+  const file = excelFile.files[0];
+  if(!file) return alert("เลือกไฟล์");
+
+  const reader = new FileReader();
+
+  reader.onload = async function(e){
+
+    const text = new TextDecoder("utf-8").decode(e.target.result);
+    let rows = text.split("\n");
+
+    let list = [];
+
+    for(let i=1;i<rows.length;i++){
+      let cols = rows[i].split(",");
+
+      let no = Number(cols[0]);
+      let name = cols[1]?.trim();
+
+      if(name){
+        list.push({no, name});
+      }
+    }
+
+    // 🔥 เรียงตามเลข
+    list.sort((a,b)=>a.no - b.no);
+
+    // 🔥 เพิ่มเข้า Firebase
+    for(let item of list){
+      await addDoc(collection(db,"contestants"),{
+        name: `No.${item.no} ${item.name}`,
+        order: item.no,
+        totalScore:0,
+        j1:0,j2:0,j3:0
+      });
+    }
+
+    alert("นำเข้าเรียงลำดับแล้ว");
+  };
+
+  reader.readAsArrayBuffer(file);
+};
+
+// คะแนน
+const items = [
+  {name:"น้ำเสียง",max:30},
+  {name:"เทคนิค",max:10},
+  {name:"จังหวะ",max:20},
+  {name:"อักขระ",max:10},
+  {name:"บุคลิก",max:10},
+  {name:"ความยาก",max:10},
+  {name:"แต่งกาย",max:10}
 ];
 
+window.announceResult = function(){
+
+  if(cache.length === 0){
+    alert("ยังไม่มีข้อมูล");
+    return;
+  }
+
+  // 🔥 เรียงคะแนนมาก → น้อย (ทุกคน)
+  let sorted = [...cache]
+    .sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
+
+  let html = `
+  <html>
+  <head>
+  <meta charset="UTF-8">
+  <style>
+    @page { size: A4; margin: 20mm; }
+
+    body{
+      font-family: "TH Sarabun New", sans-serif;
+      text-align: center;
+    }
+
+    h1{
+      font-size: 36px;
+      margin-bottom: 20px;
+    }
+
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td{
+      border: 1px solid #000;
+      padding: 8px;
+      font-size: 20px;
+    }
+
+    th{
+      background: #f0f0f0;
+    }
+
+    .top1{
+      background: gold;
+      font-weight: bold;
+    }
+
+    .top2{
+      background: #ddd;
+    }
+
+    .top3{
+      background: #cd7f32;
+      color: white;
+    }
+
+  </style>
+  </head>
+  <body>
+
+  <h1>🏆 ผลการประกวดร้องเพลง</h1>
+
+  <table>
+    <tr>
+      <th>อันดับ</th>
+      <th>ชื่อผู้เข้าแข่งขัน</th>
+      <th>คะแนนรวม</th>
+    </tr>
+  `;
+
+  sorted.forEach((c,i)=>{
+
+    let cls="";
+    if(i===0) cls="top1";
+    else if(i===1) cls="top2";
+    else if(i===2) cls="top3";
+
+    html+=`
+      <tr class="${cls}">
+        <td>อันดับที่ ${i+1}</td>
+        <td>${c.name}</td>
+        <td>${c.totalScore || 0}</td>
+      </tr>
+    `;
+  });
+
+  html+=`
+    </table>
+  </body>
+  </html>
+  `;
+
+  let w = window.open("");
+  w.document.write(html);
+  w.document.close();
+
+  setTimeout(()=>w.print(),500);
+};
+
+// FORM
 function createForm(){
 let html="";
 for(let j=1;j<=3;j++){
@@ -103,84 +386,321 @@ html+=`<h3>กรรมการ ${j}</h3><table><tr>`;
 items.forEach(i=>html+=`<th>${i.name}(${i.max})</th>`);
 html+=`</tr><tr>`;
 items.forEach((i,idx)=>{
-html+=`<td><input type="number" id="j${j}_s${idx}"></td>`;
+  html+=`<td>
+    <input type="number" id="j${j}_s${idx}" data-j="${j}" data-i="${idx}">
+  </td>`;
 });
 html+=`</tr></table><br>`;
 }
 formArea.innerHTML=html;
+
+// auto focus
+// // ❌ ไม่เด้งอัตโนมัติอีกต่อไป
+setTimeout(()=>{
+  let inputs = document.querySelectorAll("input[type=number]");
+
+  inputs.forEach((el,i)=>{
+
+    // กด Enter → ไปช่องถัดไป (แทน auto)
+    el.addEventListener("keydown",(e)=>{
+      if(e.key==="Enter"){
+        e.preventDefault();
+        if(inputs[i+1]) inputs[i+1].focus();
+      }
+    });
+
+  });
+
+},300);
+
 }
 createForm();
 
-/* คำนวณ */
+// LOAD
+async function loadContestants() {
+  const snapshot = await getDocs(collection(db, "contestants"));
+  const select = document.getElementById("contestant");
+
+  let list = [];
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+
+    list.push({
+      id: docSnap.id,
+      name: data.name,
+      order: data.order || 9999,
+      locked: data.locked || false   // ✅ เพิ่มตัวนี้
+    });
+  });
+
+  // 🔥 เรียงตามเลข
+  list.sort((a, b) => a.order - b.order);
+
+  // 🔥 ล้างก่อน
+  select.innerHTML = "";
+
+  list.forEach(item => {
+    const opt = document.createElement("option");
+    opt.value = item.id;
+    opt.text = item.name;
+
+    // ✅ สีเขียวถ้ากรอกแล้ว
+    if (item.locked) {
+      opt.style.color = "green";
+      opt.text += " ✔";
+    }
+
+    select.appendChild(opt);
+  });
+}
+
+// CALC
 function calc(p){
-let sum=0;
-for(let i=0;i<items.length;i++){
-let v=Number(document.getElementById(`${p}_s${i}`).value)||0;
-if(v>items[i].max){alert("เกิน");throw "err";}
-sum+=v;
-}
-return sum;
+  let arr=[], sum=0;
+
+  for(let i=0;i<items.length;i++){
+
+    let el = document.querySelector(`[id="${p}_s${i}"]`);
+
+    if(!el){
+      console.log("❌ ไม่เจอ:", p+"_s"+i);
+      arr.push(0);
+      continue;
+    }
+
+    let v = Number(el.value) || 0;
+
+    if(v > items[i].max){
+      alert("เกิน "+items[i].max);
+      throw "err";
+    }
+
+    arr.push(v);
+    sum += v;
+  }
+
+  console.log("✅", p, arr);
+
+  return {arr,sum};
 }
 
-/* SAVE */
-window.submitScore=async()=>{
-let id=contestant.value;
-let total=calc("j1")+calc("j2")+calc("j3");
+// SAVE
+window.submitScore = async () => {
 
-await updateDoc(doc(db,"contestants",id),{
-totalScore:total
+  let id = contestant.value;
+
+  if(cache.find(c=>c.id===id && c.totalScore>0)){
+    if(!confirm("มีคะแนนแล้ว แก้ไขหรือไม่?")) return;
+  }
+
+  let j1 = calc("j1"),
+      j2 = calc("j2"),
+      j3 = calc("j3");
+
+  await updateDoc(doc(db,"contestants",id),{
+  score1: j1.arr,
+  score2: j2.arr,
+  score3: j3.arr,
+  j1: j1.sum,
+  j2: j2.sum,
+  j3: j3.sum,
+  totalScore: j1.sum + j2.sum + j3.sum,
+  locked: true   // 🔥 กันกรอกซ้ำ + ใช้กับสถานะ
 });
+ 
 
-alert("บันทึกแล้ว");
+  // รีโหลด dropdown
+  await loadContestants();
+
+  // ล้างช่อง
+  clearScore();
+
+  // โฟกัสช่องแรก
+  setTimeout(()=>document.getElementById("j1_s0").focus(),200);
+
+  alert("บันทึกแล้ว");
 };
 
-/* CLEAR */
+// CLEAR
 window.clearScore=()=>{
-document.querySelectorAll("input").forEach(i=>i.value="");
+document.querySelectorAll("input[type=number]").forEach(i=>i.value="");
 };
 
-/* LOAD + TABLE */
-onSnapshot(collection(db,"contestants"),snap=>{
-let list=[];
-snap.forEach(d=>{
-let data=d.data();
-list.push({
-id:d.id,
-name:data.name,
-score:data.totalScore||0
-});
-});
+// BACKUP
+window.backupData=()=>{
+let blob=new Blob([JSON.stringify(cache)]);
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="backup.json";
+a.click();
+};
 
-list.sort((a,b)=>b.score-a.score);
+// RESET
+window.resetAll=async()=>{
+if(!confirm("Backup ก่อนลบ?")) return;
+backupData();
+if(!confirm("ลบทั้งหมด?")) return;
 
-contestant.innerHTML="";
-list.forEach(i=>{
-let o=document.createElement("option");
-o.value=i.id;
-o.text=i.name;
-contestant.appendChild(o);
-});
-
-let html="";
-list.forEach((c,i)=>{
-html+=`
-<tr class="${i==0?'gold':''}">
-<td>${i+1}</td>
-<td>${c.name}</td>
-<td>${c.score}</td>
-</tr>`;
-});
-table.innerHTML=html;
-
-});
-
-</script>
-
-<script>
-function openMonitor(){
-  window.open("monitor.html","_blank");
+const snap=await getDocs(collection(db,"contestants"));
+for(const d of snap.docs){
+await deleteDoc(doc(db,"contestants",d.id));
 }
-</script>
+alert("ล้างแล้ว");
+};
 
+// TABLE
+onSnapshot(collection(db,"contestants"),snap=>{
+
+  cache=[];
+  let list=[];
+  let done = 0;
+
+  snap.forEach(d=>{
+    const data = d.data();
+
+    if(data.locked) done++;   // 🔥 นับคนที่ให้คะแนนแล้ว
+
+    list.push({
+  id:d.id,
+  name:data.name,
+  order:data.order || 9999,
+  totalScore:data.totalScore||0,
+  locked:data.locked || false,
+
+  // 🔥 เพิ่มตรงนี้
+  score1: data.score1 || [],
+  score2: data.score2 || [],
+  score3: data.score3 || [],
+  j1: data.j1 || 0,
+  j2: data.j2 || 0,
+  j3: data.j3 || 0
+});
+  });
+
+  // 🔥 เรียง No.
+  list.sort((a,b)=>a.order - b.order);
+
+  // 🔥 แสดงสถานะ
+  document.getElementById("statusBox").innerHTML =
+    `📊 ให้คะแนนแล้ว <b>${done}</b> / ${list.length} คน`;
+
+  // 🔥 dropdown
+  contestant.innerHTML="";
+  list.forEach(item=>{
+    let o=document.createElement("option");
+    o.value=item.id;
+    o.text=item.name;
+
+    if(item.locked){
+      o.text += " ✔";
+      o.style.color="green";
+    }
+
+    contestant.appendChild(o);
+  });
+
+  // 🔥 ตารางคะแนน (เหมือนเดิม)
+  cache=[...list];
+  cache.sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
+
+  let html="";
+  cache.forEach((c,i)=>{
+    html+=`
+      <tr class="${i==0?'gold':''}">
+      <td>No.${i+1}</td>
+      <td>${c.name}</td>
+      <td>${c.totalScore||0}</td>
+      </tr>`;
+  });
+
+  table.innerHTML=html;
+});
+
+// ✅ REPORT (แก้แล้ว)
+window.printDetail = function(){
+
+  if(cache.length===0){
+    alert("ยังไม่มีข้อมูล");
+    return;
+  }
+
+  let html = `
+  <html>
+  <head>
+  <meta charset="UTF-8">
+  <style>
+    body{font-family:sans-serif;margin:10px;}
+    .page{page-break-after:always;}
+    .box{
+      width:48%;
+      display:inline-block;
+      border:1px solid #000;
+      margin:1%;
+      padding:5px;
+      font-size:12px;
+    }
+    table{width:100%;border-collapse:collapse;font-size:11px;}
+    td,th{border:1px solid #000;padding:2px;text-align:center;}
+  </style>
+  </head>
+  <body>
+  `;
+
+  cache.forEach((c,i)=>{
+
+    html+=`
+    <div class="box">
+    <b>No.${i+1} ${c.name}</b>
+
+    <table>
+    <tr>
+      <th>รายการ</th>
+      <th>เต็ม</th>
+      <th>กก1</th>
+      <th>กก2</th>
+      <th>กก3</th>
+    </tr>`;
+
+    items.forEach((it,idx)=>{
+      html+=`
+      <tr>
+        <td>${it.name}</td>
+        <td>${it.max}</td>
+        <td>${c.score1?.[idx]||0}</td>
+        <td>${c.score2?.[idx]||0}</td>
+        <td>${c.score3?.[idx]||0}</td>
+      </tr>`;
+    });
+
+    html+=`
+    <tr>
+      <td colspan="2"><b>รวม</b></td>
+      <td><b>${c.j1||0}</b></td>
+      <td><b>${c.j2||0}</b></td>
+      <td><b>${c.j3||0}</b></td>
+    </tr>
+
+    <tr>
+      <td colspan="5"><b>รวมทั้งหมด ${c.totalScore||0}</b></td>
+    </tr>
+
+    </table>
+    </div>
+    `;
+
+    if((i+1)%10===0) html+=`<div class="page"></div>`;
+  });
+
+  html+="</body></html>";
+
+  let w=window.open("");
+  w.document.write(html);
+  w.document.close();
+
+  setTimeout(()=>w.print(),500);
+};
+
+</script>
 </body>
 </html>
