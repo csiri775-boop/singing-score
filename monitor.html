@@ -2,46 +2,38 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Monitor คะแนน</title>
+<title>Monitor</title>
 
 <style>
-body {
-  font-family: Arial;
-  background: black;
-  color: white;
-  text-align: center;
+body{
+  background:black;
+  color:white;
+  font-family:sans-serif;
+  text-align:center;
 }
 
-h1 {
-  font-size: 40px;
+h1{
+  font-size:50px;
+  margin:20px;
 }
 
-table {
-  width: 90%;
-  margin: auto;
-  border-collapse: collapse;
-  font-size: 28px;
+table{
+  width:80%;
+  margin:auto;
+  border-collapse:collapse;
+  font-size:28px;
 }
 
-td, th {
-  padding: 15px;
+td,th{
+  border:1px solid white;
+  padding:10px;
 }
 
-tr:nth-child(2) {
-  background: gold;
-  color: black;
-  font-size: 36px;
+.gold{
+  background:gold;
+  color:black;
+  font-weight:bold;
 }
-
-tr:nth-child(3) {
-  background: silver;
-  color: black;
-}
-
-tr:nth-child(4) {
-  background: #cd7f32;
-}
-
 </style>
 </head>
 
@@ -49,35 +41,63 @@ tr:nth-child(4) {
 
 <h1>🏆 ตารางคะแนน</h1>
 
-<table id="table"></table>
+<table>
+<thead>
+<tr>
+<th>อันดับ</th>
+<th>ชื่อ</th>
+<th>คะแนน</th>
+</tr>
+</thead>
+<tbody id="tb"></tbody>
+</table>
 
-<script>
-const API = "https://script.google.com/macros/s/AKfycbxxxx/exec";
+<script type="module">
 
-async function loadData() {
-  const res = await fetch(API);
-  const data = await res.json();
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-  let html = "<tr><th>อันดับ</th><th>ชื่อ</th><th>คะแนน</th></tr>";
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "...",
+  projectId: "singing-contest-85f70"
+};
 
-  data.forEach((item, i) => {
-    html += `
-      <tr>
-        <td>${i+1}</td>
-        <td>${item.name}</td>
-        <td>${item.score}</td>
-      </tr>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+onSnapshot(collection(db,"contestants"), snap => {
+
+  let list = [];
+
+  snap.forEach(doc=>{
+    const d = doc.data();
+
+    list.push({
+      name: d.name,
+      score: d.totalScore || 0
+    });
+  });
+
+  // 🔥 เรียงคะแนนมากไปน้อย
+  list.sort((a,b)=>b.score - a.score);
+
+  let html="";
+
+  list.forEach((c,i)=>{
+    html+=`
+    <tr class="${i==0?'gold':''}">
+      <td>${i+1}</td>
+      <td>${c.name}</td>
+      <td>${c.score}</td>
+    </tr>
     `;
   });
 
-  document.getElementById("table").innerHTML = html;
-}
+  document.getElementById("tb").innerHTML = html;
 
-setInterval(loadData, 3000);
-loadData();
+});
 
-// 🔥 Fullscreen
-document.documentElement.requestFullscreen();
 </script>
 
 </body>
