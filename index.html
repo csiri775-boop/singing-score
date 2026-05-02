@@ -163,6 +163,98 @@ select {
   height: 40px;
 }
 
+/* ===== พื้นฐาน ===== */
+body {
+  font-family: sans-serif;
+  margin: 0;
+}
+
+/* ตารางลื่น ไม่ล้นจอ */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* ขนาดมาตรฐาน (Desktop) */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 18px;
+}
+
+th, td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+input[type="number"], select {
+  font-size: 20px;
+  width: 90px;
+  height: 40px;
+}
+
+/* ===== 📱 มือถือ ===== */
+@media (max-width: 768px) {
+
+  body {
+    font-size: 16px;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  input[type="number"], select {
+    width: 70px;
+    height: 35px;
+    font-size: 16px;
+  }
+
+  th {
+    font-size: 14px;
+  }
+
+}
+
+/* ===== 💻 Tablet ===== */
+@media (min-width: 769px) and (max-width: 1200px) {
+
+  table {
+    font-size: 16px;
+  }
+
+  input[type="number"], select {
+    width: 80px;
+    height: 38px;
+    font-size: 18px;
+  }
+
+}
+
+/* ===== 🎬 จอเวที (ใหญ่) ===== */
+@media (min-width: 1600px) {
+
+  body {
+    font-size: 28px;
+  }
+
+  table {
+    font-size: 26px;
+  }
+
+  input[type="number"], select {
+    width: 130px;
+    height: 60px;
+    font-size: 28px;
+  }
+
+  th {
+    font-size: 26px;
+  }
+
+}
+  
 </style>
 
 </head>
