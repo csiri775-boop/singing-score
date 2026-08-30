@@ -1224,24 +1224,61 @@ window.printDetail = function(){
   <head>
   <meta charset="UTF-8">
   <style>
-    body{font-family:sans-serif;margin:10px;}
-    .page{page-break-after:always;}
-    .box{
-      width:48%;
-      display:inline-block;
-      border:1px solid #000;
-      margin:1%;
-      padding:5px;
-      font-size:12px;
+    @page{
+      size:A4 portrait;
+      margin:8mm;
     }
-    table{width:100%;border-collapse:collapse;font-size:11px;}
-    td,th{border:1px solid #000;padding:2px;text-align:center;}
+    *{box-sizing:border-box;}
+    html,body{
+      width:100%;
+      margin:0;
+      padding:0;
+      font-family:sans-serif;
+    }
+    .page{
+      page-break-after:always;
+      width:100%;
+    }
+    .box{
+      width:100%;
+      display:block;
+      border:1px solid #000;
+      margin:0 0 4px 0;
+      padding:3px 5px;
+      font-size:11px;
+      page-break-inside:avoid;
+    }
+    .box table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      font-size:10px;
+      margin:0;
+    }
+    .box td,.box th{
+      border:1px solid #000;
+      padding:2px 3px;
+      text-align:center;
+    }
+    .box td:first-child,
+    .box th:first-child{
+      width:32%;
+      text-align:left;
+    }
+    .box td:not(:first-child),
+    .box th:not(:first-child){
+      width:17%;
+    }
   </style>
   </head>
   <body>
   `;
 
   cache.forEach((c,i)=>{
+
+    if(i % 10 === 0){
+      html += `<div class="page">`;
+    }
 
     html+=`
     <div class="box">
@@ -1283,8 +1320,14 @@ window.printDetail = function(){
     </div>
     `;
 
-    if((i+1)%10===0) html+=`<div class="page"></div>`;
+    if((i+1)%10===0){
+      html += `</div>`;
+    }
   });
+
+  if(cache.length % 10 !== 0){
+    html += `</div>`;
+  }
 
   html+="</body></html>";
 
