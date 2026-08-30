@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Monitor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor - ตารางคะแนน</title>
 
 <style>
 body{
@@ -10,6 +11,8 @@ body{
   color:white;
   font-family:sans-serif;
   text-align:center;
+  margin:0;
+  padding:20px;
 }
 
 h1{
@@ -29,9 +32,20 @@ td,th{
   padding:10px;
 }
 
+th{
+  background:#222;
+}
+
+/* อันดับ 1 */
 .gold{
   background:gold;
   color:black;
+  font-weight:bold;
+}
+
+/* คะแนนเสมอกัน */
+.tie{
+  color:red !important;
   font-weight:bold;
 }
 </style>
@@ -49,13 +63,26 @@ td,th{
 <th>คะแนน</th>
 </tr>
 </thead>
+
 <tbody id="tb"></tbody>
+
 </table>
 
 <script type="module">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+
+import {
+  getFirestore,
+  collection,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+
+/* ==============================
+   FIREBASE
+============================== */
 
 const firebaseConfig = {
   apiKey: "AIzaSy...",
@@ -64,39 +91,178 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+
 const db = getFirestore(app);
 
-onSnapshot(collection(db,"contestants"), snap => {
 
-  let list = [];
+/* ==============================
+   REAL-TIME DATA
+============================== */
 
-  snap.forEach(doc=>{
-    const d = doc.data();
+onSnapshot(
+  collection(db,"contestants"),
 
-    list.push({
-      name: d.name,
-      score: d.totalScore || 0
+  snap => {
+
+    let list = [];
+
+    snap.forEach(doc => {
+
+      const d = doc.data();
+
+      list.push({
+
+        name: d.name || "",
+
+        score: Number(d.totalScore || 0),
+
+        order: Number(d.order || 9999)
+
+      });
+
     });
-  });
 
-  // 🔥 เรียงคะแนนมากไปน้อย
-  list.sort((a,b)=>b.score - a.score);
 
-  let html="";
+    /* ==============================
+       เรียงคะแนนมาก → น้อย
+    ============================== */
 
-  list.forEach((c,i)=>{
-    html+=`
-    <tr class="${i==0?'gold':''}">
-      <td>${i+1}</td>
-      <td>${c.name}</td>
-      <td>${c.score}</td>
-    </tr>
+    list.sort((a,b) => {
+
+      if(b.score !== a.score){
+
+        return b.score - a.score;
+
+      }
+
+      return a.order - b.order;
+
+    });
+
+
+    /* ==============================
+       ตรวจคะแนนเสมอกัน
+    ============================== */
+
+    const scoreCount = {};
+
+    list.forEach(c => {
+
+      if(!scoreCount[c.score]){
+
+        scoreCount[c.score] = 0;
+
+      }
+
+      scoreCount[c.score]++;
+
+    });
+
+
+    /* ==============================
+       สร้างตาราง
+    ============================== */
+
+    let html = "";
+
+
+    list.forEach((c,i) => {
+
+      const isTie = scoreCount[c.score] > 1;
+
+
+      /*
+       * ถ้าคะแนนเสมอกัน
+       * อันดับ + ชื่อ + คะแนน = สีแดง
+       */
+
+      const tieClass = isTie ? "tie" : "";
+
+
+      /*
+       * อันดับ 1 สีทอง
+       * แต่ถ้าคะแนนเสมอ ให้ใช้สีแดงแทน
+       */
+
+      const rowClass =
+        (!isTie && i === 0)
+          ? "gold"
+          : "";
+
+
+      html += `
+
+      <tr class="${rowClass}">
+
+        <td class="${tieClass}">
+          ${i + 1}
+        </td>
+
+        <td class="${tieClass}">
+          ${escapeHtml(c.name)}
+        </td>
+
+        <td class="${tieClass}">
+          ${c.score}
+        </td>
+
+      </tr>
+
+      `;
+
+    });
+
+
+    document.getElementById("tb").innerHTML = html;
+
+  },
+
+  error => {
+
+    console.error(
+      "Firebase Error:",
+      error
+    );
+
+    document.getElementById("tb").innerHTML = `
+
+      <tr>
+
+        <td colspan="3"
+            style="color:red;font-size:24px;">
+
+          ❌ ไม่สามารถโหลดข้อมูลได้
+
+        </td>
+
+      </tr>
+
     `;
-  });
 
-  document.getElementById("tb").innerHTML = html;
+  }
 
-});
+);
+
+
+/* ==============================
+   ป้องกัน HTML แปลกปลอมจากชื่อ
+============================== */
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+
+    .replaceAll("&","&amp;")
+
+    .replaceAll("<","&lt;")
+
+    .replaceAll(">","&gt;")
+
+    .replaceAll('"',"&quot;")
+
+    .replaceAll("'","&#039;");
+
+}
 
 </script>
 
