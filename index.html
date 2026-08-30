@@ -451,18 +451,8 @@ input[type="number"], select {
 <button onclick="clearScore()">🧹 ล้างช่อง</button>
 <button onclick="backupData()">💾 Backup</button>
 <button onclick="resetAll()">🧨 สิ้นสุด</button>
-
 <hr>
 
-<h2>🏆 ตารางคะแนน</h2>
-<table>
-<thead>
-<tr><th>อันดับ</th><th>ชื่อ</th><th>คะแนน</th></tr>
-</thead>
-<tbody id="table"></tbody>
-</table>
-
-<br>
 <button onclick="exportExcel()">📊 Excel</button>
 <button onclick="printDetail()">🖨️ รายงาน</button>
 <button onclick="announceResult()">📢 ประกาศผล</button>
@@ -1193,21 +1183,10 @@ onSnapshot(collection(db,"contestants"),snap=>{
     contestant.appendChild(o);
   });
 
-  // 🔥 ตารางคะแนน (เหมือนเดิม)
+  // ตารางคะแนนในหน้า index ถูกนำออกแล้ว
+  // ยังคง cache สำหรับรายงานและประกาศผล
   cache=[...list];
   cache.sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
-
-  let html="";
-  cache.forEach((c,i)=>{
-    html+=`
-      <tr class="${i==0?'gold':''}">
-      <td>No.${i+1}</td>
-      <td>${c.name}</td>
-      <td>${c.totalScore||0}</td>
-      </tr>`;
-  });
-
-  table.innerHTML=html;
 });
 
 // ✅ REPORT (แก้แล้ว)
