@@ -585,7 +585,9 @@ window.announceResult = function(){
     .top1{background:gold;font-weight:bold;}
     .top2{background:#ddd;}
     .top3{background:#cd7f32;color:white;}
-    .tie-name{
+    .tie-name,
+    .tie-rank,
+    .tie-score{
       color:red !important;
       text-decoration:underline !important;
       text-decoration-thickness:2px;
@@ -603,7 +605,7 @@ window.announceResult = function(){
   </head>
   <body>
   <h1>🏆 ผลการประกวดร้องเพลง</h1>
-  ${hasTie ? '<div class="tie-note">หมายเหตุ: รายชื่อสีแดงและขีดเส้นใต้ = คะแนนเสมอกัน</div>' : ''}
+  ${hasTie ? '<div class="tie-note">หมายเหตุ: อันดับ + รายชื่อ + คะแนน ที่เป็นสีแดงและขีดเส้นใต้ = คะแนนเสมอกัน</div>' : ''}
   <table>
     <tr>
       <th>อันดับ</th>
@@ -624,9 +626,9 @@ window.announceResult = function(){
 
     html += `
       <tr class="${cls}">
-        <td>อันดับที่ ${i+1}</td>
+        <td class="${tie ? "tie-rank" : ""}">อันดับที่ ${i+1}</td>
         <td class="${nameClass}">${escapeHtml(c.name)}</td>
-        <td>${score}</td>
+        <td class="${tie ? "tie-score" : ""}">${score}</td>
       </tr>
     `;
   });
