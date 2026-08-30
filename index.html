@@ -14,7 +14,60 @@
       margin: 20px 0;
       color: #2c3e50;
     }
-  </style>
+  
+/* ===== PREVIEW / RESTORE MODAL ===== */
+.modal-backdrop{
+  display:none;
+  position:fixed;
+  z-index:9999;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  box-sizing:border-box;
+}
+.modal-backdrop.show{display:flex;}
+.modal-box{
+  width:min(1100px,96vw);
+  max-height:90vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 8px 30px rgba(0,0,0,.35);
+  padding:20px;
+}
+.modal-box h2{margin-top:0;text-align:center;}
+.preview-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:12px;
+}
+.preview-table th,.preview-table td{
+  border:1px solid #999;
+  padding:7px;
+  text-align:center;
+}
+.preview-table th{background:#eee;}
+.modal-actions{
+  text-align:center;
+  margin-top:15px;
+}
+.tie-name{
+  color:red !important;
+  text-decoration:underline !important;
+  text-decoration-thickness:2px;
+  text-underline-offset:3px;
+  font-weight:bold;
+}
+.tie-note{
+  color:red;
+  font-weight:bold;
+  text-decoration:underline;
+  margin:10px 0;
+}
+
+</style>
 </head>
 
 <body>
@@ -255,6 +308,38 @@ input[type="number"], select {
 
 }
   
+
+/* ===== PREVIEW / CONFIRM SAVE ===== */
+#savePreviewModal{
+  display:none;
+  position:fixed;
+  z-index:9999;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  align-items:center;
+  justify-content:center;
+}
+#savePreviewBox{
+  background:#fff;
+  width:min(1100px,94vw);
+  max-height:90vh;
+  overflow:auto;
+  border-radius:12px;
+  padding:20px;
+  box-shadow:0 8px 30px rgba(0,0,0,.35);
+}
+#savePreviewBox h2{margin-top:0;text-align:center;}
+.preview-head{
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
+  justify-content:center;
+  font-size:22px;
+  margin-bottom:12px;
+}
+#savePreviewTable{font-size:18px;}
+#savePreviewTable th,#savePreviewTable td{padding:7px;border:1px solid #000;}
+.preview-total{font-weight:bold;font-size:20px;}
 </style>
 
 </head>
@@ -266,6 +351,21 @@ input[type="number"], select {
     <input id="user" placeholder="Username"><br><br>
     <input id="pass" type="password" placeholder="Password"><br><br>
     <button onclick="login()">Login</button>
+  </div>
+</div>
+
+
+<div id="savePreviewModal">
+  <div id="savePreviewBox">
+    <h2>🔎 ตรวจสอบข้อมูลก่อนบันทึก</h2>
+    <div id="savePreviewHead" class="preview-head"></div>
+    <div class="table-wrap">
+      <table id="savePreviewTable"></table>
+    </div>
+    <div style="text-align:center;margin-top:15px;">
+      <button onclick="confirmSaveScore()">✅ ยืนยันบันทึก</button>
+      <button onclick="closeSavePreview()" style="background:#777;">↩️ ยกเลิก / กลับไปแก้ไข</button>
+    </div>
   </div>
 </div>
 
@@ -314,13 +414,16 @@ input[type="number"], select {
 <button onclick="printDetail()">🖨️ รายงาน</button>
 <button onclick="announceResult()">📢 ประกาศผล</button>
 <button onclick="openMonitor()">📺 Monitor</button>
+<button onclick="restoreBackup()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
+<button onclick="document.getElementById('backupFile').click()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
+<input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
 
 </div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSy...",
@@ -424,15 +527,23 @@ const items = [
 ];
 
 window.announceResult = function(){
-
   if(cache.length === 0){
     alert("ยังไม่มีข้อมูล");
     return;
   }
 
-  // 🔥 เรียงคะแนนมาก → น้อย (ทุกคน)
   let sorted = [...cache]
     .sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
+
+  // หาคะแนนที่ซ้ำกัน: ผู้ประกวดทุกคนที่อยู่ในกลุ่มคะแนนเดียวกัน
+  // จะถูกแสดงชื่อสีแดงและขีดเส้นใต้
+  const scoreCount = {};
+  sorted.forEach(c=>{
+    const score = Number(c.totalScore || 0);
+    scoreCount[score] = (scoreCount[score] || 0) + 1;
+  });
+
+  let hasTie = Object.values(scoreCount).some(n => n > 1);
 
   let html = `
   <html>
@@ -440,53 +551,47 @@ window.announceResult = function(){
   <meta charset="UTF-8">
   <style>
     @page { size: A4; margin: 20mm; }
-
     body{
-      font-family: "TH Sarabun New", sans-serif;
-      text-align: center;
+      font-family:"TH Sarabun New",sans-serif;
+      text-align:center;
     }
-
     h1{
-      font-size: 36px;
-      margin-bottom: 20px;
+      font-size:36px;
+      margin-bottom:10px;
     }
-
     table{
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+      width:100%;
+      border-collapse:collapse;
+      margin-top:20px;
     }
-
-    th, td{
-      border: 1px solid #000;
-      padding: 8px;
-      font-size: 20px;
+    th,td{
+      border:1px solid #000;
+      padding:8px;
+      font-size:20px;
     }
-
-    th{
-      background: #f0f0f0;
+    th{background:#f0f0f0;}
+    .top1{background:gold;font-weight:bold;}
+    .top2{background:#ddd;}
+    .top3{background:#cd7f32;color:white;}
+    .tie-name{
+      color:red !important;
+      text-decoration:underline !important;
+      text-decoration-thickness:2px;
+      text-underline-offset:3px;
+      font-weight:bold;
     }
-
-    .top1{
-      background: gold;
-      font-weight: bold;
+    .tie-note{
+      color:red;
+      font-weight:bold;
+      text-decoration:underline;
+      font-size:20px;
+      margin:8px 0;
     }
-
-    .top2{
-      background: #ddd;
-    }
-
-    .top3{
-      background: #cd7f32;
-      color: white;
-    }
-
   </style>
   </head>
   <body>
-
   <h1>🏆 ผลการประกวดร้องเพลง</h1>
-
+  ${hasTie ? '<div class="tie-note">หมายเหตุ: รายชื่อสีแดงและขีดเส้นใต้ = คะแนนเสมอกัน</div>' : ''}
   <table>
     <tr>
       <th>อันดับ</th>
@@ -496,31 +601,37 @@ window.announceResult = function(){
   `;
 
   sorted.forEach((c,i)=>{
-
     let cls="";
     if(i===0) cls="top1";
     else if(i===1) cls="top2";
     else if(i===2) cls="top3";
 
-    html+=`
+    const score = Number(c.totalScore || 0);
+    const tie = scoreCount[score] > 1;
+    const nameClass = tie ? "tie-name" : "";
+
+    html += `
       <tr class="${cls}">
         <td>อันดับที่ ${i+1}</td>
-        <td>${c.name}</td>
-        <td>${c.totalScore || 0}</td>
+        <td class="${nameClass}">${escapeHtml(c.name)}</td>
+        <td>${score}</td>
       </tr>
     `;
   });
 
-  html+=`
+  html += `
     </table>
   </body>
   </html>
   `;
 
   let w = window.open("");
+  if(!w){
+    alert("กรุณาอนุญาต Pop-up เพื่อเปิดหน้าประกาศผล");
+    return;
+  }
   w.document.write(html);
   w.document.close();
-
   setTimeout(()=>w.print(),500);
 };
 
@@ -632,41 +743,105 @@ function calc(p){
 }
 
 // SAVE
+let pendingScoreSave = null;
+
 window.submitScore = async () => {
-
   let id = contestant.value;
+  if(!id) return alert("กรุณาเลือกผู้ประกวด");
 
-  if(cache.find(c=>c.id===id && c.totalScore>0)){
-    if(!confirm("มีคะแนนแล้ว แก้ไขหรือไม่?")) return;
+  let c = cache.find(x => x.id === id);
+  if(!c) return alert("ไม่พบข้อมูลผู้ประกวด");
+
+  try{
+    let j1 = calc("j1");
+    let j2 = calc("j2");
+    let j3 = calc("j3");
+
+    pendingScoreSave = {
+      id,
+      name: c.name,
+      order: c.order || 9999,
+      j1, j2, j3,
+      total: j1.sum + j2.sum + j3.sum
+    };
+
+    let html = `
+      <table class="preview-table">
+        <tr>
+          <th>หมายเลข</th>
+          <th>ชื่อผู้ประกวด</th>
+          <th>กรรมการ 1</th>
+          <th>กรรมการ 2</th>
+          <th>กรรมการ 3</th>
+          <th>คะแนนรวม</th>
+        </tr>
+        <tr>
+          <td>No.${pendingScoreSave.order}</td>
+          <td>${escapeHtml(pendingScoreSave.name)}</td>
+          <td>${pendingScoreSave.j1.sum}</td>
+          <td>${pendingScoreSave.j2.sum}</td>
+          <td>${pendingScoreSave.j3.sum}</td>
+          <td><b>${pendingScoreSave.total}</b></td>
+        </tr>
+      </table>
+      <p style="text-align:center;margin-top:15px;">
+        กรุณาตรวจสอบหมายเลข ชื่อ และผลคะแนนให้ถูกต้องก่อนยืนยันบันทึก
+      </p>
+    `;
+
+    document.getElementById("savePreviewContent").innerHTML = html;
+    document.getElementById("savePreviewModal").classList.add("show");
+  }catch(e){
+    console.error(e);
   }
-
-  let j1 = calc("j1"),
-      j2 = calc("j2"),
-      j3 = calc("j3");
-
-  await updateDoc(doc(db,"contestants",id),{
-  score1: j1.arr,
-  score2: j2.arr,
-  score3: j3.arr,
-  j1: j1.sum,
-  j2: j2.sum,
-  j3: j3.sum,
-  totalScore: j1.sum + j2.sum + j3.sum,
-  locked: true   // 🔥 กันกรอกซ้ำ + ใช้กับสถานะ
-});
- 
-
-  // รีโหลด dropdown
-  await loadContestants();
-
-  // ล้างช่อง
-  clearScore();
-
-  // โฟกัสช่องแรก
-  setTimeout(()=>document.getElementById("j1_s0").focus(),200);
-
-  alert("บันทึกแล้ว");
 };
+
+window.closeSavePreview = function(){
+  pendingScoreSave = null;
+  document.getElementById("savePreviewModal").classList.remove("show");
+};
+
+window.confirmSaveScore = async function(){
+  if(!pendingScoreSave) return;
+
+  const p = pendingScoreSave;
+  try{
+    await updateDoc(doc(db,"contestants",p.id),{
+      score1:p.j1.arr,
+      score2:p.j2.arr,
+      score3:p.j3.arr,
+      j1:p.j1.sum,
+      j2:p.j2.sum,
+      j3:p.j3.sum,
+      totalScore:p.total,
+      locked:true
+    });
+
+    pendingScoreSave = null;
+    document.getElementById("savePreviewModal").classList.remove("show");
+    await loadContestants();
+    clearScore();
+
+    setTimeout(()=>{
+      const first = document.getElementById("j1_s0");
+      if(first) first.focus();
+    },200);
+
+    alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว");
+  }catch(err){
+    console.error(err);
+    alert("❌ ไม่สามารถบันทึกข้อมูลได้\n"+err.message);
+  }
+};
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
 // CLEAR
 window.clearScore=()=>{
@@ -680,6 +855,131 @@ let a=document.createElement("a");
 a.href=URL.createObjectURL(blob);
 a.download="backup.json";
 a.click();
+};
+
+// ===== RESTORE BACKUP =====
+let pendingRestoreData = null;
+
+window.restoreBackup = function(){
+  pendingRestoreData = null;
+  document.getElementById("backupFile").value = "";
+  document.getElementById("restorePreviewContent").innerHTML =
+    "<p style='text-align:center;'>เลือกไฟล์ backup.json เพื่อดูตัวอย่างข้อมูลก่อนเรียกคืน</p>";
+  document.getElementById("restoreConfirmBtn").disabled = true;
+  document.getElementById("restoreModal").classList.add("show");
+};
+
+window.closeRestoreModal = function(){
+  pendingRestoreData = null;
+  document.getElementById("restoreModal").classList.remove("show");
+};
+
+document.getElementById("backupFile").addEventListener("change", function(){
+  const file = this.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    try{
+      const parsed = JSON.parse(e.target.result);
+      const list = Array.isArray(parsed) ? parsed :
+                   Array.isArray(parsed.contestants) ? parsed.contestants : null;
+
+      if(!list) throw new Error("รูปแบบไฟล์ Backup ไม่ถูกต้อง");
+
+      pendingRestoreData = list;
+
+      const preview = list.slice(0,20);
+      let html = `
+        <p><b>พบข้อมูล ${list.length} คน</b>
+        ${list.length > 20 ? " (แสดงตัวอย่าง 20 คนแรก)" : ""}</p>
+        <table class="preview-table">
+          <tr>
+            <th>ลำดับ</th>
+            <th>หมายเลข</th>
+            <th>ชื่อผู้ประกวด</th>
+            <th>กก.1</th>
+            <th>กก.2</th>
+            <th>กก.3</th>
+            <th>รวม</th>
+          </tr>
+      `;
+
+      preview.forEach((c,i)=>{
+        html += `
+          <tr>
+            <td>${i+1}</td>
+            <td>No.${c.order ?? (i+1)}</td>
+            <td>${escapeHtml(c.name || "")}</td>
+            <td>${Number(c.j1 || 0)}</td>
+            <td>${Number(c.j2 || 0)}</td>
+            <td>${Number(c.j3 || 0)}</td>
+            <td><b>${Number(c.totalScore || 0)}</b></td>
+          </tr>
+        `;
+      });
+
+      html += `</table>
+        <p style="color:#b00000;font-weight:bold;text-align:center;">
+          ⚠️ การเรียกคืนจะลบข้อมูลผู้ประกวดปัจจุบันทั้งหมดก่อนนำข้อมูลจาก Backup เข้าแทนที่
+        </p>`;
+
+      document.getElementById("restorePreviewContent").innerHTML = html;
+      document.getElementById("restoreConfirmBtn").disabled = false;
+    }catch(err){
+      pendingRestoreData = null;
+      document.getElementById("restoreConfirmBtn").disabled = true;
+      document.getElementById("restorePreviewContent").innerHTML =
+        `<p style="color:red;font-weight:bold;">❌ ${escapeHtml(err.message)}</p>`;
+    }
+  };
+
+  reader.readAsText(file, "utf-8");
+});
+
+window.confirmRestoreBackup = async function(){
+  if(!pendingRestoreData || !pendingRestoreData.length){
+    return alert("ไม่พบข้อมูลสำหรับเรียกคืน");
+  }
+
+  if(!confirm(
+    "ยืนยันเรียกคืนข้อมูลจากไฟล์ Backup?\n\n"+
+    "ข้อมูลผู้ประกวดปัจจุบันทั้งหมดจะถูกลบ และแทนที่ด้วยข้อมูลจาก Backup"
+  )) return;
+
+  try{
+    const snap = await getDocs(collection(db,"contestants"));
+
+    for(const d of snap.docs){
+      await deleteDoc(doc(db,"contestants",d.id));
+    }
+
+    for(const item of pendingRestoreData){
+      const clean = {...item};
+      delete clean.id;
+
+      // รองรับ backup ที่มีข้อมูลเก่า/ไม่ครบ
+      clean.name = clean.name || "";
+      clean.order = Number(clean.order ?? 9999);
+      clean.totalScore = Number(clean.totalScore || 0);
+      clean.j1 = Number(clean.j1 || 0);
+      clean.j2 = Number(clean.j2 || 0);
+      clean.j3 = Number(clean.j3 || 0);
+      clean.score1 = Array.isArray(clean.score1) ? clean.score1 : [];
+      clean.score2 = Array.isArray(clean.score2) ? clean.score2 : [];
+      clean.score3 = Array.isArray(clean.score3) ? clean.score3 : [];
+      clean.locked = Boolean(clean.locked);
+
+      await addDoc(collection(db,"contestants"), clean);
+    }
+
+    closeRestoreModal();
+    alert(`✅ เรียกคืนข้อมูลสำเร็จ ${pendingRestoreData.length} คน`);
+  }catch(err){
+    console.error(err);
+    alert("❌ เรียกคืนข้อมูลไม่สำเร็จ\n"+err.message);
+  }
 };
 
 // RESET
@@ -859,4 +1159,3 @@ function openMonitor() {
 
 </body>
 </html>
-
