@@ -369,6 +369,19 @@ input[type="number"], select {
   </div>
 </div>
 
+<div id="restoreModal" class="modal-backdrop">
+  <div class="modal-box">
+    <h2>♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</h2>
+    <div id="restorePreviewContent">
+      <p style="text-align:center;">กำลังรอเลือกไฟล์ Backup...</p>
+    </div>
+    <div class="modal-actions">
+      <button id="restoreConfirmBtn" onclick="confirmRestoreBackup()" disabled>✅ ยืนยันเรียกคืนข้อมูล</button>
+      <button onclick="closeRestoreModal()" style="background:#777;">❌ ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
 <div id="appBox" style="display:none;">
 
 <h2>🎤 ระบบให้คะแนน</h2>
@@ -415,7 +428,6 @@ input[type="number"], select {
 <button onclick="announceResult()">📢 ประกาศผล</button>
 <button onclick="openMonitor()">📺 Monitor</button>
 <button onclick="selectBackupFile()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
-<button onclick="document.getElementById('backupFile').click()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
 <input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
 
 </div>
@@ -726,7 +738,19 @@ function calc(p){
       continue;
     }
 
-    let v = Number(el.value) || 0;
+    if(el.value === ""){
+      alert(`กรุณากรอกคะแนนให้ครบ: ${p.toUpperCase()} / ${items[i].name}`);
+      el.focus();
+      throw "incomplete";
+    }
+
+    let v = Number(el.value);
+
+    if(!Number.isFinite(v) || v < 0){
+      alert(`คะแนนไม่ถูกต้อง: ${p.toUpperCase()} / ${items[i].name}`);
+      el.focus();
+      throw "invalid";
+    }
 
     if(v > items[i].max){
       alert("เกิน "+items[i].max);
@@ -752,6 +776,10 @@ window.submitScore = async () => {
   let c = cache.find(x => x.id === id);
   if(!c) return alert("ไม่พบข้อมูลผู้ประกวด");
 
+  if(c.locked){
+    if(!confirm("ผู้ประกวดรายนี้บันทึกคะแนนแล้ว\nต้องการแก้ไขและบันทึกคะแนนใหม่หรือไม่?")) return;
+  }
+
   try{
     let j1 = calc("j1");
     let j2 = calc("j2");
@@ -765,32 +793,52 @@ window.submitScore = async () => {
       total: j1.sum + j2.sum + j3.sum
     };
 
-    let html = `
-      <table class="preview-table">
+    const previewHead = document.getElementById("savePreviewHead");
+    const previewTable = document.getElementById("savePreviewTable");
+    const previewModal = document.getElementById("savePreviewModal");
+
+    if(!previewHead || !previewTable || !previewModal){
+      throw new Error("ไม่พบหน้าต่างตรวจสอบข้อมูลก่อนบันทึก");
+    }
+
+    previewHead.innerHTML =
+      `<span><b>หมายเลข:</b> No.${pendingScoreSave.order}</span>
+       <span><b>ชื่อผู้ประกวด:</b> ${escapeHtml(pendingScoreSave.name)}</span>`;
+
+    previewTable.innerHTML = `
+      <thead>
         <tr>
-          <th>หมายเลข</th>
-          <th>ชื่อผู้ประกวด</th>
+          <th>รายการ</th>
+          <th>เต็ม</th>
           <th>กรรมการ 1</th>
           <th>กรรมการ 2</th>
           <th>กรรมการ 3</th>
-          <th>คะแนนรวม</th>
         </tr>
-        <tr>
-          <td>No.${pendingScoreSave.order}</td>
-          <td>${escapeHtml(pendingScoreSave.name)}</td>
+      </thead>
+      <tbody>
+        ${items.map((it,idx)=>`
+          <tr>
+            <td>${escapeHtml(it.name)}</td>
+            <td>${it.max}</td>
+            <td>${pendingScoreSave.j1.arr[idx]}</td>
+            <td>${pendingScoreSave.j2.arr[idx]}</td>
+            <td>${pendingScoreSave.j3.arr[idx]}</td>
+          </tr>
+        `).join("")}
+        <tr class="preview-total">
+          <td colspan="2">รวมกรรมการ</td>
           <td>${pendingScoreSave.j1.sum}</td>
           <td>${pendingScoreSave.j2.sum}</td>
           <td>${pendingScoreSave.j3.sum}</td>
-          <td><b>${pendingScoreSave.total}</b></td>
         </tr>
-      </table>
-      <p style="text-align:center;margin-top:15px;">
-        กรุณาตรวจสอบหมายเลข ชื่อ และผลคะแนนให้ถูกต้องก่อนยืนยันบันทึก
-      </p>
+        <tr class="preview-total">
+          <td colspan="4">คะแนนรวมทั้งหมด</td>
+          <td>${pendingScoreSave.total}</td>
+        </tr>
+      </tbody>
     `;
 
-    document.getElementById("savePreviewContent").innerHTML = html;
-    document.getElementById("savePreviewModal").classList.add("show");
+    previewModal.style.display = "flex";
   }catch(e){
     console.error(e);
   }
@@ -798,13 +846,16 @@ window.submitScore = async () => {
 
 window.closeSavePreview = function(){
   pendingScoreSave = null;
-  document.getElementById("savePreviewModal").classList.remove("show");
+  document.getElementById("savePreviewModal").style.display = "none";
 };
 
 window.confirmSaveScore = async function(){
   if(!pendingScoreSave) return;
 
   const p = pendingScoreSave;
+  const btn = document.querySelector('#savePreviewModal button[onclick="confirmSaveScore()"]');
+  if(btn) btn.disabled = true;
+
   try{
     await updateDoc(doc(db,"contestants",p.id),{
       score1:p.j1.arr,
@@ -818,7 +869,7 @@ window.confirmSaveScore = async function(){
     });
 
     pendingScoreSave = null;
-    document.getElementById("savePreviewModal").classList.remove("show");
+    document.getElementById("savePreviewModal").style.display = "none";
     await loadContestants();
     clearScore();
 
@@ -831,6 +882,8 @@ window.confirmSaveScore = async function(){
   }catch(err){
     console.error(err);
     alert("❌ ไม่สามารถบันทึกข้อมูลได้\n"+err.message);
+  } finally {
+    if(btn) btn.disabled = false;
   }
 };
 
@@ -862,11 +915,18 @@ let pendingRestoreData = null;
 
 window.selectBackupFile = function(){
   const input = document.getElementById("backupFile");
-  if(!input){
-    alert("ไม่พบช่องเลือกไฟล์ Backup");
+  const modal = document.getElementById("restoreModal");
+
+  if(!input || !modal){
+    alert("ระบบเรียกคืน Backup ยังไม่พร้อม");
     return;
   }
+
   input.value = "";
+  document.getElementById("restorePreviewContent").innerHTML =
+    "<p style='text-align:center;'>กำลังรอเลือกไฟล์ Backup...</p>";
+  document.getElementById("restoreConfirmBtn").disabled = true;
+  modal.classList.add("show");
   input.click();
 };
 
