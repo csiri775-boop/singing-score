@@ -394,14 +394,18 @@ input[type="number"], select {
 
 <br><br>
 
-<input id="newName" placeholder="ชื่อผู้เข้าแข่งขัน">
-<button onclick="addContestant()">➕ เพิ่ม</button>
-<button onclick="deleteContestant()">❌ ลบ</button>
+<div class="contestant-tools">
+  <div class="contestant-manage">
+    <input id="newName" placeholder="ชื่อผู้เข้าแข่งขัน">
+    <button onclick="addContestant()">➕ เพิ่ม</button>
+    <button onclick="deleteContestant()">❌ ลบ</button>
+  </div>
 
-<br><br>
-
-<input type="file" id="excelFile" accept=".csv">
-<button onclick="importExcel()">📥 นำเข้า Excel</button>
+  <div class="contestant-import">
+    <input type="file" id="excelFile" accept=".csv">
+    <button onclick="importExcel()">📥 นำเข้า Excel</button>
+  </div>
+</div>
 
 <br><br>
 
@@ -613,7 +617,44 @@ window.announceResult = function(){
       font-size:20px;
       margin:8px 0;
     }
-  </style>
+  
+/* ===== จัดเมนูเพิ่ม-ลบ และอัปโหลดรายชื่อให้อยู่แถวเดียวกัน ===== */
+.contestant-tools{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:nowrap;
+  margin:5px 0 15px;
+}
+
+.contestant-manage,
+.contestant-import{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  white-space:nowrap;
+}
+
+.contestant-tools input[type="file"]{
+  width:auto;
+  margin:2px;
+}
+
+.contestant-tools input#newName{
+  width:160px;
+}
+
+.contestant-tools button{
+  margin:3px;
+}
+
+@media (max-width:768px){
+  .contestant-tools{
+    flex-wrap:wrap;
+  }
+}
+
+</style>
   </head>
   <body>
   <h1>🏆 ผลการประกวดร้องเพลง</h1>
