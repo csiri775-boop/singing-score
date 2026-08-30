@@ -443,8 +443,6 @@ input[type="number"], select {
   </div>
 </div>
 
-<br><br>
-
 <div id="formArea"></div>
 
 <button onclick="submitScore()">💾 บันทึก</button>
@@ -645,6 +643,30 @@ window.announceResult = function(){
     }
   
 
+
+/* ===== COMPACT INDEX UI ===== */
+#formArea{
+  margin-top:4px;
+}
+#formArea h3{
+  margin:8px 0 4px;
+}
+#formArea table{
+  margin-top:0;
+  margin-bottom:4px;
+}
+#formArea + button{
+  margin-top:4px;
+}
+.contestant-tools{
+  margin-bottom:4px;
+}
+
+
+.judge-spacer{
+  height:4px;
+}
+
 </style>
   </head>
   <body>
@@ -705,7 +727,7 @@ items.forEach((i,idx)=>{
     <input type="number" id="j${j}_s${idx}" data-j="${j}" data-i="${idx}">
   </td>`;
 });
-html+=`</tr></table><br>`;
+html+=`</tr></table><div class="judge-spacer"></div>`;
 }
 formArea.innerHTML=html;
 
