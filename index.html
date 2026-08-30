@@ -476,6 +476,10 @@ const db = getFirestore(app);
 
 let cache=[];
 
+// เก็บ ID ผู้ประกวดคนถัดไปที่ต้องการเลือกหลังยืนยันบันทึก
+// ใช้ร่วมกับ onSnapshot เพื่อป้องกัน dropdown เด้งกลับไปคนที่ 1
+let pendingNextContestantId = null;
+
 window.login = function(){
 
   const u = document.getElementById("user").value.trim();
@@ -924,7 +928,23 @@ window.confirmSaveScore = async function(){
   const btn = document.querySelector('#savePreviewModal button[onclick="confirmSaveScore()"]');
   if(btn) btn.disabled = true;
 
+  // หาผู้ประกวดคนถัดไปจากลำดับหมายเลข "ก่อน" บันทึก
+  // ไม่อ้างอิงตำแหน่งของ option ใน dropdown เพราะ option อาจถูกสร้างใหม่โดย onSnapshot
+  const orderedContestants = [...cache].sort(
+    (a,b)=>(Number(a.order ?? 9999) - Number(b.order ?? 9999))
+  );
+
+  const currentIndex = orderedContestants.findIndex(x => x.id === p.id);
+  const nextContestant =
+    currentIndex >= 0 && currentIndex + 1 < orderedContestants.length
+      ? orderedContestants[currentIndex + 1]
+      : null;
+
   try{
+    // สำคัญ: ตั้งค่า "คนถัดไป" ก่อน updateDoc
+    // เพราะ updateDoc จะทำให้ onSnapshot ทำงานและสร้าง dropdown ใหม่
+    pendingNextContestantId = nextContestant ? nextContestant.id : null;
+
     await updateDoc(doc(db,"contestants",p.id),{
       score1:p.j1.arr,
       score2:p.j2.arr,
@@ -936,33 +956,31 @@ window.confirmSaveScore = async function(){
       locked:true
     });
 
-    // จำลำดับผู้ประกวดคนถัดไปก่อนโหลดข้อมูลใหม่
-    const orderedContestants = [...cache].sort((a,b)=>(a.order||9999)-(b.order||9999));
-    const currentIndex = orderedContestants.findIndex(x => x.id === p.id);
-    const nextContestant = currentIndex >= 0 ? orderedContestants[currentIndex + 1] : null;
-
     pendingScoreSave = null;
     document.getElementById("savePreviewModal").style.display = "none";
     clearScore();
-    await loadContestants();
 
-    // เลื่อนไปผู้ประกวดคนถัดไปโดยอัตโนมัติ
-    const select = document.getElementById("contestant");
-    if(nextContestant && select){
-      select.value = nextContestant.id;
-    }
+    // ไม่เรียก loadContestants() ที่นี่
+    // เพราะ onSnapshot จะโหลดข้อมูลล่าสุดจาก Firebase ให้อัตโนมัติ
+    // และจะเลือก pendingNextContestantId ให้เอง
+
+    const targetName = nextContestant ? nextContestant.name : "";
 
     setTimeout(()=>{
       const first = document.getElementById("j1_s0");
       if(first) first.focus();
-    },200);
+    },250);
 
     alert(nextContestant
-      ? `✅ บันทึกข้อมูลเรียบร้อยแล้ว\n➡️ เลื่อนไป ${nextContestant.name} อัตโนมัติ`
+      ? `✅ บันทึกข้อมูลเรียบร้อยแล้ว\n➡️ เลื่อนไป ${targetName} อัตโนมัติ`
       : "✅ บันทึกข้อมูลเรียบร้อยแล้ว\n🎉 เป็นผู้ประกวดคนสุดท้าย");
+
   }catch(err){
+    // ถ้าบันทึกไม่สำเร็จ ต้องไม่ค้างค่าเป้าหมายคนถัดไป
+    pendingNextContestantId = null;
     console.error(err);
     alert("❌ ไม่สามารถบันทึกข้อมูลได้\n"+err.message);
+
   } finally {
     if(btn) btn.disabled = false;
   }
@@ -1191,19 +1209,42 @@ onSnapshot(collection(db,"contestants"),snap=>{
     `📊 ให้คะแนนแล้ว <b>${done}</b> / ${list.length} คน`;
 
   // 🔥 dropdown
-  contestant.innerHTML="";
-  list.forEach(item=>{
-    let o=document.createElement("option");
-    o.value=item.id;
-    o.text=item.name;
+  // จำค่าที่ผู้ใช้กำลังเลือกอยู่ก่อนสร้าง option ใหม่
+  // และให้ pendingNextContestantId มีสิทธิ์สูงสุดหลังการบันทึก
+  const select = document.getElementById("contestant");
+  const previousSelectedId = select ? select.value : "";
+  const targetSelectedId = pendingNextContestantId || previousSelectedId;
 
-    if(item.locked){
-      o.text += " ✔";
-      o.style.color="green";
+  if(select){
+    select.innerHTML="";
+
+    list.forEach(item=>{
+      let o=document.createElement("option");
+      o.value=item.id;
+      o.text=item.name;
+
+      if(item.locked){
+        o.text += " ✔";
+        o.style.color="green";
+      }
+
+      select.appendChild(o);
+    });
+
+    // ถ้ามีผู้ประกวดคนถัดไป ให้เลือกคนนั้น
+    // ถ้าไม่มี/หาไม่พบ ให้รักษาคนเดิม ถ้ายังมีอยู่
+    const targetExists = list.some(item => item.id === targetSelectedId);
+
+    if(targetExists){
+      select.value = targetSelectedId;
+    }else if(select.options.length > 0){
+      select.selectedIndex = 0;
     }
+  }
 
-    contestant.appendChild(o);
-  });
+  // ใช้เป้าหมายนี้เพียงครั้งเดียว แล้วปล่อยให้การเลือกครั้งต่อไป
+  // ทำงานตามปกติ ไม่เด้งกลับไปคนที่ 1
+  pendingNextContestantId = null;
 
   // ตารางคะแนนในหน้า index ถูกนำออกแล้ว
   // ยังคง cache สำหรับรายงานและประกาศผล
