@@ -585,6 +585,17 @@ window.announceResult = function(){
     .top1{background:gold;font-weight:bold;}
     .top2{background:#ddd;}
     .top3{background:#cd7f32;color:white;}
+    @keyframes tieBlinkRed {
+      0%, 49% {
+        color: red !important;
+        opacity: 1;
+      }
+      50%, 100% {
+        color: red !important;
+        opacity: 0.15;
+      }
+    }
+
     .tie-name,
     .tie-rank,
     .tie-score{
@@ -593,6 +604,7 @@ window.announceResult = function(){
       text-decoration-thickness:2px;
       text-underline-offset:3px;
       font-weight:bold;
+      animation: tieBlinkRed 1s steps(1, end) infinite;
     }
     .tie-note{
       color:red;
@@ -605,7 +617,7 @@ window.announceResult = function(){
   </head>
   <body>
   <h1>🏆 ผลการประกวดร้องเพลง</h1>
-  ${hasTie ? '<div class="tie-note">หมายเหตุ: อันดับ + รายชื่อ + คะแนน ที่เป็นสีแดงและขีดเส้นใต้ = คะแนนเสมอกัน</div>' : ''}
+  ${hasTie ? '<div class="tie-note">หมายเหตุ: อันดับ + รายชื่อ + คะแนน ที่เป็นสีแดงกระพิบและขีดเส้นใต้ = คะแนนเสมอกัน</div>' : ''}
   <table>
     <tr>
       <th>อันดับ</th>
