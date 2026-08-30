@@ -414,7 +414,8 @@ input[type="number"], select {
 <button onclick="printDetail()">🖨️ รายงาน</button>
 <button onclick="announceResult()">📢 ประกาศผล</button>
 <button onclick="openMonitor()">📺 Monitor</button>
-<button onclick="restoreBackup()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
+<button onclick="selectBackupFile()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
+<button onclick="document.getElementById('backupFile').click()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
 <input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
 
 </div>
@@ -859,23 +860,22 @@ a.click();
 // ===== RESTORE BACKUP =====
 let pendingRestoreData = null;
 
-window.restoreBackup = function(){
-  pendingRestoreData = null;
-  document.getElementById("backupFile").value = "";
-  document.getElementById("restorePreviewContent").innerHTML =
-    "<p style='text-align:center;'>เลือกไฟล์ backup.json เพื่อดูตัวอย่างข้อมูลก่อนเรียกคืน</p>";
-  document.getElementById("restoreConfirmBtn").disabled = true;
-  document.getElementById("restoreModal").classList.add("show");
+window.selectBackupFile = function(){
+  const input = document.getElementById("backupFile");
+  if(!input){
+    alert("ไม่พบช่องเลือกไฟล์ Backup");
+    return;
+  }
+  input.value = "";
+  input.click();
 };
 
-window.closeRestoreModal = function(){
-  pendingRestoreData = null;
-  document.getElementById("restoreModal").classList.remove("show");
-};
+window.restoreBackup = function(event){
+  const file = event?.target?.files?.[0];
 
-document.getElementById("backupFile").addEventListener("change", function(){
-  const file = this.files[0];
-  if(!file) return;
+  if(!file){
+    return;
+  }
 
   const reader = new FileReader();
 
@@ -926,16 +926,34 @@ document.getElementById("backupFile").addEventListener("change", function(){
 
       document.getElementById("restorePreviewContent").innerHTML = html;
       document.getElementById("restoreConfirmBtn").disabled = false;
+      document.getElementById("restoreModal").classList.add("show");
+
     }catch(err){
       pendingRestoreData = null;
       document.getElementById("restoreConfirmBtn").disabled = true;
       document.getElementById("restorePreviewContent").innerHTML =
         `<p style="color:red;font-weight:bold;">❌ ${escapeHtml(err.message)}</p>`;
+      document.getElementById("restoreModal").classList.add("show");
     }
   };
 
+  reader.onerror = function(){
+    pendingRestoreData = null;
+    document.getElementById("restoreConfirmBtn").disabled = true;
+    alert("❌ ไม่สามารถอ่านไฟล์ Backup ได้");
+  };
+
   reader.readAsText(file, "utf-8");
-});
+};
+
+window.closeRestoreModal = function(){
+  pendingRestoreData = null;
+  const input = document.getElementById("backupFile");
+  if(input) input.value = "";
+  document.getElementById("restoreModal").classList.remove("show");
+};
+
+document.getElementById("backupFile").addEventListener("change", restoreBackup);
 
 window.confirmRestoreBackup = async function(){
   if(!pendingRestoreData || !pendingRestoreData.length){
@@ -973,8 +991,9 @@ window.confirmRestoreBackup = async function(){
       await addDoc(collection(db,"contestants"), clean);
     }
 
+    const restoredCount = pendingRestoreData.length;
     closeRestoreModal();
-    alert(`✅ เรียกคืนข้อมูลสำเร็จ ${pendingRestoreData.length} คน`);
+    alert(`✅ เรียกคืนข้อมูลสำเร็จ ${restoredCount} คน`);
   }catch(err){
     console.error(err);
     alert("❌ เรียกคืนข้อมูลไม่สำเร็จ\n"+err.message);
