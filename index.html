@@ -340,6 +340,42 @@ input[type="number"], select {
 #savePreviewTable{font-size:18px;}
 #savePreviewTable th,#savePreviewTable td{padding:7px;border:1px solid #000;}
 .preview-total{font-weight:bold;font-size:20px;}
+
+/* ===== จัดเมนูเพิ่ม-ลบ และอัปโหลดรายชื่อให้อยู่แถวเดียวกัน ===== */
+.contestant-tools{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:nowrap;
+  margin:5px 0 15px;
+}
+
+.contestant-manage,
+.contestant-import{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  white-space:nowrap;
+}
+
+.contestant-tools input[type="file"]{
+  width:auto;
+  margin:2px;
+}
+
+.contestant-tools input#newName{
+  width:160px;
+}
+
+.contestant-tools button{
+  margin:3px;
+}
+
+@media (max-width:768px){
+  .contestant-tools{
+    flex-wrap:wrap;
+  }
+}
 </style>
 
 </head>
@@ -618,41 +654,6 @@ window.announceResult = function(){
       margin:8px 0;
     }
   
-/* ===== จัดเมนูเพิ่ม-ลบ และอัปโหลดรายชื่อให้อยู่แถวเดียวกัน ===== */
-.contestant-tools{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex-wrap:nowrap;
-  margin:5px 0 15px;
-}
-
-.contestant-manage,
-.contestant-import{
-  display:flex;
-  align-items:center;
-  gap:5px;
-  white-space:nowrap;
-}
-
-.contestant-tools input[type="file"]{
-  width:auto;
-  margin:2px;
-}
-
-.contestant-tools input#newName{
-  width:160px;
-}
-
-.contestant-tools button{
-  margin:3px;
-}
-
-@media (max-width:768px){
-  .contestant-tools{
-    flex-wrap:wrap;
-  }
-}
 
 </style>
   </head>
@@ -923,17 +924,30 @@ window.confirmSaveScore = async function(){
       locked:true
     });
 
+    // จำลำดับผู้ประกวดคนถัดไปก่อนโหลดข้อมูลใหม่
+    const orderedContestants = [...cache].sort((a,b)=>(a.order||9999)-(b.order||9999));
+    const currentIndex = orderedContestants.findIndex(x => x.id === p.id);
+    const nextContestant = currentIndex >= 0 ? orderedContestants[currentIndex + 1] : null;
+
     pendingScoreSave = null;
     document.getElementById("savePreviewModal").style.display = "none";
-    await loadContestants();
     clearScore();
+    await loadContestants();
+
+    // เลื่อนไปผู้ประกวดคนถัดไปโดยอัตโนมัติ
+    const select = document.getElementById("contestant");
+    if(nextContestant && select){
+      select.value = nextContestant.id;
+    }
 
     setTimeout(()=>{
       const first = document.getElementById("j1_s0");
       if(first) first.focus();
     },200);
 
-    alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว");
+    alert(nextContestant
+      ? `✅ บันทึกข้อมูลเรียบร้อยแล้ว\n➡️ เลื่อนไป ${nextContestant.name} อัตโนมัติ`
+      : "✅ บันทึกข้อมูลเรียบร้อยแล้ว\n🎉 เป็นผู้ประกวดคนสุดท้าย");
   }catch(err){
     console.error(err);
     alert("❌ ไม่สามารถบันทึกข้อมูลได้\n"+err.message);
