@@ -425,24 +425,12 @@ input[type="number"], select {
   </div>
 </div>
 
-<div id="restoreModal" class="modal-backdrop">
-  <div class="modal-box">
-    <h2>♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</h2>
-    <div id="restorePreviewContent">
-      <p style="text-align:center;">กำลังรอเลือกไฟล์ Backup...</p>
-    </div>
-    <div class="modal-actions">
-      <button id="restoreConfirmBtn" onclick="confirmRestoreBackup()" disabled>✅ ยืนยันเรียกคืนข้อมูล</button>
-      <button onclick="closeRestoreModal()" style="background:#777;">❌ ยกเลิก</button>
-    </div>
-  </div>
 </div>
 
 <div id="appBox" style="display:none;">
 
 <div id="adminBar">
   <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
-  <button onclick="openAdminPage()">⚙️ จัดการแอดมิน</button>
   <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
 </div>
 
@@ -460,21 +448,22 @@ input[type="number"], select {
 
 <br><br>
 
-
 <div id="formArea"></div>
 
 <button onclick="submitScore()">💾 บันทึก</button>
 <button onclick="clearScore()">🧹 ล้างช่อง</button>
-<button onclick="backupData()">💾 Backup</button>
+<button onclick="openMonitor()">📺 Monitor</button>
+<button type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
 <button onclick="resetAll()">🧨 สิ้นสุด</button>
+
 <hr>
 
-<button onclick="exportExcel()">📊 Excel</button>
-<button onclick="printDetail()">🖨️ รายงาน</button>
-<button onclick="announceResult()">📢 ประกาศผล</button>
-<button onclick="openMonitor()">📺 Monitor</button>
-<button onclick="selectBackupFile()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
-<input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
+
+
+
+
+
+
 
 </div>
 
@@ -522,19 +511,10 @@ window.login = async function(){
 
     snap.forEach(d=>{
       const a=d.data();
-      const role=String(a.role||"admin").trim().toLowerCase();
-      const isAdminRole=(role==="admin" || role===DEVELOPER_ROLE);
-
       if(String(a.username||"").trim()===u &&
          String(a.password||"")===p &&
-         a.active!==false &&
-         isAdminRole){
-        found={
-          id:d.id,
-          username:a.username,
-          role:role,
-          protected:a.protected===true
-        };
+         a.active!==false){
+        found={id:d.id,username:a.username};
       }
     });
 
@@ -613,18 +593,10 @@ function showLoggedOut(){
   currentAdmin=null;
   document.getElementById("loginWrapper").classList.remove("hidden");
   document.getElementById("appBox").style.display="none";
-  document.getElementById("adminPanel").classList.remove("show");
   document.getElementById("adminUserLabel").textContent="👤 ผู้ดูแลระบบ";
 }
 
-function openAdminPage(){
-  const role=String(currentAdmin?.role||"").toLowerCase();
-  if(!currentAdmin || (role!=="admin" && role!==DEVELOPER_ROLE)){
-    alert("⛔ คุณไม่มีสิทธิ์เข้าหน้า Admin");
-    return;
-  }
-  window.location.href = "admin.html";
-}
+window.openAdminPage = function(){ window.location.assign("./admin.html"); };
 
 window.logout=function(){
   if(!confirm("ยืนยันล็อกเอาท์ออกจากระบบ?")) return;
@@ -635,10 +607,6 @@ window.logout=function(){
 };
 
 window.toggleAdminPanel=function(){
-  const panel=document.getElementById("adminPanel");
-  if(!panel) return;
-  panel.classList.toggle("show");
-  if(panel.classList.contains("show")) loadAdmins();
 };
 
 async function restoreAdminSession(){
@@ -653,19 +621,15 @@ async function restoreAdminSession(){
     let valid=false;
     snap.forEach(d=>{
       const a=d.data();
-      const role=String(a.role||"admin").trim().toLowerCase();
-      const isAdminRole=(role==="admin" || role===DEVELOPER_ROLE);
-
       if(d.id===saved.id &&
          String(a.username||"")===String(saved.username) &&
-         a.active!==false &&
-         isAdminRole){
+         a.active!==false){
         valid=true;
         currentAdmin={
           id:d.id,
           username:a.username,
-          role:role,
-          protected:a.protected === true || role === DEVELOPER_ROLE
+          role:a.role || "admin",
+          protected:a.protected === true || String(a.role||"") === DEVELOPER_ROLE
         };
       }
     });
@@ -840,6 +804,66 @@ function escapeJs(value){
     .replaceAll("\r","\\r");
 }
 
+// เพิ่ม
+window.addContestant=async()=>{
+let name=newName.value.trim();
+if(!name) return alert("ใส่ชื่อ");
+await addDoc(collection(db,"contestants"),{
+name:name,totalScore:0,j1:0,j2:0,j3:0});
+newName.value="";
+};
+
+// ลบ
+window.deleteContestant=async()=>{
+let id=contestant.value;
+if(!confirm("ลบ?")) return;
+await deleteDoc(doc(db,"contestants",id));
+};
+
+// IMPORT EXCEL
+window.importExcel = function(){
+
+  const file = excelFile.files[0];
+  if(!file) return alert("เลือกไฟล์");
+
+  const reader = new FileReader();
+
+  reader.onload = async function(e){
+
+    const text = new TextDecoder("utf-8").decode(e.target.result);
+    let rows = text.split("\n");
+
+    let list = [];
+
+    for(let i=1;i<rows.length;i++){
+      let cols = rows[i].split(",");
+
+      let no = Number(cols[0]);
+      let name = cols[1]?.trim();
+
+      if(name){
+        list.push({no, name});
+      }
+    }
+
+    // 🔥 เรียงตามเลข
+    list.sort((a,b)=>a.no - b.no);
+
+    // 🔥 เพิ่มเข้า Firebase
+    for(let item of list){
+      await addDoc(collection(db,"contestants"),{
+        name: `No.${item.no} ${item.name}`,
+        order: item.no,
+        totalScore:0,
+        j1:0,j2:0,j3:0
+      });
+    }
+
+    alert("นำเข้าเรียงลำดับแล้ว");
+  };
+
+  reader.readAsArrayBuffer(file);
+};
 
 // คะแนน
 const items = [
