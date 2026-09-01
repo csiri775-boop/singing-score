@@ -371,6 +371,19 @@ function escJs(v){
     .replaceAll("\r","\\r");
 }
 
+// แสดงชื่อผู้ประกวดโดยใช้ No. ที่มากับรายชื่อเพียงครั้งเดียว
+function contestantDisplayName(order, name){
+  const n = String(name ?? "").trim();
+  const no = Number(order);
+  if(!n) return Number.isFinite(no) && no < 9999 ? `No.${no}` : "";
+  if(Number.isFinite(no) && no < 9999){
+    const prefix = new RegExp(`^No\\.\\s*${no}\\s*`, "i");
+    if(prefix.test(n)) return n; // ชื่อมี No. มาจากไฟล์แล้ว
+    return `No.${no} ${n}`;
+  }
+  return n;
+}
+
 function showMessage(msg, ok=true){
   const el=document.getElementById("message");
   el.textContent=msg;
@@ -612,7 +625,7 @@ async function loadContestantManagement(){
     list.forEach(c=>{
       const opt=document.createElement("option");
       opt.value=c.id;
-      opt.textContent=`${c.order<9999?"No."+c.order+" ":""}${c.name}`;
+      opt.textContent=contestantDisplayName(c.order,c.name);
       select.appendChild(opt);
     });
     setContestantStatus(`มีผู้ประกวด ${list.length} คน`,true);
@@ -727,7 +740,8 @@ window.importContestantsFromAdmin=function(){
         list.slice(i,i+450).forEach(item=>{
           const ref=doc(collection(db,"contestants"));
           batch.set(ref,{
-            name:`No.${item.no} ${item.name}`,
+            // ใช้ชื่อ/No. ที่มากับไฟล์โดยตรง ไม่เติม No. ซ้ำ
+            name:item.name,
             order:item.no,
             totalScore:0,
             j1:0,j2:0,j3:0,
@@ -801,7 +815,7 @@ async function loadScoreContestants(){
     scoreContestants.forEach(c=>{
       const opt=document.createElement("option");
       opt.value=c.id;
-      opt.textContent=`No.${c.order} ${c.name}${c.locked?" ✔":""}`;
+      opt.textContent=contestantDisplayName(c.order,c.name)+(c.locked?" ✔":"");
       select.appendChild(opt);
     });
 
@@ -844,7 +858,7 @@ window.loadScoreEditor=function(){
   };
 
   document.getElementById("scoreInfo").innerHTML=
-    `<b>No.${esc(c.order)}</b> — ${esc(c.name)}
+    `<b>${esc(contestantDisplayName(c.order,c.name))}</b>
      ${c.locked ? '<span style="color:green;font-weight:bold;"> ✔ บันทึกแล้ว</span>' : ''}`;
 
   const body=document.getElementById("scoreEditorBody");
@@ -929,7 +943,7 @@ window.saveManagedScores=async function(){
     const total=j1+j2+j3;
 
     if(!confirm(
-      `ยืนยันบันทึกคะแนนแก้ไข?\n\nNo.${c.order} ${c.name}\n`+
+      `ยืนยันบันทึกคะแนนแก้ไข?\n\n${contestantDisplayName(c.order,c.name)}\n`+
       `กรรมการ 1: ${j1}\nกรรมการ 2: ${j2}\nกรรมการ 3: ${j3}\nคะแนนรวม: ${total}`
     )) return;
 
