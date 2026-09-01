@@ -132,6 +132,16 @@ td:first-child{text-align:left}
   color:#666;
 }
 .hidden{display:none!important}
+.role-hidden{display:none!important}
+.admin-public-note{
+  margin-top:12px;
+  padding:10px;
+  background:#eef6ff;
+  border-left:4px solid #1976d2;
+  color:#174a7e;
+  font-weight:bold;
+}
+
 
 /* ===== SCORE MANAGEMENT ===== */
 .score-card{margin-top:15px;background:white;border-radius:8px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
@@ -190,17 +200,20 @@ td:first-child{text-align:left}
     <div class="user" id="userLabel">👤 แอดมิน</div>
     <div class="actions">
       <button type="button" onclick="window.goIndex()">⬅️ กลับหน้าหลัก</button>
-      <button type="button" onclick="window.open("./backup.html","_blank")">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
-      <button type="button" onclick="window.open("./backup.html","_blank")">💾 Backup</button>
-      <button type="button" onclick="window.open("./excel.html","_blank")">📊 Excel</button>
-      <button type="button" onclick="window.open("./report.html","_blank")">📄 รายงาน</button>
-      <button type="button" onclick="window.open("./announce.html","_blank")">📢 ประกาศผล</button>
+      <button type="button" id="restoreBtn" class="developer-only" onclick="window.open("./backup.html","_blank")">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
+      <button type="button" id="backupBtn" class="developer-only" onclick="window.open("./backup.html","_blank")">💾 Backup</button>
+      <button type="button" id="excelBtn" onclick="window.open("./excel.html","_blank")">📊 Excel</button>
+      <button type="button" id="reportBtn" onclick="window.open("./report.html","_blank")">📄 รายงาน</button>
+      <button type="button" id="announceBtn" onclick="window.open("./announce.html","_blank")">📢 ประกาศผล</button>
       <button class="btn-red" onclick="logout()">🚪 ล็อกเอาท์</button>
     </div>
   </div>
 
+  <div id="limitedAdminNote" class="admin-public-note role-hidden">
+    🔐 บัญชีทั่วไป: สามารถใช้งานได้เฉพาะ 📊 Excel, 📄 รายงาน และ 📢 ประกาศผล
+  </div>
 
-  <div class="score-card">
+  <div id="developerScoreCard" class="score-card">
     <h2>📋 รายการคะแนน</h2>
     <p style="color:#666;margin-top:-5px;">
       ผู้พัฒนาระบบสามารถตรวจสอบ แก้ไข เพิ่ม/ลดคะแนน และบันทึกคะแนนของผู้ประกวดได้
@@ -251,7 +264,7 @@ td:first-child{text-align:left}
     <div id="scoreStatus" class="score-status"></div>
   </div>
 
-  <div class="card">
+  <div id="developerAdminCard" class="card">
     <h2>➕ เพิ่มแอดมิน</h2>
 
     <div class="form-row">
@@ -344,8 +357,13 @@ function showPage(){
   document.getElementById("page").classList.remove("hidden");
   document.getElementById("userLabel").textContent =
     `👤 แอดมิน: ${currentAdmin.username}`;
-  loadAdmins();
-  loadScoreContestants();
+
+  applyRolePermissions();
+
+  if(isDeveloper()){
+    loadAdmins();
+    loadScoreContestants();
+  }
 }
 
 function showLogin(){
@@ -354,13 +372,47 @@ function showLogin(){
   document.getElementById("loginBox").classList.remove("hidden");
 }
 
-// สิทธิ์เข้าหน้า "จัดการแอดมิน": admin, developer (protected) เท่านั้น
-// role="user" ไม่มีสิทธิ์เข้าหน้านี้
+// สิทธิ์เข้าหน้า Admin: developer, admin และ user เข้าได้
+// developer = เห็น/ใช้ทุกเมนู
+// admin/user ทั่วไป = เห็นเฉพาะ Excel, รายงาน, ประกาศผล
 function canAccessAdminPage(admin){
   if(!admin) return false;
   if(admin.protected) return true;
   const role=String(admin.role||"admin").toLowerCase();
-  return role==="admin" || role===DEVELOPER_ROLE;
+  // admin และ developer เข้าหน้า Admin ได้
+  // user ก็เข้าหน้า Admin ได้เช่นกัน แต่เห็นเฉพาะ Excel / รายงาน / ประกาศผล
+  return role==="admin" || role==="user" || role===DEVELOPER_ROLE;
+}
+
+function isDeveloper(){
+  if(!currentAdmin) return false;
+  return currentAdmin.protected===true ||
+         String(currentAdmin.role||"").toLowerCase()===DEVELOPER_ROLE ||
+         String(currentAdmin.username||"").trim().toLowerCase()===DEVELOPER_USERNAME.toLowerCase();
+}
+
+function applyRolePermissions(){
+  const developer = isDeveloper();
+
+  document.querySelectorAll(".developer-only").forEach(el=>{
+    el.classList.toggle("role-hidden", !developer);
+  });
+
+  const note=document.getElementById("limitedAdminNote");
+  if(note) note.classList.toggle("role-hidden", developer);
+
+  const scoreCard=document.getElementById("developerScoreCard");
+  const adminCard=document.getElementById("developerAdminCard");
+
+  if(scoreCard) scoreCard.classList.toggle("role-hidden", !developer);
+  if(adminCard) adminCard.classList.toggle("role-hidden", !developer);
+
+  // บัญชีทั่วไปเห็นเฉพาะ 3 เมนูนี้
+  const publicIds=["excelBtn","reportBtn","announceBtn"];
+  publicIds.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.remove("role-hidden");
+  });
 }
 
 window.login=async function(){
@@ -422,7 +474,7 @@ window.login=async function(){
     }
 
     if(!canAccessAdminPage(found)){
-      alert("🔒 บัญชีนี้ไม่มีสิทธิ์เข้าหน้าจัดการแอดมิน");
+      alert("🔒 ไม่สามารถเข้าสู่หน้า Admin ได้");
       return;
     }
 
@@ -478,9 +530,8 @@ async function restoreSession(){
       };
 
       if(!canAccessAdminPage(restored)){
-        // บัญชี user ที่ล็อกอินจากหน้าหลักแล้วเข้ามาที่หน้านี้ตรงๆ ไม่มีสิทธิ์
         localStorage.removeItem(SESSION_KEY);
-        alert("🔒 บัญชีนี้ไม่มีสิทธิ์เข้าหน้าจัดการแอดมิน");
+        alert("🔒 ไม่สามารถเข้าสู่หน้า Admin ได้");
         window.location.assign("./index.html");
         return;
       }
