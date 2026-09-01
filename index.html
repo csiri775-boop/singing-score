@@ -442,7 +442,6 @@ input[type="number"], select {
 
 <div id="adminBar">
   <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
-  <button type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
   <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
 </div>
 
@@ -486,6 +485,7 @@ input[type="number"], select {
 <button onclick="announceResult()">📢 ประกาศผล</button>
 <button onclick="openMonitor()">📺 Monitor</button>
 <button onclick="selectBackupFile()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
+<button type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
 <input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
 
 </div>
