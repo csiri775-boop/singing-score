@@ -1439,7 +1439,10 @@ window.closeRestoreModal = function(){
   document.getElementById("restoreModal").classList.remove("show");
 };
 
-document.getElementById("backupFile").addEventListener("change", restoreBackup);
+const backupFileInput = document.getElementById("backupFile");
+if (backupFileInput) {
+  backupFileInput.addEventListener("change", restoreBackup);
+}
 
 window.confirmRestoreBackup = async function(){
   if(!pendingRestoreData || !pendingRestoreData.length){
