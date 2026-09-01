@@ -6,67 +6,262 @@
 <title>Monitor - ตารางคะแนน</title>
 
 <style>
+*{box-sizing:border-box}
+
 body{
-  background:black;
-  color:white;
-  font-family:sans-serif;
+  background:#000;
+  color:#fff;
+  font-family:Arial,sans-serif;
   text-align:center;
   margin:0;
   padding:20px;
 }
 
+.hidden{display:none !important}
+
+/* =========================
+   LOGIN
+========================= */
+#loginPage{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+
+.login-box{
+  width:min(380px,94vw);
+  background:#fff;
+  color:#111;
+  border-radius:14px;
+  padding:30px;
+  box-shadow:0 8px 30px rgba(255,255,255,.15);
+}
+
+.login-box h2{
+  margin:0 0 20px;
+  font-size:30px;
+}
+
+.login-box input{
+  width:100%;
+  height:48px;
+  margin:7px 0;
+  padding:8px 12px;
+  font-size:18px;
+  border:1px solid #bbb;
+  border-radius:7px;
+  text-align:left;
+}
+
+.login-box button{
+  width:100%;
+  height:48px;
+  margin-top:12px;
+  border:0;
+  border-radius:7px;
+  background:#45ad54;
+  color:#fff;
+  font-size:18px;
+  cursor:pointer;
+}
+
+.login-box button:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+#loginStatus{
+  min-height:24px;
+  margin-top:12px;
+  color:#c00;
+  font-size:15px;
+}
+
+.login-footer{
+  margin-top:18px;
+  color:#777;
+  font-size:13px;
+}
+
+/* =========================
+   MONITOR
+========================= */
+#monitorPage{
+  width:100%;
+}
+
 h1{
   font-size:50px;
-  margin:20px;
+  margin:10px 0 18px;
+}
+
+.monitor-bar{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:15px;
+}
+
+.user-badge{
+  color:#aaa;
+  font-size:16px;
+}
+
+.monitor-bar button{
+  background:#333;
+  color:#fff;
+  border:1px solid #777;
+  border-radius:6px;
+  padding:8px 16px;
+  font-size:15px;
+  cursor:pointer;
+}
+
+.table-wrap{
+  width:100%;
+  overflow-x:auto;
 }
 
 table{
-  width:80%;
+  width:min(1200px,95%);
   margin:auto;
   border-collapse:collapse;
-  font-size:28px;
+  font-size:30px;
 }
 
 td,th{
-  border:1px solid white;
-  padding:10px;
+  border:1px solid #fff;
+  padding:12px;
 }
 
 th{
   background:#222;
 }
 
-/* อันดับ 1 */
+/* อันดับ 1: สีทอง เฉพาะกรณีที่คะแนนไม่เสมอ */
 .gold{
   background:gold;
-  color:black;
+  color:#000;
   font-weight:bold;
 }
 
-/* คะแนนเสมอกัน */
+/* คะแนนเสมอ:
+   อันดับ + ชื่อ + คะแนน = แดง + ขีดเส้นใต้ + กระพริบ */
 .tie{
   color:red !important;
+  text-decoration:underline !important;
+  text-decoration-thickness:2px;
+  text-underline-offset:4px;
   font-weight:bold;
+  animation:blinkRed 1s steps(1,end) infinite;
+}
+
+@keyframes blinkRed{
+  0%,49%{opacity:1}
+  50%,100%{opacity:.15}
+}
+
+#monitorStatus{
+  min-height:24px;
+  margin:8px 0 14px;
+  color:#aaa;
+  font-size:16px;
+}
+
+/* ให้สีแดงทำงานแม้มี class gold */
+.gold .tie{
+  color:red !important;
+  background:transparent !important;
+}
+
+@media(max-width:768px){
+  body{padding:10px}
+  h1{font-size:34px}
+  table{font-size:20px;width:98%}
+  td,th{padding:9px 6px}
+}
+
+@media(min-width:1600px){
+  h1{font-size:60px}
+  table{font-size:36px}
+  td,th{padding:16px}
 }
 </style>
 </head>
 
 <body>
 
-<h1>🏆 ตารางคะแนน</h1>
+<!-- =========================
+     LOGIN PAGE
+========================= -->
+<section id="loginPage">
+  <div class="login-box">
+    <h2>🔐 Monitor Login</h2>
 
-<table>
-<thead>
-<tr>
-<th>อันดับ</th>
-<th>ชื่อ</th>
-<th>คะแนน</th>
-</tr>
-</thead>
+    <input
+      id="monitorUser"
+      type="text"
+      autocomplete="username"
+      placeholder="Username"
+    >
 
-<tbody id="tb"></tbody>
+    <input
+      id="monitorPass"
+      type="password"
+      autocomplete="current-password"
+      placeholder="Password"
+    >
 
-</table>
+    <button id="monitorLoginBtn" type="button">
+      🔐 เข้าสู่ Monitor
+    </button>
+
+    <div id="loginStatus"></div>
+
+    <div class="login-footer">
+      Authorized users only
+    </div>
+  </div>
+</section>
+
+
+<!-- =========================
+     MONITOR PAGE
+========================= -->
+<section id="monitorPage" class="hidden">
+
+  <h1>🏆 ตารางคะแนน</h1>
+
+  <div class="monitor-bar">
+    <span class="user-badge" id="monitorUserBadge"></span>
+    <button type="button" id="monitorLogoutBtn">
+      🚪 Logout
+    </button>
+  </div>
+
+  <div id="monitorStatus">
+    กำลังโหลดข้อมูล...
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>อันดับ</th>
+          <th>ชื่อ</th>
+          <th>คะแนน</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+
+</section>
+
 
 <script type="module">
 
@@ -76,7 +271,8 @@ import { initializeApp }
 import {
   getFirestore,
   collection,
-  onSnapshot
+  onSnapshot,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 
@@ -91,178 +287,562 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-
 const db = getFirestore(app);
 
 
 /* ==============================
-   REAL-TIME DATA
+   SESSION
 ============================== */
 
-onSnapshot(
-  collection(db,"contestants"),
+const MONITOR_SESSION_KEY = "singingContestMonitorSession";
 
-  snap => {
+let unsubscribeContestants = null;
+let unsubscribeAdmins = null;
+let currentMonitorUser = null;
 
-    let list = [];
 
-    snap.forEach(doc => {
+/* ==============================
+   SECURITY / HTML ESCAPE
+============================== */
 
-      const d = doc.data();
+function escapeHtml(value){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
-      list.push({
 
-        name: d.name || "",
+/* ==============================
+   UI
+============================== */
 
-        score: Number(d.totalScore || 0),
+function showLogin(message=""){
+  document.getElementById("loginPage").classList.remove("hidden");
+  document.getElementById("monitorPage").classList.add("hidden");
+  document.getElementById("loginStatus").textContent=message;
+}
 
-        order: Number(d.order || 9999)
+function showMonitor(username){
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("monitorPage").classList.remove("hidden");
+  document.getElementById("monitorUserBadge").textContent=
+    "ผู้ใช้: " + username;
+}
+
+function setStatus(message,isError=false){
+  const el=document.getElementById("monitorStatus");
+  if(!el) return;
+  el.textContent=message;
+  el.style.color=isError ? "red" : "#aaa";
+}
+
+
+/* ==============================
+   FIREBASE LOGIN
+============================== */
+
+async function verifyMonitorLogin(username,password){
+
+  const snap=await getDocs(collection(db,"admins"));
+
+  let found=null;
+
+  snap.forEach(d=>{
+
+    const a=d.data();
+
+    const dbUsername=
+      String(a.username || "").trim();
+
+    const dbPassword=
+      String(a.password || "");
+
+    const active=
+      a.active !== false;
+
+    if(
+      dbUsername.toLowerCase() === username.toLowerCase() &&
+      dbPassword === password &&
+      active
+    ){
+
+      found={
+        id:d.id,
+        username:dbUsername,
+        role:String(a.role || "user").trim().toLowerCase()
+      };
+
+    }
+
+  });
+
+  return found;
+}
+
+
+/* ==============================
+   LOGIN
+============================== */
+
+async function loginMonitor(){
+
+  const username=
+    document.getElementById("monitorUser").value.trim();
+
+  const password=
+    document.getElementById("monitorPass").value;
+
+  const button=
+    document.getElementById("monitorLoginBtn");
+
+  if(!username || !password){
+
+    showLogin("กรุณากรอก Username และ Password");
+
+    return;
+  }
+
+  button.disabled=true;
+
+  document.getElementById("loginStatus").textContent=
+    "กำลังตรวจสอบ...";
+
+  try{
+
+    const found=
+      await verifyMonitorLogin(username,password);
+
+    if(!found){
+
+      showLogin(
+        "❌ Username หรือ Password ไม่ถูกต้อง หรือบัญชีถูกปิดใช้งาน"
+      );
+
+      document.getElementById("monitorPass").value="";
+
+      return;
+    }
+
+    currentMonitorUser=found;
+
+    localStorage.setItem(
+      MONITOR_SESSION_KEY,
+      JSON.stringify(found)
+    );
+
+    showMonitor(found.username);
+
+    startMonitor();
+
+  }catch(err){
+
+    console.error("Monitor Login Error:",err);
+
+    showLogin(
+      "❌ เชื่อมต่อระบบไม่ได้: " +
+      (err?.message || err)
+    );
+
+  }finally{
+
+    button.disabled=false;
+
+  }
+}
+
+
+/* ==============================
+   SESSION VALIDATION
+   เปิด monitor.html โดยตรงก็ต้องผ่าน
+   Firebase ตรวจสอบบัญชี
+============================== */
+
+async function verifyMonitorSession(){
+
+  const raw=
+    localStorage.getItem(MONITOR_SESSION_KEY);
+
+  if(!raw){
+
+    showLogin();
+
+    return;
+  }
+
+  try{
+
+    const saved=JSON.parse(raw);
+
+    if(!saved?.id || !saved?.username){
+
+      clearMonitorSession();
+
+      showLogin();
+
+      return;
+    }
+
+    const snap=
+      await getDocs(collection(db,"admins"));
+
+    let valid=null;
+
+    snap.forEach(d=>{
+
+      const a=d.data();
+
+      const username=
+        String(a.username || "").trim();
+
+      if(
+        d.id === saved.id &&
+        username.toLowerCase() ===
+          String(saved.username).trim().toLowerCase() &&
+        a.active !== false
+      ){
+
+        valid={
+          id:d.id,
+          username,
+          role:String(a.role || "user").trim().toLowerCase()
+        };
+
+      }
+
+    });
+
+    if(!valid){
+
+      clearMonitorSession();
+
+      showLogin(
+        "⛔ Session หมดอายุ หรือบัญชีถูกปิดใช้งาน"
+      );
+
+      return;
+    }
+
+    currentMonitorUser=valid;
+
+    showMonitor(valid.username);
+
+    startMonitor();
+
+  }catch(err){
+
+    console.error("Session Error:",err);
+
+    clearMonitorSession();
+
+    showLogin(
+      "❌ ไม่สามารถตรวจสอบ Session ได้"
+    );
+
+  }
+}
+
+
+/* ==============================
+   WATCH ADMIN ACCOUNT
+   ถ้า Admin ถูกปิดใช้งานระหว่างเปิด
+   Monitor จะถูก Logout อัตโนมัติ
+============================== */
+
+function startAdminSecurityWatch(){
+
+  if(unsubscribeAdmins){
+    unsubscribeAdmins();
+  }
+
+  unsubscribeAdmins=
+    onSnapshot(collection(db,"admins"),snap=>{
+
+      if(!currentMonitorUser) return;
+
+      let valid=false;
+
+      snap.forEach(d=>{
+
+        if(d.id !== currentMonitorUser.id) return;
+
+        const a=d.data();
+
+        const username=
+          String(a.username || "").trim();
+
+        if(
+          username.toLowerCase() ===
+            currentMonitorUser.username.toLowerCase() &&
+          a.active !== false
+        ){
+          valid=true;
+        }
 
       });
 
-    });
+      if(!valid){
 
+        alert(
+          "⛔ บัญชี Monitor ถูกปิดใช้งานหรือถูกลบ\nระบบจะออกจาก Monitor"
+        );
 
-    /* ==============================
-       เรียงคะแนนมาก → น้อย
-    ============================== */
-
-    list.sort((a,b) => {
-
-      if(b.score !== a.score){
-
-        return b.score - a.score;
+        logoutMonitor(false);
 
       }
 
-      return a.order - b.order;
+    },err=>{
+
+      console.error("Admin security watch:",err);
 
     });
+}
 
 
-    /* ==============================
-       ตรวจคะแนนเสมอกัน
-    ============================== */
+/* ==============================
+   REAL-TIME SCORE
+============================== */
 
-    const scoreCount = {};
+function startMonitor(){
 
-    list.forEach(c => {
+  if(unsubscribeContestants){
+    unsubscribeContestants();
+  }
 
-      if(!scoreCount[c.score]){
+  startAdminSecurityWatch();
 
-        scoreCount[c.score] = 0;
+  setStatus("🟢 เชื่อมต่อคะแนนแบบ Real-time");
+
+  unsubscribeContestants=
+    onSnapshot(
+      collection(db,"contestants"),
+
+      snap=>{
+
+        const list=[];
+
+        snap.forEach(docSnap=>{
+
+          const d=docSnap.data();
+
+          list.push({
+
+            id:docSnap.id,
+
+            name:String(d.name || ""),
+
+            score:Number(d.totalScore || 0),
+
+            order:Number(d.order ?? 9999)
+
+          });
+
+        });
+
+
+        /* =========================
+           เรียงคะแนนมาก → น้อย
+           ถ้าคะแนนเท่ากันใช้ No.
+        ========================= */
+
+        list.sort((a,b)=>{
+
+          if(b.score !== a.score){
+
+            return b.score-a.score;
+
+          }
+
+          return a.order-b.order;
+
+        });
+
+
+        /* =========================
+           นับจำนวนคะแนนซ้ำ
+        ========================= */
+
+        const scoreCount={};
+
+        list.forEach(c=>{
+
+          const key=String(c.score);
+
+          scoreCount[key]=
+            (scoreCount[key] || 0)+1;
+
+        });
+
+
+        /* =========================
+           สร้างตาราง
+        ========================= */
+
+        let html="";
+
+        list.forEach((c,i)=>{
+
+          const isTie=
+            scoreCount[String(c.score)] > 1;
+
+          /*
+             คะแนนเสมอ:
+             อันดับ + ชื่อ + คะแนน
+             สีแดง + ขีดเส้นใต้ + กระพริบ
+          */
+
+          html+=`
+
+            <tr>
+
+              <td class="${isTie ? "tie" : (i===0 ? "gold" : "")}">
+                ${i+1}
+              </td>
+
+              <td class="${isTie ? "tie" : (i===0 ? "gold" : "")}">
+                ${escapeHtml(c.name)}
+              </td>
+
+              <td class="${isTie ? "tie" : (i===0 ? "gold" : "")}">
+                ${c.score}
+              </td>
+
+            </tr>
+
+          `;
+
+        });
+
+
+        document.getElementById("tb").innerHTML=
+          html ||
+          `<tr>
+             <td colspan="3">ยังไม่มีข้อมูลผู้ประกวด</td>
+           </tr>`;
+
+
+        setStatus(
+          `🟢 Real-time | ผู้ประกวด ${list.length} คน`
+        );
+
+      },
+
+      error=>{
+
+        console.error(
+          "Firebase Contestants Error:",
+          error
+        );
+
+        setStatus(
+          "❌ ไม่สามารถโหลดข้อมูลคะแนนได้",
+          true
+        );
+
+        document.getElementById("tb").innerHTML=`
+          <tr>
+            <td colspan="3" style="color:red;">
+              ❌ ไม่สามารถโหลดข้อมูลได้
+            </td>
+          </tr>
+        `;
 
       }
 
-      scoreCount[c.score]++;
-
-    });
-
-
-    /* ==============================
-       สร้างตาราง
-    ============================== */
-
-    let html = "";
-
-
-    list.forEach((c,i) => {
-
-      const isTie = scoreCount[c.score] > 1;
-
-
-      /*
-       * ถ้าคะแนนเสมอกัน
-       * อันดับ + ชื่อ + คะแนน = สีแดง
-       */
-
-      const tieClass = isTie ? "tie" : "";
-
-
-      /*
-       * อันดับ 1 สีทอง
-       * แต่ถ้าคะแนนเสมอ ให้ใช้สีแดงแทน
-       */
-
-      const rowClass =
-        (!isTie && i === 0)
-          ? "gold"
-          : "";
-
-
-      html += `
-
-      <tr class="${rowClass}">
-
-        <td class="${tieClass}">
-          ${i + 1}
-        </td>
-
-        <td class="${tieClass}">
-          ${escapeHtml(c.name)}
-        </td>
-
-        <td class="${tieClass}">
-          ${c.score}
-        </td>
-
-      </tr>
-
-      `;
-
-    });
-
-
-    document.getElementById("tb").innerHTML = html;
-
-  },
-
-  error => {
-
-    console.error(
-      "Firebase Error:",
-      error
     );
 
-    document.getElementById("tb").innerHTML = `
+}
 
-      <tr>
 
-        <td colspan="3"
-            style="color:red;font-size:24px;">
+/* ==============================
+   LOGOUT
+============================== */
 
-          ❌ ไม่สามารถโหลดข้อมูลได้
+function clearMonitorSession(){
 
-        </td>
+  localStorage.removeItem(
+    MONITOR_SESSION_KEY
+  );
 
-      </tr>
+  currentMonitorUser=null;
 
-    `;
+}
+
+function logoutMonitor(showMessage=true){
+
+  if(unsubscribeContestants){
+
+    unsubscribeContestants();
+
+    unsubscribeContestants=null;
 
   }
 
+  if(unsubscribeAdmins){
+
+    unsubscribeAdmins();
+
+    unsubscribeAdmins=null;
+
+  }
+
+  clearMonitorSession();
+
+  document.getElementById("monitorPass").value="";
+
+  showLogin(
+    showMessage
+      ? "ออกจาก Monitor แล้ว"
+      : ""
+  );
+
+}
+
+
+/* ==============================
+   EVENTS
+============================== */
+
+document
+  .getElementById("monitorLoginBtn")
+  .addEventListener(
+    "click",
+    loginMonitor
+  );
+
+document
+  .getElementById("monitorLogoutBtn")
+  .addEventListener(
+    "click",
+    ()=>logoutMonitor(true)
+  );
+
+document.addEventListener(
+  "keydown",
+  e=>{
+
+    if(
+      e.key==="Enter" &&
+      !document
+        .getElementById("loginPage")
+        .classList.contains("hidden")
+    ){
+
+      loginMonitor();
+
+    }
+
+  }
 );
 
 
 /* ==============================
-   ป้องกัน HTML แปลกปลอมจากชื่อ
+   START
 ============================== */
 
-function escapeHtml(value){
-
-  return String(value ?? "")
-
-    .replaceAll("&","&amp;")
-
-    .replaceAll("<","&lt;")
-
-    .replaceAll(">","&gt;")
-
-    .replaceAll('"',"&quot;")
-
-    .replaceAll("'","&#039;");
-
-}
+verifyMonitorSession();
 
 </script>
 
