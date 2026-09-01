@@ -416,12 +416,16 @@ window.login=async function(){
     showPage();
 
   }catch(err){
-    console.error(err);
-    alert("❌ เข้าสู่ระบบไม่สำเร็จ\n"+err.message);
+    console.error("Admin login error:", err);
+    alert(
+      "❌ เข้าสู่ระบบไม่สำเร็จ\n\n" +
+      (err?.message || "เกิดข้อผิดพลาดในการเชื่อมต่อ Firebase") +
+      "\n\nกรุณาตรวจสอบ Firebase Config และ Firestore Rules"
+    );
   }
 };
 
-async function restoreSession(){
+async async function restoreSession(){
   const raw=localStorage.getItem(SESSION_KEY);
 
   if(!raw){
