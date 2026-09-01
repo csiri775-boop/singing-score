@@ -477,15 +477,22 @@ input[type="number"], select {
 <button onclick="submitScore()">💾 บันทึก</button>
 <button onclick="clearScore()">🧹 ล้างช่อง</button>
 <button onclick="backupData()">💾 Backup</button>
-<button onclick="resetAll()">🧨 สิ้นสุด</button>
-<hr>
-
 <button onclick="exportExcel()">📊 Excel</button>
 <button onclick="printDetail()">🖨️ รายงาน</button>
 <button onclick="announceResult()">📢 ประกาศผล</button>
 <button onclick="openMonitor()">📺 Monitor</button>
 <button onclick="selectBackupFile()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
 <button type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
+<button onclick="resetAll()">🧨 สิ้นสุด</button>
+
+<hr>
+
+
+
+
+
+
+
 <input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
 
 </div>
