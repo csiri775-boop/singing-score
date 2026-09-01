@@ -132,6 +132,38 @@ td:first-child{text-align:left}
   color:#666;
 }
 .hidden{display:none!important}
+
+/* ===== SCORE MANAGEMENT ===== */
+.score-card{margin-top:15px;background:white;border-radius:8px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
+.score-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#scoreContestant{min-width:320px;height:40px;padding:6px;font-size:16px}
+.score-info{margin:12px 0;padding:10px;background:#f7f7f7;border-left:4px solid #45ad54}
+.score-table{width:100%;border-collapse:collapse;margin-top:10px}
+.score-table th,.score-table td{border:1px solid #ccc;padding:7px;text-align:center}
+.score-table th{background:#eee}
+.score-table input.score-input{
+  width:78px!important;
+  height:36px!important;
+  text-align:center;
+  font-size:17px!important;
+  margin:0!important;
+}
+.score-step{
+  padding:6px 9px;
+  min-width:34px;
+  margin:0 2px;
+}
+.score-step.minus{background:#d9363e}
+.score-step.plus{background:#45ad54}
+.score-total{font-weight:bold;background:#fafafa}
+.score-grand{font-size:20px;font-weight:bold;background:#fff3cd}
+.score-status{min-height:22px;margin-top:10px;font-weight:bold}
+@media(max-width:800px){
+  .score-table{font-size:13px}
+  .score-table input.score-input{width:60px!important}
+  #scoreContestant{min-width:220px;width:100%}
+}
+
 </style>
 </head>
 
@@ -160,6 +192,58 @@ td:first-child{text-align:left}
       <button type="button" onclick="window.goIndex()">⬅️ กลับหน้าหลัก</button>
       <button class="btn-red" onclick="logout()">🚪 ล็อกเอาท์</button>
     </div>
+  </div>
+
+
+  <div class="score-card">
+    <h2>📋 รายการคะแนน</h2>
+    <p style="color:#666;margin-top:-5px;">
+      ผู้พัฒนาระบบสามารถตรวจสอบ แก้ไข เพิ่ม/ลดคะแนน และบันทึกคะแนนของผู้ประกวดได้
+    </p>
+
+    <div class="score-toolbar">
+      <select id="scoreContestant" onchange="loadScoreEditor()">
+        <option value="">-- เลือกผู้ประกวด --</option>
+      </select>
+      <button type="button" onclick="loadScoreEditor()">🔄 โหลดคะแนน</button>
+    </div>
+
+    <div id="scoreInfo" class="score-info">กรุณาเลือกผู้ประกวด</div>
+
+    <div style="overflow-x:auto;">
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>รายการคะแนน</th>
+            <th>เต็ม</th>
+            <th>กรรมการ 1</th>
+            <th>กรรมการ 2</th>
+            <th>กรรมการ 3</th>
+          </tr>
+        </thead>
+        <tbody id="scoreEditorBody">
+          <tr><td colspan="5">ยังไม่ได้เลือกผู้ประกวด</td></tr>
+        </tbody>
+        <tfoot>
+          <tr class="score-total">
+            <td colspan="2">รวมคะแนนกรรมการ</td>
+            <td id="scoreSum1">0</td>
+            <td id="scoreSum2">0</td>
+            <td id="scoreSum3">0</td>
+          </tr>
+          <tr class="score-grand">
+            <td colspan="4">คะแนนรวมทั้งหมด</td>
+            <td id="scoreGrandTotal">0</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="score-toolbar" style="margin-top:12px;">
+      <button type="button" onclick="saveManagedScores()">💾 บันทึกคะแนน</button>
+      <button type="button" class="btn-gray" onclick="resetScoreEditor()">↩️ ยกเลิกการแก้ไข</button>
+    </div>
+    <div id="scoreStatus" class="score-status"></div>
   </div>
 
   <div class="card">
@@ -252,6 +336,7 @@ function showPage(){
   document.getElementById("userLabel").textContent =
     `👤 แอดมิน: ${currentAdmin.username}`;
   loadAdmins();
+  loadScoreContestants();
 }
 
 function showLogin(){
@@ -388,6 +473,244 @@ window.logout=function(){
 };
 
 window.goIndex=function(){ window.location.assign("./index.html"); };
+
+
+// ===== SCORE MANAGEMENT =====
+const SCORE_ITEMS = [
+  {name:"น้ำเสียง",max:30},
+  {name:"เทคนิค",max:10},
+  {name:"จังหวะ",max:20},
+  {name:"อักขระ",max:10},
+  {name:"บุคลิก",max:10},
+  {name:"ความยาก",max:10},
+  {name:"แต่งกาย",max:10}
+];
+
+let scoreContestants=[];
+let scoreEditorOriginal=null;
+
+async function loadScoreContestants(){
+  const select=document.getElementById("scoreContestant");
+  if(!select) return;
+
+  try{
+    const snap=await getDocs(collection(db,"contestants"));
+    scoreContestants=[];
+
+    snap.forEach(d=>{
+      const a=d.data();
+      scoreContestants.push({
+        id:d.id,
+        name:String(a.name||""),
+        order:Number(a.order||9999),
+        score1:Array.isArray(a.score1)?a.score1:[],
+        score2:Array.isArray(a.score2)?a.score2:[],
+        score3:Array.isArray(a.score3)?a.score3:[],
+        j1:Number(a.j1||0),
+        j2:Number(a.j2||0),
+        j3:Number(a.j3||0),
+        totalScore:Number(a.totalScore||0),
+        locked:a.locked===true
+      });
+    });
+
+    scoreContestants.sort((a,b)=>a.order-b.order);
+
+    const old=select.value;
+    select.innerHTML='<option value="">-- เลือกผู้ประกวด --</option>';
+
+    scoreContestants.forEach(c=>{
+      const opt=document.createElement("option");
+      opt.value=c.id;
+      opt.textContent=`No.${c.order} ${c.name}${c.locked?" ✔":""}`;
+      select.appendChild(opt);
+    });
+
+    if(old && scoreContestants.some(c=>c.id===old)){
+      select.value=old;
+      loadScoreEditor();
+    }else{
+      clearScoreEditor();
+    }
+  }catch(err){
+    console.error(err);
+    setScoreStatus("❌ โหลดรายชื่อผู้ประกวดไม่สำเร็จ: "+err.message,false);
+  }
+}
+
+function clearScoreEditor(){
+  document.getElementById("scoreInfo").textContent="กรุณาเลือกผู้ประกวด";
+  document.getElementById("scoreEditorBody").innerHTML=
+    '<tr><td colspan="5">ยังไม่ได้เลือกผู้ประกวด</td></tr>';
+  document.getElementById("scoreSum1").textContent="0";
+  document.getElementById("scoreSum2").textContent="0";
+  document.getElementById("scoreSum3").textContent="0";
+  document.getElementById("scoreGrandTotal").textContent="0";
+  document.getElementById("scoreStatus").textContent="";
+  scoreEditorOriginal=null;
+}
+
+window.loadScoreEditor=function(){
+  const id=document.getElementById("scoreContestant").value;
+  if(!id){ clearScoreEditor(); return; }
+
+  const c=scoreContestants.find(x=>x.id===id);
+  if(!c){ clearScoreEditor(); return; }
+
+  scoreEditorOriginal={
+    id:c.id,
+    score1:[...c.score1],
+    score2:[...c.score2],
+    score3:[...c.score3]
+  };
+
+  document.getElementById("scoreInfo").innerHTML=
+    `<b>No.${esc(c.order)}</b> — ${esc(c.name)}
+     ${c.locked ? '<span style="color:green;font-weight:bold;"> ✔ บันทึกแล้ว</span>' : ''}`;
+
+  const body=document.getElementById("scoreEditorBody");
+
+  body.innerHTML=SCORE_ITEMS.map((item,i)=>`
+    <tr>
+      <td>${esc(item.name)}</td>
+      <td>${item.max}</td>
+      ${[1,2,3].map(j=>`
+        <td>
+          <button type="button" class="score-step minus"
+            onclick="changeManagedScore(${j},${i},-1)">−</button>
+          <input class="score-input" type="number" min="0" max="${item.max}"
+            id="managed_j${j}_s${i}"
+            value="${Number(c["score"+j][i]||0)}"
+            oninput="updateManagedTotals()">
+          <button type="button" class="score-step plus"
+            onclick="changeManagedScore(${j},${i},1)">+</button>
+        </td>
+      `).join("")}
+    </tr>
+  `).join("");
+
+  updateManagedTotals();
+  setScoreStatus("");
+};
+
+window.changeManagedScore=function(j,i,delta){
+  const el=document.getElementById(`managed_j${j}_s${i}`);
+  if(!el) return;
+
+  let v=Number(el.value||0)+delta;
+  v=Math.max(0,Math.min(SCORE_ITEMS[i].max,v));
+  el.value=v;
+  updateManagedTotals();
+};
+
+function readManagedScores(){
+  const result={score1:[],score2:[],score3:[]};
+
+  for(let j=1;j<=3;j++){
+    for(let i=0;i<SCORE_ITEMS.length;i++){
+      const el=document.getElementById(`managed_j${j}_s${i}`);
+      if(!el) throw new Error("ไม่พบช่องคะแนน");
+
+      const v=Number(el.value);
+      if(!Number.isFinite(v) || v<0 || v>SCORE_ITEMS[i].max){
+        throw new Error(`คะแนนกรรมการ ${j} รายการ "${SCORE_ITEMS[i].name}" ต้องอยู่ระหว่าง 0-${SCORE_ITEMS[i].max}`);
+      }
+      result["score"+j].push(v);
+    }
+  }
+  return result;
+}
+
+window.updateManagedTotals=function(){
+  try{
+    const r=readManagedScores();
+    const sums=[1,2,3].map(j=>r["score"+j].reduce((a,b)=>a+b,0));
+    document.getElementById("scoreSum1").textContent=sums[0];
+    document.getElementById("scoreSum2").textContent=sums[1];
+    document.getElementById("scoreSum3").textContent=sums[2];
+    document.getElementById("scoreGrandTotal").textContent=sums.reduce((a,b)=>a+b,0);
+    setScoreStatus("");
+  }catch(e){
+    document.getElementById("scoreGrandTotal").textContent="—";
+  }
+};
+
+window.saveManagedScores=async function(){
+  const id=document.getElementById("scoreContestant").value;
+  if(!id) return alert("กรุณาเลือกผู้ประกวด");
+
+  const c=scoreContestants.find(x=>x.id===id);
+  if(!c) return alert("ไม่พบผู้ประกวด");
+
+  try{
+    const r=readManagedScores();
+    const j1=r.score1.reduce((a,b)=>a+b,0);
+    const j2=r.score2.reduce((a,b)=>a+b,0);
+    const j3=r.score3.reduce((a,b)=>a+b,0);
+    const total=j1+j2+j3;
+
+    if(!confirm(
+      `ยืนยันบันทึกคะแนนแก้ไข?\n\nNo.${c.order} ${c.name}\n`+
+      `กรรมการ 1: ${j1}\nกรรมการ 2: ${j2}\nกรรมการ 3: ${j3}\nคะแนนรวม: ${total}`
+    )) return;
+
+    await updateDoc(doc(db,"contestants",id),{
+      score1:r.score1,
+      score2:r.score2,
+      score3:r.score3,
+      j1,j2,j3,
+      totalScore:total,
+      locked:true,
+      adminEdited:true,
+      adminEditedAt:new Date().toISOString(),
+      adminEditedBy:currentAdmin?.username||"unknown"
+    });
+
+    setScoreStatus("✅ บันทึกคะแนนเรียบร้อยแล้ว",true);
+    await loadScoreContestants();
+
+    const select=document.getElementById("scoreContestant");
+    select.value=id;
+    loadScoreEditor();
+
+  }catch(err){
+    console.error(err);
+    setScoreStatus("❌ บันทึกไม่สำเร็จ: "+err.message,false);
+  }
+};
+
+window.resetScoreEditor=function(){
+  if(!scoreEditorOriginal){
+    clearScoreEditor();
+    return;
+  }
+
+  const c=scoreContestants.find(x=>x.id===scoreEditorOriginal.id);
+  if(c){
+    c.score1=[...scoreEditorOriginal.score1];
+    c.score2=[...scoreEditorOriginal.score2];
+    c.score3=[...scoreEditorOriginal.score3];
+  }
+
+  loadScoreEditor();
+  setScoreStatus("↩️ ยกเลิกการแก้ไขแล้ว",true);
+};
+
+function setScoreStatus(msg,ok=true){
+  const el=document.getElementById("scoreStatus");
+  if(!el) return;
+  el.textContent=msg||"";
+  el.style.color=ok ? "green" : "#b00000";
+}
+
+function esc(v){
+  return String(v??"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
 window.loadAdmins=async function(){
   const body=document.getElementById("adminList");
