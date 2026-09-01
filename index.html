@@ -442,30 +442,12 @@ input[type="number"], select {
 
 <div id="adminBar">
   <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
-  <button onclick="toggleAdminPanel()">⚙️ จัดการแอดมิน</button>
+  <button onclick="openAdminPage()">⚙️ จัดการแอดมิน</button>
   <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
 </div>
 
-<div id="adminPanel">
-  <h3>⚙️ จัดการแอดมิน</h3>
-  <div class="admin-row">
-    <input id="adminNewUsername" placeholder="ชื่อแอดมิน">
-    <input id="adminNewPassword" type="password" placeholder="รหัสผ่าน">
-    <button onclick="addAdmin()">➕ เพิ่มแอดมิน</button>
-  </div>
-  <div class="admin-row">
-    <button onclick="loadAdmins()">🔄 รีเฟรชรายชื่อแอดมิน</button>
-    <button onclick="toggleAdminPanel()" style="background:#777;">ปิด</button>
-  </div>
-  <div class="table-wrap">
-    <table class="admin-list">
-      <thead><tr><th>ชื่อแอดมิน</th><th>สถานะ</th><th>การจัดการ</th></tr></thead>
-      <tbody id="adminListBody"><tr><td colspan="3">กำลังโหลด...</td></tr></tbody>
-    </table>
-  </div>
-  <p style="font-size:14px;color:#777;margin-bottom:0;">
-    บัญชีแอดมินเก็บใน Firestore และสถานะ Login ของเครื่องนี้เก็บใน localStorage
-  </p>
+<!-- Admin management moved to admin.html -->
+
 </div>
 
 <h2>🎤 ระบบให้คะแนน</h2>
@@ -636,6 +618,10 @@ function showLoggedOut(){
   document.getElementById("appBox").style.display="none";
   document.getElementById("adminPanel").classList.remove("show");
   document.getElementById("adminUserLabel").textContent="👤 ผู้ดูแลระบบ";
+}
+
+function openAdminPage(){
+  window.location.href = "admin.html";
 }
 
 window.logout=function(){
@@ -1025,7 +1011,7 @@ window.announceResult = function(){
 /* ===== ADMIN MANAGEMENT / SESSION ===== */
 #adminBar{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:0 0 8px}
 #adminUserLabel{font-weight:bold}
-#adminPanel{display:none;margin:10px 0 15px;padding:12px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
+#adminPanel{display:none!important;margin:10px 0 15px;padding:12px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
 #adminPanel.show{display:block}
 #adminPanel h3{margin:0 0 10px}
 .admin-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
