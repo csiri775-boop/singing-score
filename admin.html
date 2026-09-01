@@ -158,6 +158,19 @@ td:first-child{text-align:left}
 .score-total{font-weight:bold;background:#fafafa}
 .score-grand{font-size:20px;font-weight:bold;background:#fff3cd}
 .score-status{min-height:22px;margin-top:10px;font-weight:bold}
+/* ===== SCORE CRITERIA SETTINGS ===== */
+.criteria-card{margin-top:15px;background:#fff;border-radius:8px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
+.criteria-table{width:100%;border-collapse:collapse;margin-top:10px}
+.criteria-table th,.criteria-table td{border:1px solid #ccc;padding:8px;text-align:center}
+.criteria-table th{background:#eee}
+.criteria-table input{height:36px;padding:5px 8px;margin:0!important}
+.criteria-name{width:100%;min-width:180px}
+.criteria-max{width:90px;text-align:center}
+.criteria-actions{white-space:nowrap}
+.criteria-row-remove{background:#d9363e}
+.criteria-help{color:#666;margin:4px 0 12px}
+.criteria-total{font-weight:bold;background:#fff3cd}
+
 @media(max-width:800px){
   .score-table{font-size:13px}
   .score-table input.score-input{width:60px!important}
@@ -194,6 +207,43 @@ td:first-child{text-align:left}
     </div>
   </div>
 
+
+
+  <div class="criteria-card">
+    <h2>⚙️ ตั้งค่ารายการคะแนน</h2>
+    <p class="criteria-help">
+      เปลี่ยนคะแนนเต็มของรายการเดิม หรือเพิ่มรายการคะแนนใหม่ได้
+      เมื่อเพิ่มรายการ ระบบจะสร้างช่องคะแนนสำหรับกรรมการ 1–3 ในหน้าหลักโดยอัตโนมัติ
+    </p>
+
+    <div style="overflow-x:auto;">
+      <table class="criteria-table">
+        <thead>
+          <tr>
+            <th style="width:70px;">ลำดับ</th>
+            <th>รายการคะแนน</th>
+            <th style="width:130px;">คะแนนเต็ม</th>
+            <th style="width:120px;">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="criteriaBody"></tbody>
+        <tfoot>
+          <tr class="criteria-total">
+            <td colspan="2">คะแนนเต็มรวม</td>
+            <td id="criteriaGrandMax">0</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="score-toolbar" style="margin-top:12px;">
+      <button type="button" onclick="addScoreItem()">➕ เพิ่มรายการคะแนน</button>
+      <button type="button" onclick="saveScoreConfig()">💾 บันทึกการตั้งค่าคะแนน</button>
+      <button type="button" class="btn-gray" onclick="reloadScoreConfig()">↩️ ยกเลิก/โหลดค่าเดิม</button>
+    </div>
+    <div id="criteriaStatus" class="score-status"></div>
+  </div>
 
   <div class="score-card">
     <h2>📋 รายการคะแนน</h2>
@@ -252,10 +302,6 @@ td:first-child{text-align:left}
     <div class="form-row">
       <input id="newUsername" placeholder="ชื่อแอดมิน">
       <input id="newPassword" type="password" placeholder="รหัสผ่าน">
-      <select id="newRole">
-        <option value="admin">Admin (ให้คะแนน + จัดการแอดมิน)</option>
-        <option value="user">User (ให้คะแนนอย่างเดียว)</option>
-      </select>
       <button onclick="addAdmin()">➕ เพิ่มแอดมิน</button>
       <button class="btn-gray" onclick="loadAdmins()">🔄 รีเฟรช</button>
     </div>
@@ -340,22 +386,13 @@ function showPage(){
   document.getElementById("userLabel").textContent =
     `👤 แอดมิน: ${currentAdmin.username}`;
   loadAdmins();
-  loadScoreContestants();
+  loadScoreConfig().then(()=>loadScoreContestants());
 }
 
 function showLogin(){
   currentAdmin=null;
   document.getElementById("page").classList.add("hidden");
   document.getElementById("loginBox").classList.remove("hidden");
-}
-
-// สิทธิ์เข้าหน้า "จัดการแอดมิน": admin, developer (protected) เท่านั้น
-// role="user" ไม่มีสิทธิ์เข้าหน้านี้
-function canAccessAdminPage(admin){
-  if(!admin) return false;
-  if(admin.protected) return true;
-  const role=String(admin.role||"admin").toLowerCase();
-  return role==="admin" || role===DEVELOPER_ROLE;
 }
 
 window.login=async function(){
@@ -373,15 +410,19 @@ window.login=async function(){
 
     snap.forEach(d=>{
       const a=d.data();
+      const role=String(a.role||"admin").trim().toLowerCase();
+      const isAdminRole=(role==="admin" || role===DEVELOPER_ROLE);
+
       if(
         String(a.username||"").trim().toLowerCase()===u.toLowerCase() &&
         String(a.password||"")===p &&
-        a.active!==false
+        a.active!==false &&
+        isAdminRole
       ){
         found={
           id:d.id,
           username:a.username,
-          role:a.role||"admin",
+          role:role,
           protected:a.protected===true
         };
       }
@@ -413,11 +454,6 @@ window.login=async function(){
 
     if(!found){
       alert("❌ Username หรือ Password ไม่ถูกต้อง หรือบัญชีถูกปิดใช้งาน");
-      return;
-    }
-
-    if(!canAccessAdminPage(found)){
-      alert("🔒 บัญชีนี้ไม่มีสิทธิ์เข้าหน้าจัดการแอดมิน");
       return;
     }
 
@@ -457,31 +493,29 @@ async function restoreSession(){
 
     const target=await getDoc(doc(db,"admins",saved.id));
 
-    if(
-      target.exists() &&
-      String(target.data().username||"")===String(saved.username) &&
-      target.data().active!==false
-    ){
+    if(target.exists()){
       const a=target.data();
+      const role=String(a.role||"admin").trim().toLowerCase();
+      const isAdminRole=(role==="admin" || role===DEVELOPER_ROLE);
 
-      const restored={
-        id:target.id,
-        username:a.username,
-        role:a.role||"admin",
-        protected:a.protected===true ||
-                  String(a.role||"").toLowerCase()===DEVELOPER_ROLE
-      };
+      if(
+        String(a.username||"")===String(saved.username) &&
+        a.active!==false &&
+        isAdminRole
+      ){
+        currentAdmin={
+          id:target.id,
+          username:a.username,
+          role:role,
+          protected:a.protected===true || role===DEVELOPER_ROLE
+        };
 
-      if(!canAccessAdminPage(restored)){
-        // บัญชี user ที่ล็อกอินจากหน้าหลักแล้วเข้ามาที่หน้านี้ตรงๆ ไม่มีสิทธิ์
+        showPage();
+      }else{
         localStorage.removeItem(SESSION_KEY);
-        alert("🔒 บัญชีนี้ไม่มีสิทธิ์เข้าหน้าจัดการแอดมิน");
-        window.location.assign("./index.html");
-        return;
+        showLogin();
+        alert("⛔ บัญชีนี้ไม่มีสิทธิ์เข้าหน้า Admin");
       }
-
-      currentAdmin=restored;
-      showPage();
     }else{
       localStorage.removeItem(SESSION_KEY);
       showLogin();
@@ -507,7 +541,7 @@ window.goIndex=function(){ window.location.assign("./index.html"); };
 
 
 // ===== SCORE MANAGEMENT =====
-const SCORE_ITEMS = [
+const DEFAULT_SCORE_ITEMS = [
   {name:"น้ำเสียง",max:30},
   {name:"เทคนิค",max:10},
   {name:"จังหวะ",max:20},
@@ -517,8 +551,251 @@ const SCORE_ITEMS = [
   {name:"แต่งกาย",max:10}
 ];
 
+let SCORE_ITEMS = DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+let scoreConfigLoaded = false;
 let scoreContestants=[];
 let scoreEditorOriginal=null;
+
+
+function normalizeScoreItems(raw){
+  if(!Array.isArray(raw) || raw.length===0){
+    return DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+  }
+
+  return raw.map(x=>({
+    name:String(x?.name||"").trim(),
+    max:Number(x?.max)
+  })).filter(x=>x.name && Number.isInteger(x.max) && x.max>0);
+}
+
+function renderScoreCriteriaEditor(){
+  const body=document.getElementById("criteriaBody");
+  if(!body) return;
+
+  body.innerHTML=SCORE_ITEMS.map((item,i)=>`
+    <tr data-criteria-row="${i}">
+      <td>${i+1}</td>
+      <td>
+        <input class="criteria-name" type="text"
+          value="${esc(item.name)}"
+          oninput="updateCriteriaPreview()">
+      </td>
+      <td>
+        <input class="criteria-max" type="number"
+          min="1" step="1" value="${Number(item.max)}"
+          oninput="updateCriteriaPreview()">
+      </td>
+      <td class="criteria-actions">
+        <button type="button" class="criteria-row-remove"
+          onclick="removeScoreItem(${i})">❌ ลบ</button>
+      </td>
+    </tr>
+  `).join("");
+
+  updateCriteriaPreview();
+}
+
+window.updateCriteriaPreview=function(){
+  const rows=[...document.querySelectorAll("#criteriaBody tr")];
+  let total=0;
+
+  rows.forEach(row=>{
+    const max=Number(row.querySelector(".criteria-max")?.value||0);
+    if(Number.isFinite(max)) total+=max;
+  });
+
+  const el=document.getElementById("criteriaGrandMax");
+  if(el) el.textContent=total;
+};
+
+window.addScoreItem=function(){
+  const name=prompt("กรุณากรอกชื่อรายการคะแนนใหม่");
+  if(name===null) return;
+
+  const clean=name.trim();
+  if(!clean) return alert("กรุณากรอกชื่อรายการคะแนน");
+
+  const duplicate=SCORE_ITEMS.some(x=>x.name.toLowerCase()===clean.toLowerCase());
+  if(duplicate) return alert("❌ มีรายการคะแนนชื่อนี้อยู่แล้ว");
+
+  const maxText=prompt("กรุณากรอกคะแนนเต็มของรายการนี้", "10");
+  if(maxText===null) return;
+
+  const max=Number(maxText);
+  if(!Number.isInteger(max) || max<=0){
+    return alert("❌ คะแนนเต็มต้องเป็นจำนวนเต็มมากกว่า 0");
+  }
+
+  SCORE_ITEMS.push({name:clean,max});
+  renderScoreCriteriaEditor();
+  showCriteriaStatus("➕ เพิ่มรายการแล้ว — กด “บันทึกการตั้งค่าคะแนน” เพื่อบันทึก",true);
+};
+
+window.removeScoreItem=function(index){
+  if(SCORE_ITEMS.length<=1){
+    return alert("❌ ต้องมีรายการคะแนนอย่างน้อย 1 รายการ");
+  }
+
+  const item=SCORE_ITEMS[index];
+  if(!item) return;
+
+  if(!confirm(`ยืนยันลบรายการ “${item.name}” ?\n\nการลบจะทำให้รายการนี้ไม่แสดงในหน้ากรอกคะแนนอีกต่อไป`)){
+    return;
+  }
+
+  SCORE_ITEMS.splice(index,1);
+  renderScoreCriteriaEditor();
+  showCriteriaStatus("🗑️ ลบรายการแล้ว — กด “บันทึกการตั้งค่าคะแนน” เพื่อยืนยัน",true);
+};
+
+function readCriteriaEditor(){
+  const rows=[...document.querySelectorAll("#criteriaBody tr")];
+  const items=[];
+
+  rows.forEach((row,i)=>{
+    const name=String(row.querySelector(".criteria-name")?.value||"").trim();
+    const max=Number(row.querySelector(".criteria-max")?.value);
+
+    if(!name) throw new Error(`รายการที่ ${i+1} ยังไม่มีชื่อ`);
+    if(!Number.isInteger(max) || max<=0){
+      throw new Error(`คะแนนเต็มของ “${name}” ต้องเป็นจำนวนเต็มมากกว่า 0`);
+    }
+
+    items.push({name,max});
+  });
+
+  if(items.length===0) throw new Error("ต้องมีรายการคะแนนอย่างน้อย 1 รายการ");
+
+  const names=new Set();
+  for(const item of items){
+    const key=item.name.toLowerCase();
+    if(names.has(key)) throw new Error(`มีรายการคะแนนซ้ำ: ${item.name}`);
+    names.add(key);
+  }
+
+  return items;
+}
+
+window.saveScoreConfig=async function(){
+  try{
+    const items=readCriteriaEditor();
+
+    // ป้องกันการลดคะแนนเต็มต่ำกว่าคะแนนที่มีอยู่แล้วใน Firebase
+    const snap=await getDocs(collection(db,"contestants"));
+    const problems=[];
+
+    snap.forEach(d=>{
+      const a=d.data();
+
+      [1,2,3].forEach(j=>{
+        const arr=Array.isArray(a[`score${j}`]) ? a[`score${j}`] : [];
+        items.forEach((item,i)=>{
+          const v=Number(arr[i] ?? 0);
+          if(Number.isFinite(v) && v>item.max){
+            problems.push(
+              `No.${a.order ?? "?"} ${a.name || ""} / กก.${j} / ${item.name}: ${v}>${item.max}`
+            );
+          }
+        });
+      });
+    });
+
+    if(problems.length){
+      alert(
+        "❌ ไม่สามารถบันทึกได้ เพราะคะแนนเต็มใหม่ต่ำกว่าคะแนนที่บันทึกไว้แล้ว\n\n"+
+        problems.slice(0,12).join("\n")+
+        (problems.length>12 ? `\n...และอีก ${problems.length-12} รายการ` : "")
+      );
+      return;
+    }
+
+    const oldItems=SCORE_ITEMS.map(x=>({...x}));
+    const changed=JSON.stringify(oldItems)!==JSON.stringify(items);
+
+    if(!changed){
+      showCriteriaStatus("ℹ️ ไม่มีการเปลี่ยนแปลง",true);
+      return;
+    }
+
+    if(!confirm(
+      "ยืนยันบันทึกรายการคะแนน?\n\n"+
+      items.map((x,i)=>`${i+1}. ${x.name} (${x.max})`).join("\n")+
+      "\n\nหลังบันทึก หน้ากรรมการจะใช้รายการนี้"
+    )) return;
+
+    await setDoc(doc(db,"settings","scoreConfig"),{
+      items,
+      updatedAt:new Date().toISOString(),
+      updatedBy:currentAdmin?.username || "unknown"
+    });
+
+    SCORE_ITEMS=items.map(x=>({...x}));
+    scoreConfigLoaded=true;
+    renderScoreCriteriaEditor();
+    await loadScoreContestants();
+
+    showCriteriaStatus("✅ บันทึกการตั้งค่ารายการคะแนนเรียบร้อยแล้ว",true);
+
+    // ถ้ามีผู้ประกวดถูกเลือกอยู่ ให้สร้างช่องกรอกใหม่ทันที
+    const selected=document.getElementById("scoreContestant")?.value;
+    if(selected){
+      document.getElementById("scoreContestant").value=selected;
+      loadScoreEditor();
+    }
+
+  }catch(err){
+    console.error(err);
+    showCriteriaStatus("❌ บันทึกการตั้งค่าคะแนนไม่สำเร็จ: "+err.message,false);
+  }
+};
+
+window.reloadScoreConfig=async function(){
+  try{
+    await loadScoreConfig();
+    await loadScoreContestants();
+    showCriteriaStatus("↩️ โหลดการตั้งค่าจาก Firebase แล้ว",true);
+  }catch(err){
+    showCriteriaStatus("❌ โหลดการตั้งค่าไม่สำเร็จ: "+err.message,false);
+  }
+};
+
+async function loadScoreConfig(){
+  try{
+    const ref=await getDoc(doc(db,"settings","scoreConfig"));
+
+    if(ref.exists()){
+      const normalized=normalizeScoreItems(ref.data().items);
+      SCORE_ITEMS=normalized.length ? normalized : DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+    }else{
+      SCORE_ITEMS=DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+      // สร้างค่าเริ่มต้นไว้ใน Firebase เพื่อให้ index ใช้ชุดเดียวกัน
+      await setDoc(doc(db,"settings","scoreConfig"),{
+        items:SCORE_ITEMS,
+        updatedAt:new Date().toISOString(),
+        updatedBy:currentAdmin?.username || "system"
+      });
+    }
+
+    scoreConfigLoaded=true;
+    renderScoreCriteriaEditor();
+    return SCORE_ITEMS;
+
+  }catch(err){
+    console.error(err);
+    scoreConfigLoaded=false;
+    SCORE_ITEMS=DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+    renderScoreCriteriaEditor();
+    showCriteriaStatus("⚠️ ใช้รายการคะแนนเริ่มต้น เพราะโหลด Firebase ไม่สำเร็จ: "+err.message,false);
+    throw err;
+  }
+}
+
+function showCriteriaStatus(msg,ok=true){
+  const el=document.getElementById("criteriaStatus");
+  if(!el) return;
+  el.textContent=msg||"";
+  el.style.color=ok ? "green" : "#b00000";
+}
 
 async function loadScoreContestants(){
   const select=document.getElementById("scoreContestant");
@@ -611,7 +888,7 @@ window.loadScoreEditor=function(){
             onclick="changeManagedScore(${j},${i},-1)">−</button>
           <input class="score-input" type="number" min="0" max="${item.max}"
             id="managed_j${j}_s${i}"
-            value="${Number(c["score"+j][i]||0)}"
+            value="${Number(c["score"+j]?.[i] ?? 0)}"
             oninput="updateManagedTotals()">
           <button type="button" class="score-step plus"
             onclick="changeManagedScore(${j},${i},1)">+</button>
@@ -734,6 +1011,8 @@ function setScoreStatus(msg,ok=true){
   el.style.color=ok ? "green" : "#b00000";
 }
 
+
+
 window.loadAdmins=async function(){
   const body=document.getElementById("adminList");
   body.innerHTML='<tr><td colspan="3">กำลังโหลด...</td></tr>';
@@ -767,15 +1046,10 @@ window.loadAdmins=async function(){
         a.role.toLowerCase()===DEVELOPER_ROLE ||
         a.username.toLowerCase()===DEVELOPER_USERNAME;
 
-      // บัญชีเดิมที่ยังไม่มีค่า role ให้แสดงเป็น Admin (ของเดิม)
-      const roleLabel = developer
-        ? ""
-        : (a.role.toLowerCase()==="user" ? " (User)" : " (Admin)");
-
       return `
       <tr>
         <td class="${developer ? "dev" : ""}">
-          ${esc(a.username)}${esc(roleLabel)}
+          ${esc(a.username)}
           ${developer ? " 🛡️ ผู้พัฒนาระบบ" : ""}
         </td>
 
@@ -811,8 +1085,6 @@ window.loadAdmins=async function(){
 window.addAdmin=async function(){
   const username=document.getElementById("newUsername").value.trim();
   const password=document.getElementById("newPassword").value;
-  const roleSelect=document.getElementById("newRole");
-  const role=(roleSelect?.value==="user") ? "user" : "admin";
 
   if(!username || !password){
     return showMessage("กรุณากรอกชื่อแอดมินและรหัสผ่าน",false);
@@ -843,14 +1115,13 @@ window.addAdmin=async function(){
       username,
       password,
       active:true,
-      role,
+      role:"admin",
       protected:false,
       createdAt:new Date().toISOString()
     });
 
     document.getElementById("newUsername").value="";
     document.getElementById("newPassword").value="";
-    if(roleSelect) roleSelect.value="admin";
 
     await loadAdmins();
     showMessage("✅ เพิ่มแอดมินเรียบร้อยแล้ว",true);
