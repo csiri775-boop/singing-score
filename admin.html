@@ -334,7 +334,8 @@ import {
   addDoc,
   setDoc,
   updateDoc,
-  deleteDoc
+  deleteDoc,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -668,16 +669,31 @@ window.deleteContestantFromAdmin=async function(){
   }
 };
 
+async function clearAllContestants(){
+  const snap=await getDocs(collection(db,"contestants"));
+  const ids=[];
+  snap.forEach(d=>ids.push(d.id));
+
+  for(let i=0;i<ids.length;i+=450){
+    const batch=writeBatch(db);
+    ids.slice(i,i+450).forEach(id=>batch.delete(doc(db,"contestants",id)));
+    await batch.commit();
+  }
+  return ids.length;
+}
+
 window.importContestantsFromAdmin=function(){
   const input=document.getElementById("contestantExcelFile");
   const file=input.files[0];
   if(!file) return setContestantStatus("❌ กรุณาเลือกไฟล์ CSV ก่อน",false);
+
   const reader=new FileReader();
   reader.onload=async function(e){
     try{
       const text=new TextDecoder("utf-8").decode(e.target.result).replace(/^\uFEFF/,"");
       const lines=text.split(/\r?\n/).filter(x=>x.trim());
       if(lines.length<2) throw new Error("ไฟล์ไม่มีข้อมูล");
+
       const list=[];
       for(let i=1;i<lines.length;i++){
         const cols=lines[i].split(",");
@@ -686,26 +702,53 @@ window.importContestantsFromAdmin=function(){
         if(name && Number.isInteger(no) && no>0) list.push({no,name});
       }
       if(!list.length) throw new Error("ไม่พบข้อมูลรูปแบบ หมายเลข,ชื่อ ในไฟล์");
+
       list.sort((a,b)=>a.no-b.no);
-      const snap=await getDocs(collection(db,"contestants"));
-      const existingNo=new Set(),existingName=new Set();
-      snap.forEach(d=>{const a=d.data();existingNo.add(Number(a.order||0));existingName.add(String(a.name||"").trim().toLowerCase());});
-      let added=0,skipped=0;
-      for(const item of list){
-        if(existingNo.has(item.no)||existingName.has(item.name.toLowerCase())){skipped++;continue;}
-        await addDoc(collection(db,"contestants"),{
-          name:`No.${item.no} ${item.name}`,order:item.no,totalScore:0,j1:0,j2:0,j3:0,score1:[],score2:[],score3:[],locked:false,
-          createdAt:new Date().toISOString(),createdBy:currentAdmin?.username||"unknown"
+
+      const confirmed=confirm(
+        `⚠️ นำเข้ารายชื่อผู้ประกวดใหม่\n\n`+
+        `ไฟล์: ${file.name}\n`+
+        `ข้อมูลใหม่: ${list.length} คน\n\n`+
+        `ระบบจะลบรายชื่อผู้ประกวดและคะแนนเดิมใน Firestore ทั้งหมดก่อน\n`+
+        `แล้วจึงนำเข้ารายชื่อจากไฟล์นี้ใหม่\n\n`+
+        `เพื่อป้องกันข้อมูลเก่าซ้ำกับข้อมูลชุดใหม่\n\n`+
+        `ต้องการดำเนินการต่อหรือไม่?`
+      );
+      if(!confirmed) return;
+
+      input.disabled=true;
+      setContestantStatus("⏳ กำลังเคลียร์ข้อมูลผู้ประกวดเดิม...",false);
+      const deleted=await clearAllContestants();
+
+      setContestantStatus(`⏳ เคลียร์ข้อมูลเดิม ${deleted} คนแล้ว กำลังนำเข้ารายชื่อใหม่...`,false);
+
+      for(let i=0;i<list.length;i+=450){
+        const batch=writeBatch(db);
+        list.slice(i,i+450).forEach(item=>{
+          const ref=doc(collection(db,"contestants"));
+          batch.set(ref,{
+            name:`No.${item.no} ${item.name}`,
+            order:item.no,
+            totalScore:0,
+            j1:0,j2:0,j3:0,
+            score1:[],score2:[],score3:[],
+            locked:false,
+            createdAt:new Date().toISOString(),
+            createdBy:currentAdmin?.username||"unknown"
+          });
         });
-        existingNo.add(item.no); existingName.add((`No.${item.no} ${item.name}`).toLowerCase()); added++;
+        await batch.commit();
       }
+
       input.value="";
       await loadContestantManagement();
       if(isDeveloper()) await loadScoreContestants();
-      setContestantStatus(`✅ นำเข้าสำเร็จ ${added} คน${skipped?` (ข้ามข้อมูลซ้ำ ${skipped} คน)`:""}`,true);
+      setContestantStatus(`✅ นำเข้ารายชื่อใหม่สำเร็จ ${list.length} คน และล้างข้อมูลชุดเดิม ${deleted} คนเรียบร้อยแล้ว`,true);
     }catch(err){
       console.error(err);
       setContestantStatus("❌ นำเข้าไฟล์ไม่สำเร็จ: "+err.message,false);
+    }finally{
+      input.disabled=false;
     }
   };
   reader.readAsArrayBuffer(file);
