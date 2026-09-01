@@ -107,7 +107,7 @@ th{background:#eee}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import {
-  getFirestore, collection, getDocs, doc, setDoc, deleteDoc
+  getFirestore, collection, getDocs, doc, setDoc, deleteDoc, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -412,17 +412,31 @@ function cancelRestore(){
   $("cancelRestoreBtn").disabled=true;
 }
 
+async function clearAllContestants(){
+  const snap=await getDocs(collection(db,"contestants"));
+  const ids=[];
+  snap.forEach(d=>ids.push(d.id));
+
+  for(let i=0;i<ids.length;i+=450){
+    const batch=writeBatch(db);
+    ids.slice(i,i+450).forEach(id=>batch.delete(doc(db,"contestants",id)));
+    await batch.commit();
+  }
+  return ids.length;
+}
+
 async function confirmRestore(){
   if(!pendingBackup) return;
 
   const list=pendingBackup.list;
 
   const ok=confirm(
-    `⚠️ ยืนยันเรียกคืนข้อมูล\\n\\n`+
-    `ไฟล์: ${pendingBackup.fileName}\\n`+
-    `จำนวน: ${list.length} คน\\n\\n`+
-    `ข้อมูลผู้ประกวดใน Firestore ที่มี ID ตรงกันจะถูกเขียนทับ\\n`+
-    `และข้อมูล ID ที่ไม่มีอยู่จะถูกสร้างใหม่\\n\\n`+
+    `⚠️ ยืนยันเรียกคืนข้อมูล\n\n`+
+    `ไฟล์: ${pendingBackup.fileName}\n`+
+    `จำนวน: ${list.length} คน\n\n`+
+    `ระบบจะลบข้อมูลผู้ประกวดและคะแนนชุดเดิมใน Firestore ทั้งหมดก่อน\n`+
+    `จากนั้นจึงเรียกคืนข้อมูลจากไฟล์ Backup รวมถึงรายละเอียดคะแนนของกรรมการ\n`+
+    `เพื่อป้องกันข้อมูลเก่าซ้ำกับข้อมูลที่เรียกคืน\n\n`+
     `ต้องการดำเนินการต่อหรือไม่?`
   );
 
@@ -430,29 +444,34 @@ async function confirmRestore(){
 
   $("confirmRestoreBtn").disabled=true;
   $("cancelRestoreBtn").disabled=true;
-  setStatus("restoreStatus","กำลังเรียกคืนข้อมูล...");
+  setStatus("restoreStatus","กำลังเคลียร์ข้อมูลชุดเดิม...");
 
   try{
+    const deleted=await clearAllContestants();
+    setStatus("restoreStatus",`⏳ ลบข้อมูลชุดเดิม ${deleted} คนแล้ว กำลังเรียกคืนข้อมูล...`);
+
     let count=0;
-
-    for(const item of list){
-      if(!item.id) continue;
-
-      await setDoc(
-        doc(db,"contestants",String(item.id)),
-        item.data,
-        {merge:false}
-      );
-      count++;
+    for(let i=0;i<list.length;i+=450){
+      const batch=writeBatch(db);
+      list.slice(i,i+450).forEach(item=>{
+        if(!item.id) return;
+        batch.set(
+          doc(db,"contestants",String(item.id)),
+          item.data,
+          {merge:false}
+        );
+        count++;
+      });
+      await batch.commit();
     }
 
     setStatus(
       "restoreStatus",
-      `✅ เรียกคืนข้อมูลสำเร็จ ${count} คน`,
+      `✅ เรียกคืนข้อมูลสำเร็จ ${count} คน และล้างข้อมูลเดิม ${deleted} คนเรียบร้อยแล้ว`,
       true
     );
 
-    alert(`✅ เรียกคืนข้อมูลสำเร็จ ${count} คน`);
+    alert(`✅ เรียกคืนข้อมูลสำเร็จ ${count} คน\n🧹 ล้างข้อมูลเดิม ${deleted} คนเรียบร้อยแล้ว`);
     cancelRestore();
     setStatus("restoreStatus","เรียกคืนข้อมูลเรียบร้อยแล้ว",true);
   }catch(err){
