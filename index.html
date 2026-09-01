@@ -391,6 +391,44 @@ input[type="number"], select {
     flex-wrap:wrap;
   }
 }
+
+/* ===== TOOLBAR ROW + ADMIN BAR (จริง ใช้กับหน้าเว็บ) ===== */
+.toolbar-row{
+  display:flex;
+  align-items:center;
+  flex-wrap:nowrap;
+  gap:10px;
+  width:100%;
+  margin:8px 0 0;
+  overflow-x:auto;
+  padding-bottom:4px;
+}
+#adminBar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:nowrap;
+  flex-shrink:0;
+  margin-left:auto;
+  white-space:nowrap;
+}
+#adminUserLabel{font-weight:bold;white-space:nowrap;}
+.save-score-btn{
+  font-size:39px!important;
+  padding:23px 47px!important;
+  min-width:234px;
+  min-height:101px;
+  font-weight:bold;
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.toolbar-btn{
+  font-size:21px!important;
+  padding:13px 23px!important;
+  font-weight:bold;
+  flex-shrink:0;
+  white-space:nowrap;
+}
 </style>
 
 </head>
@@ -978,12 +1016,7 @@ window.announceResult = function(){
 }
 
 
-/* ===== ADMIN MANAGEMENT / SESSION ===== */
-.toolbar-row{display:flex;align-items:center;flex-wrap:nowrap;gap:10px;width:100%;margin:8px 0 0;overflow-x:auto;padding-bottom:4px}
-#adminBar{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;flex-shrink:0;margin-left:auto;white-space:nowrap}
-#adminUserLabel{font-weight:bold}
-.save-score-btn{font-size:39px!important;padding:23px 47px!important;min-width:234px;min-height:101px;font-weight:bold;flex-shrink:0;white-space:nowrap}
-.toolbar-btn{font-size:21px!important;padding:13px 23px!important;font-weight:bold;flex-shrink:0;white-space:nowrap}
+/* ===== ADMIN MANAGEMENT / SESSION (ใช้เฉพาะหน้าประกาศผล/พิมพ์) ===== */
 #adminPanel{display:none!important;margin:10px 0 15px;padding:12px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
 #adminPanel.show{display:block}
 #adminPanel h3{margin:0 0 10px}
