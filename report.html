@@ -1,28 +1,170 @@
-<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>รายงาน</title>
-<style>body{font-family:Arial;margin:20px}.bar{margin-bottom:15px}button{padding:9px 14px;margin:3px;border:0;border-radius:5px;background:#45ad54;color:#fff}table{width:100%;border-collapse:collapse}th,td{border:1px solid #222;padding:7px;text-align:center}th{background:#eee}@media print{.bar{display:none}}</style></head><body>
-<div class="bar"><button onclick="goAdmin()">⬅️ กลับ Admin</button><button onclick="logout()">🚪 Logout</button><button onclick="print()">🖨️ พิมพ์รายงาน</button></div><h1 style="text-align:center">📄 รายงานผลการประกวดร้องเพลง</h1><table><thead><tr><th>อันดับ</th><th>หมายเลข</th><th>ชื่อผู้ประกวด</th><th>คะแนนรวม</th></tr></thead><tbody id="tb"></tbody></table>
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>รายงาน - Singing Contest</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,"TH Sarabun New",sans-serif;margin:0;padding:18px;background:#fff}
+.bar{margin-bottom:12px}
+button{padding:9px 14px;margin:3px;border:0;border-radius:5px;background:#45ad54;color:#fff;cursor:pointer}
+h1{text-align:center;margin:10px 0 18px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #222;padding:8px;text-align:center}
+th{background:#eee}
+.error{color:#c00}
+@media print{.bar{display:none} body{padding:0} h1{margin-top:0}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <button type="button" onclick="goAdmin()">⬅️ กลับ Admin</button>
+  <button type="button" onclick="logout()">🚪 Logout</button>
+  <button type="button" onclick="window.print()">🖨️ พิมพ์รายงาน</button>
+</div>
+<h1>📄 รายงานผลการประกวดร้องเพลง</h1>
+<div id="status">กำลังตรวจสอบสิทธิ์และโหลดข้อมูล...</div>
+<table>
+<thead><tr><th>อันดับ</th><th>หมายเลข</th><th>ชื่อผู้ประกวด</th><th>คะแนนรวม</th></tr></thead>
+<tbody id="tb"><tr><td colspan="4">กำลังโหลด...</td></tr></tbody>
+</table>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import {
+  getFirestore, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSy...",
   authDomain: "...",
   projectId: "singing-contest-85f70"
 };
-const app=initializeApp(firebaseConfig); const db=getFirestore(app);
-const SESSION_KEY="singingContestAdminSession";
-async function requireSession(){
- const raw=localStorage.getItem(SESSION_KEY);
- if(!raw){ alert("🔐 กรุณาเข้าสู่ระบบ Admin ก่อน"); location.href="./admin.html"; return false; }
- try{ const s=JSON.parse(raw); if(!s?.id) throw 0; return true; }
- catch(e){ localStorage.removeItem(SESSION_KEY); location.href="./admin.html"; return false; }
-}
-function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
-window.goAdmin=()=>location.href="./admin.html";
-window.logout=()=>{localStorage.removeItem(SESSION_KEY);location.href="./admin.html";};
-</script>
 
-<script>
-async function load(){if(!await requireSession())return;let a=[];(await getDocs(collection(db,"contestants"))).forEach(d=>{let x=d.data();a.push({number:x.order??"",name:x.name??"",score:Number(x.totalScore||0)})});a.sort((x,y)=>y.score-x.score||Number(x.number)-Number(y.number));document.getElementById("tb").innerHTML=a.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.number)}</td><td>${esc(x.name)}</td><td>${x.score}</td></tr>`).join("");}load();
-</script></body></html>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const SESSION_KEY = "singingContestAdminSession";
+
+function esc(v) {
+  return String(v ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+async function requireSession() {
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) {
+    location.replace("./admin.html");
+    return null;
+  }
+
+  try {
+    const saved = JSON.parse(raw);
+    if (!saved?.id || !saved?.username) throw new Error("Invalid session");
+
+    // ตรวจสอบบัญชีจริงใน Firestore ทุกครั้ง
+    const snap = await getDocs(collection(db, "admins"));
+    let current = null;
+
+    snap.forEach(d => {
+      const a = d.data();
+      if (
+        d.id === saved.id &&
+        String(a.username || "").trim().toLowerCase() ===
+          String(saved.username || "").trim().toLowerCase() &&
+        a.active !== false
+      ) {
+        current = {
+          id: d.id,
+          username: String(a.username || "").trim(),
+          role: String(a.role || "admin").trim().toLowerCase()
+        };
+      }
+    });
+
+    if (!current) {
+      localStorage.removeItem(SESSION_KEY);
+      location.replace("./admin.html");
+      return null;
+    }
+
+    return current;
+  } catch (err) {
+    console.error("Session error:", err);
+    localStorage.removeItem(SESSION_KEY);
+    location.replace("./admin.html");
+    return null;
+  }
+}
+
+window.goAdmin = () => location.replace("./admin.html");
+
+window.logout = () => {
+  localStorage.removeItem(SESSION_KEY);
+  location.replace("./admin.html");
+};
+
+async function loadContestants() {
+  const user = await requireSession();
+  if (!user) return [];
+
+  const snap = await getDocs(collection(db, "contestants"));
+  const rows = [];
+
+  snap.forEach(d => {
+    const x = d.data();
+    rows.push({
+      id: d.id,
+      number: x.order ?? "",
+      name: String(x.name ?? ""),
+      score: Number(x.totalScore ?? 0)
+    });
+  });
+
+  rows.sort((a,b) =>
+    b.score - a.score ||
+    (Number(a.number) || 999999) - (Number(b.number) || 999999)
+  );
+
+  return rows;
+}
+
+
+async function load() {
+  try {
+    const rows = await loadContestants();
+
+    if (!rows.length) {
+      document.getElementById("tb").innerHTML =
+        '<tr><td colspan="4">ไม่พบข้อมูลผู้ประกวด</td></tr>';
+      document.getElementById("status").textContent = "ไม่พบข้อมูล";
+      return;
+    }
+
+    document.getElementById("tb").innerHTML = rows.map((x,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${esc(x.number)}</td>
+        <td>${esc(x.name)}</td>
+        <td>${x.score}</td>
+      </tr>
+    `).join("");
+
+    document.getElementById("status").textContent =
+      `พบผู้ประกวด ${rows.length} คน`;
+  } catch (err) {
+    console.error(err);
+    document.getElementById("status").innerHTML =
+      '<span class="error">❌ โหลดข้อมูลไม่ได้ กรุณาตรวจสอบ Firebase Configuration และ Firestore Rules</span>';
+  }
+}
+
+load();
+</script>
+</body>
+</html>
