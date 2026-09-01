@@ -133,6 +133,13 @@ td:first-child{text-align:left}
 }
 .hidden{display:none!important}
 .role-hidden{display:none!important}
+/* ===== CONTESTANT MANAGEMENT (Developer + User) ===== */
+.contestant-card{margin-top:15px;background:white;border-radius:8px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
+.contestant-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.contestant-tools input[type="text"]{width:190px}
+.contestant-tools input[type="number"]{width:110px}
+.contestant-tools input[type="file"]{width:auto}
+.contestant-status{min-height:22px;margin-top:10px;font-weight:bold}
 .admin-public-note{
   margin-top:12px;
   padding:10px;
@@ -211,6 +218,23 @@ td:first-child{text-align:left}
 
   <div id="limitedAdminNote" class="admin-public-note role-hidden">
     🔐 บัญชีทั่วไป: สามารถใช้งานได้เฉพาะ ดาวโหลด📊 Excel, 📄 พิมพ์รายงานคะแนน และ พิมพ์📢 ประกาศผล
+  </div>
+
+  <div id="contestantManagementCard" class="contestant-card">
+    <h2>👥 จัดการผู้เข้าแข่งขัน</h2>
+    <p style="color:#666;margin-top:-5px;">ผู้พัฒนาและผู้ใช้ทั่วไปสามารถเพิ่ม ลบ และนำเข้ารายชื่อผู้เข้าแข่งขันได้</p>
+    <div class="contestant-tools">
+      <input id="newContestantName" type="text" placeholder="ชื่อผู้เข้าแข่งขัน">
+      <input id="newContestantOrder" type="number" placeholder="หมายเลข" min="1" step="1">
+      <button type="button" onclick="addContestantFromAdmin()">➕ เพิ่ม</button>
+      <select id="deleteContestantSelect" style="height:38px;padding:6px;font-size:15px;min-width:250px;">
+        <option value="">-- เลือกผู้ประกวดที่จะลบ --</option>
+      </select>
+      <button type="button" class="btn-red" onclick="deleteContestantFromAdmin()">❌ ลบ</button>
+      <input type="file" id="contestantExcelFile" accept=".csv">
+      <button type="button" onclick="importContestantsFromAdmin()">📥 นำเข้า Excel</button>
+    </div>
+    <div id="contestantStatus" class="contestant-status"></div>
   </div>
 
   <div id="developerScoreCard" class="score-card">
@@ -359,6 +383,8 @@ function showPage(){
     `👤 แอดมิน: ${currentAdmin.username}`;
 
   applyRolePermissions();
+
+  loadContestantManagement();
 
   if(isDeveloper()){
     loadAdmins();
@@ -561,6 +587,129 @@ window.logout=function(){
 
 window.goIndex=function(){ window.location.assign("./index.html"); };
 
+
+// ===== CONTESTANT MANAGEMENT (Developer + User) =====
+function setContestantStatus(msg,ok=true){
+  const el=document.getElementById("contestantStatus");
+  if(!el) return;
+  el.textContent=msg||"";
+  el.style.color=ok ? "green" : "#b00000";
+}
+
+async function loadContestantManagement(){
+  const select=document.getElementById("deleteContestantSelect");
+  if(!select) return;
+  try{
+    const snap=await getDocs(collection(db,"contestants"));
+    const list=[];
+    snap.forEach(d=>{
+      const a=d.data();
+      list.push({id:d.id,name:String(a.name||""),order:Number(a.order||9999)});
+    });
+    list.sort((a,b)=>a.order-b.order || a.name.localeCompare(b.name,"th"));
+    select.innerHTML='<option value="">-- เลือกผู้ประกวดที่จะลบ --</option>';
+    list.forEach(c=>{
+      const opt=document.createElement("option");
+      opt.value=c.id;
+      opt.textContent=`${c.order<9999?"No."+c.order+" ":""}${c.name}`;
+      select.appendChild(opt);
+    });
+    setContestantStatus(`มีผู้ประกวด ${list.length} คน`,true);
+  }catch(err){
+    console.error(err);
+    setContestantStatus("❌ โหลดรายชื่อผู้ประกวดไม่สำเร็จ: "+err.message,false);
+  }
+}
+
+window.addContestantFromAdmin=async function(){
+  const name=document.getElementById("newContestantName").value.trim();
+  const raw=document.getElementById("newContestantOrder").value.trim();
+  if(!name) return setContestantStatus("❌ กรุณากรอกชื่อผู้เข้าแข่งขัน",false);
+  if(!raw) return setContestantStatus("❌ กรุณากรอกหมายเลขผู้ประกวด",false);
+  const order=Number(raw);
+  if(!Number.isInteger(order)||order<1) return setContestantStatus("❌ หมายเลขต้องเป็นจำนวนเต็มตั้งแต่ 1 ขึ้นไป",false);
+  try{
+    const snap=await getDocs(collection(db,"contestants"));
+    let duplicate=false;
+    snap.forEach(d=>{
+      const a=d.data();
+      if(Number(a.order||0)===order || String(a.name||"").trim().toLowerCase()===name.toLowerCase()) duplicate=true;
+    });
+    if(duplicate) return setContestantStatus("❌ หมายเลขหรือชื่อผู้ประกวดนี้มีอยู่แล้ว",false);
+    await addDoc(collection(db,"contestants"),{
+      name,order,totalScore:0,j1:0,j2:0,j3:0,score1:[],score2:[],score3:[],locked:false,
+      createdAt:new Date().toISOString(),createdBy:currentAdmin?.username||"unknown"
+    });
+    document.getElementById("newContestantName").value="";
+    document.getElementById("newContestantOrder").value="";
+    await loadContestantManagement();
+    if(isDeveloper()) await loadScoreContestants();
+    setContestantStatus(`✅ เพิ่ม No.${order} ${name} เรียบร้อยแล้ว`,true);
+  }catch(err){
+    console.error(err);
+    setContestantStatus("❌ เพิ่มผู้ประกวดไม่สำเร็จ: "+err.message,false);
+  }
+};
+
+window.deleteContestantFromAdmin=async function(){
+  const select=document.getElementById("deleteContestantSelect");
+  const id=select.value;
+  if(!id) return setContestantStatus("❌ กรุณาเลือกผู้ประกวดที่จะลบ",false);
+  const label=select.options[select.selectedIndex]?.textContent||"";
+  if(!confirm(`⚠️ ยืนยันลบผู้ประกวด\n\n${label}\n\nข้อมูลคะแนนของผู้ประกวดรายนี้จะถูกลบด้วย\n\nดำเนินการต่อหรือไม่?`)) return;
+  try{
+    await deleteDoc(doc(db,"contestants",id));
+    await loadContestantManagement();
+    if(isDeveloper()) await loadScoreContestants();
+    setContestantStatus(`✅ ลบ ${label} เรียบร้อยแล้ว`,true);
+  }catch(err){
+    console.error(err);
+    setContestantStatus("❌ ลบผู้ประกวดไม่สำเร็จ: "+err.message,false);
+  }
+};
+
+window.importContestantsFromAdmin=function(){
+  const input=document.getElementById("contestantExcelFile");
+  const file=input.files[0];
+  if(!file) return setContestantStatus("❌ กรุณาเลือกไฟล์ CSV ก่อน",false);
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      const text=new TextDecoder("utf-8").decode(e.target.result).replace(/^\uFEFF/,"");
+      const lines=text.split(/\r?\n/).filter(x=>x.trim());
+      if(lines.length<2) throw new Error("ไฟล์ไม่มีข้อมูล");
+      const list=[];
+      for(let i=1;i<lines.length;i++){
+        const cols=lines[i].split(",");
+        const no=Number(String(cols[0]||"").trim());
+        const name=String(cols.slice(1).join(",")||"").trim().replace(/^"|"$/g,"");
+        if(name && Number.isInteger(no) && no>0) list.push({no,name});
+      }
+      if(!list.length) throw new Error("ไม่พบข้อมูลรูปแบบ หมายเลข,ชื่อ ในไฟล์");
+      list.sort((a,b)=>a.no-b.no);
+      const snap=await getDocs(collection(db,"contestants"));
+      const existingNo=new Set(),existingName=new Set();
+      snap.forEach(d=>{const a=d.data();existingNo.add(Number(a.order||0));existingName.add(String(a.name||"").trim().toLowerCase());});
+      let added=0,skipped=0;
+      for(const item of list){
+        if(existingNo.has(item.no)||existingName.has(item.name.toLowerCase())){skipped++;continue;}
+        await addDoc(collection(db,"contestants"),{
+          name:`No.${item.no} ${item.name}`,order:item.no,totalScore:0,j1:0,j2:0,j3:0,score1:[],score2:[],score3:[],locked:false,
+          createdAt:new Date().toISOString(),createdBy:currentAdmin?.username||"unknown"
+        });
+        existingNo.add(item.no); existingName.add((`No.${item.no} ${item.name}`).toLowerCase()); added++;
+      }
+      input.value="";
+      await loadContestantManagement();
+      if(isDeveloper()) await loadScoreContestants();
+      setContestantStatus(`✅ นำเข้าสำเร็จ ${added} คน${skipped?` (ข้ามข้อมูลซ้ำ ${skipped} คน)`:""}`,true);
+    }catch(err){
+      console.error(err);
+      setContestantStatus("❌ นำเข้าไฟล์ไม่สำเร็จ: "+err.message,false);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+};
 
 // ===== SCORE MANAGEMENT =====
 const SCORE_ITEMS = [
