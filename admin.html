@@ -252,6 +252,10 @@ td:first-child{text-align:left}
     <div class="form-row">
       <input id="newUsername" placeholder="ชื่อแอดมิน">
       <input id="newPassword" type="password" placeholder="รหัสผ่าน">
+      <select id="newRole">
+        <option value="admin">Admin (ให้คะแนน + จัดการแอดมิน)</option>
+        <option value="user">User (ให้คะแนนอย่างเดียว)</option>
+      </select>
       <button onclick="addAdmin()">➕ เพิ่มแอดมิน</button>
       <button class="btn-gray" onclick="loadAdmins()">🔄 รีเฟรช</button>
     </div>
@@ -345,6 +349,15 @@ function showLogin(){
   document.getElementById("loginBox").classList.remove("hidden");
 }
 
+// สิทธิ์เข้าหน้า "จัดการแอดมิน": admin, developer (protected) เท่านั้น
+// role="user" ไม่มีสิทธิ์เข้าหน้านี้
+function canAccessAdminPage(admin){
+  if(!admin) return false;
+  if(admin.protected) return true;
+  const role=String(admin.role||"admin").toLowerCase();
+  return role==="admin" || role===DEVELOPER_ROLE;
+}
+
 window.login=async function(){
   const u=document.getElementById("loginUser").value.trim();
   const p=document.getElementById("loginPass").value;
@@ -403,6 +416,11 @@ window.login=async function(){
       return;
     }
 
+    if(!canAccessAdminPage(found)){
+      alert("🔒 บัญชีนี้ไม่มีสิทธิ์เข้าหน้าจัดการแอดมิน");
+      return;
+    }
+
     currentAdmin=found;
 
     localStorage.setItem(SESSION_KEY,JSON.stringify({
@@ -446,7 +464,7 @@ async function restoreSession(){
     ){
       const a=target.data();
 
-      currentAdmin={
+      const restored={
         id:target.id,
         username:a.username,
         role:a.role||"admin",
@@ -454,6 +472,15 @@ async function restoreSession(){
                   String(a.role||"").toLowerCase()===DEVELOPER_ROLE
       };
 
+      if(!canAccessAdminPage(restored)){
+        // บัญชี user ที่ล็อกอินจากหน้าหลักแล้วเข้ามาที่หน้านี้ตรงๆ ไม่มีสิทธิ์
+        localStorage.removeItem(SESSION_KEY);
+        alert("🔒 บัญชีนี้ไม่มีสิทธิ์เข้าหน้าจัดการแอดมิน");
+        window.location.assign("./index.html");
+        return;
+      }
+
+      currentAdmin=restored;
       showPage();
     }else{
       localStorage.removeItem(SESSION_KEY);
@@ -740,10 +767,15 @@ window.loadAdmins=async function(){
         a.role.toLowerCase()===DEVELOPER_ROLE ||
         a.username.toLowerCase()===DEVELOPER_USERNAME;
 
+      // บัญชีเดิมที่ยังไม่มีค่า role ให้แสดงเป็น Admin (ของเดิม)
+      const roleLabel = developer
+        ? ""
+        : (a.role.toLowerCase()==="user" ? " (User)" : " (Admin)");
+
       return `
       <tr>
         <td class="${developer ? "dev" : ""}">
-          ${esc(a.username)}
+          ${esc(a.username)}${esc(roleLabel)}
           ${developer ? " 🛡️ ผู้พัฒนาระบบ" : ""}
         </td>
 
@@ -779,6 +811,8 @@ window.loadAdmins=async function(){
 window.addAdmin=async function(){
   const username=document.getElementById("newUsername").value.trim();
   const password=document.getElementById("newPassword").value;
+  const roleSelect=document.getElementById("newRole");
+  const role=(roleSelect?.value==="user") ? "user" : "admin";
 
   if(!username || !password){
     return showMessage("กรุณากรอกชื่อแอดมินและรหัสผ่าน",false);
@@ -809,13 +843,14 @@ window.addAdmin=async function(){
       username,
       password,
       active:true,
-      role:"admin",
+      role,
       protected:false,
       createdAt:new Date().toISOString()
     });
 
     document.getElementById("newUsername").value="";
     document.getElementById("newPassword").value="";
+    if(roleSelect) roleSelect.value="admin";
 
     await loadAdmins();
     showMessage("✅ เพิ่มแอดมินเรียบร้อยแล้ว",true);
