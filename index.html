@@ -425,13 +425,24 @@ input[type="number"], select {
   </div>
 </div>
 
+<div id="restoreModal" class="modal-backdrop">
+  <div class="modal-box">
+    <h2>♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</h2>
+    <div id="restorePreviewContent">
+      <p style="text-align:center;">กำลังรอเลือกไฟล์ Backup...</p>
+    </div>
+    <div class="modal-actions">
+      <button id="restoreConfirmBtn" onclick="confirmRestoreBackup()" disabled>✅ ยืนยันเรียกคืนข้อมูล</button>
+      <button onclick="closeRestoreModal()" style="background:#777;">❌ ยกเลิก</button>
+    </div>
+  </div>
 </div>
 
-<!-- Backup / Restore / Excel / Report / Announcement are managed in admin.html -->
 <div id="appBox" style="display:none;">
 
 <div id="adminBar">
   <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
+  <button onclick="openAdminPage()">⚙️ จัดการแอดมิน</button>
   <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
 </div>
 
@@ -449,39 +460,21 @@ input[type="number"], select {
 
 <br><br>
 
-<div class="contestant-tools">
-  <div class="contestant-manage">
-    <input id="newName" placeholder="ชื่อผู้เข้าแข่งขัน">
-    <button onclick="addContestant()">➕ เพิ่ม</button>
-    <button onclick="deleteContestant()">❌ ลบ</button>
-  </div>
-
-  <div class="contestant-import">
-    <input type="file" id="excelFile" accept=".csv">
-    <button onclick="importExcel()">📥 นำเข้า Excel</button>
-  </div>
-</div>
 
 <div id="formArea"></div>
 
 <button onclick="submitScore()">💾 บันทึก</button>
 <button onclick="clearScore()">🧹 ล้างช่อง</button>
-
-
-
-
-<button onclick="openMonitor()">📺 Monitor</button>
-
-<button type="button" id="adminPageBtn" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
+<button onclick="backupData()">💾 Backup</button>
 <button onclick="resetAll()">🧨 สิ้นสุด</button>
-
 <hr>
 
-
-
-
-
-
+<button onclick="exportExcel()">📊 Excel</button>
+<button onclick="printDetail()">🖨️ รายงาน</button>
+<button onclick="announceResult()">📢 ประกาศผล</button>
+<button onclick="openMonitor()">📺 Monitor</button>
+<button onclick="selectBackupFile()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
+<input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
 
 </div>
 
@@ -529,14 +522,17 @@ window.login = async function(){
 
     snap.forEach(d=>{
       const a=d.data();
+      const role=String(a.role||"admin").trim().toLowerCase();
+      const isAdminRole=(role==="admin" || role===DEVELOPER_ROLE);
+
       if(String(a.username||"").trim()===u &&
          String(a.password||"")===p &&
-         a.active!==false){
+         a.active!==false &&
+         isAdminRole){
         found={
           id:d.id,
           username:a.username,
-          // บัญชีเดิมที่ยังไม่มีค่า role ให้ถือเป็น admin (ของเดิม) เพื่อไม่ล็อกคนที่ใช้งานอยู่
-          role:a.role || "admin",
+          role:role,
           protected:a.protected===true
         };
       }
@@ -606,43 +602,29 @@ window.login = async function(){
   }
 };
 
-// ตรวจสอบว่ามีสิทธิ์เข้าหน้า "จัดการแอดมิน" หรือไม่
-// role ที่อนุญาต: admin, developer (protected). role="user" = ไม่มีสิทธิ์
-function canAccessAdminPage(){
-  if(!currentAdmin) return false;
-  if(currentAdmin.protected) return true;
-  const role=String(currentAdmin.role||"admin").toLowerCase();
-  return role==="admin" || role===DEVELOPER_ROLE;
-}
-
-function applyRolePermissions(){
-  const btn=document.getElementById("adminPageBtn");
-  if(!btn) return;
-  btn.style.display = canAccessAdminPage() ? "" : "none";
-}
-
 function showLoggedIn(){
   document.getElementById("loginWrapper").classList.add("hidden");
   document.getElementById("appBox").style.display="block";
   const label=document.getElementById("adminUserLabel");
   if(label) label.textContent=`👤 แอดมิน: ${currentAdmin?.username || "admin"}`;
-  applyRolePermissions();
 }
 
 function showLoggedOut(){
   currentAdmin=null;
   document.getElementById("loginWrapper").classList.remove("hidden");
   document.getElementById("appBox").style.display="none";
+  document.getElementById("adminPanel").classList.remove("show");
   document.getElementById("adminUserLabel").textContent="👤 ผู้ดูแลระบบ";
 }
 
-window.openAdminPage = function(){
-  if(!canAccessAdminPage()){
-    alert("🔒 คุณไม่มีสิทธิ์เข้าหน้าจัดการแอดมิน");
+function openAdminPage(){
+  const role=String(currentAdmin?.role||"").toLowerCase();
+  if(!currentAdmin || (role!=="admin" && role!==DEVELOPER_ROLE)){
+    alert("⛔ คุณไม่มีสิทธิ์เข้าหน้า Admin");
     return;
   }
-  window.location.assign("./admin.html");
-};
+  window.location.href = "admin.html";
+}
 
 window.logout=function(){
   if(!confirm("ยืนยันล็อกเอาท์ออกจากระบบ?")) return;
@@ -650,6 +632,13 @@ window.logout=function(){
   showLoggedOut();
   document.getElementById("user").value="";
   document.getElementById("pass").value="";
+};
+
+window.toggleAdminPanel=function(){
+  const panel=document.getElementById("adminPanel");
+  if(!panel) return;
+  panel.classList.toggle("show");
+  if(panel.classList.contains("show")) loadAdmins();
 };
 
 async function restoreAdminSession(){
@@ -664,15 +653,19 @@ async function restoreAdminSession(){
     let valid=false;
     snap.forEach(d=>{
       const a=d.data();
+      const role=String(a.role||"admin").trim().toLowerCase();
+      const isAdminRole=(role==="admin" || role===DEVELOPER_ROLE);
+
       if(d.id===saved.id &&
          String(a.username||"")===String(saved.username) &&
-         a.active!==false){
+         a.active!==false &&
+         isAdminRole){
         valid=true;
         currentAdmin={
           id:d.id,
           username:a.username,
-          role:a.role || "admin",
-          protected:a.protected === true || String(a.role||"") === DEVELOPER_ROLE
+          role:role,
+          protected:a.protected === true || role === DEVELOPER_ROLE
         };
       }
     });
@@ -689,66 +682,164 @@ async function restoreAdminSession(){
   }
 }
 
-// เพิ่ม
-window.addContestant=async()=>{
-let name=newName.value.trim();
-if(!name) return alert("ใส่ชื่อ");
-await addDoc(collection(db,"contestants"),{
-name:name,totalScore:0,j1:0,j2:0,j3:0});
-newName.value="";
+// ===== ADMIN MANAGEMENT =====
+window.loadAdmins=async function(){
+  const body=document.getElementById("adminListBody");
+  if(!body) return;
+  body.innerHTML='<tr><td colspan="3">กำลังโหลด...</td></tr>';
+
+  try{
+    const snap=await getDocs(collection(db,"admins"));
+    if(snap.empty){
+      body.innerHTML='<tr><td colspan="3">ยังไม่มีบัญชีแอดมิน</td></tr>';
+      return;
+    }
+
+    const admins=[];
+    snap.forEach(d=>{
+      const a=d.data();
+      admins.push({
+        id:d.id,
+        username:String(a.username||""),
+        active:a.active!==false,
+        role:String(a.role||"admin"),
+        protected:a.protected===true
+      });
+    });
+    admins.sort((a,b)=>a.username.localeCompare(b.username));
+
+    body.innerHTML=admins.map(a=>{
+      const isDeveloper =
+        a.protected === true ||
+        String(a.role || "").toLowerCase() === DEVELOPER_ROLE ||
+        a.username.toLowerCase() === DEVELOPER_USERNAME.toLowerCase();
+
+      return `
+      <tr>
+        <td class="${isDeveloper ? "admin-protected" : ""}">
+          ${escapeHtml(a.username)}
+          ${isDeveloper ? " 🛡️ ผู้พัฒนาระบบ" : ""}
+        </td>
+        <td class="${isDeveloper ? "admin-status-developer" : (a.active?"admin-status-active":"admin-status-disabled")}">
+          ${isDeveloper ? "ใช้งานถาวร" : (a.active?"ใช้งาน":"ปิดใช้งาน")}
+        </td>
+        <td>
+          ${
+            isDeveloper
+              ? '<span class="admin-protected">🔒 ห้ามลบ / ห้ามแก้ไข</span>'
+              : `
+                <button onclick="toggleAdminStatus('${a.id}',${a.active})">
+                  ${a.active?"🔒 ปิดใช้งาน":"🔓 เปิดใช้งาน"}
+                </button>
+                <button onclick="deleteAdmin('${a.id}','${escapeJs(a.username)}')" style="background:#d32f2f;">
+                  🗑️ ลบ
+                </button>
+              `
+          }
+        </td>
+      </tr>`;
+    }).join("");
+  }catch(err){
+    console.error(err);
+    body.innerHTML='<tr><td colspan="3" style="color:red;">โหลดรายชื่อแอดมินไม่สำเร็จ</td></tr>';
+  }
 };
 
-// ลบ
-window.deleteContestant=async()=>{
-let id=contestant.value;
-if(!confirm("ลบ?")) return;
-await deleteDoc(doc(db,"contestants",id));
+window.addAdmin=async function(){
+  const username=document.getElementById("adminNewUsername").value.trim();
+  const password=document.getElementById("adminNewPassword").value;
+
+  if(!username || !password) return alert("กรุณากรอกชื่อแอดมินและรหัสผ่าน");
+  if(password.length<4) return alert("รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร");
+
+  try{
+    const snap=await getDocs(collection(db,"admins"));
+    let duplicate=false;
+    snap.forEach(d=>{
+      if(String(d.data().username||"").toLowerCase()===username.toLowerCase()) duplicate=true;
+    });
+    if(duplicate) return alert("❌ มีชื่อแอดมินนี้อยู่แล้ว");
+
+    // ไม่อนุญาตให้สร้างบัญชีอื่นด้วยชื่อผู้พัฒนา
+    if(username.toLowerCase() === DEVELOPER_USERNAME.toLowerCase()){
+      return alert("❌ ชื่อ sirichai สงวนไว้สำหรับผู้พัฒนาระบบ");
+    }
+
+    await addDoc(collection(db,"admins"),{
+      username,
+      password,
+      active:true,
+      role:"admin",
+      protected:false,
+      createdAt:new Date().toISOString()
+    });
+
+    document.getElementById("adminNewUsername").value="";
+    document.getElementById("adminNewPassword").value="";
+    await loadAdmins();
+    alert("✅ เพิ่มแอดมินเรียบร้อยแล้ว");
+  }catch(err){
+    console.error(err);
+    alert("❌ เพิ่มแอดมินไม่สำเร็จ\n"+err.message);
+  }
 };
 
-// IMPORT EXCEL
-window.importExcel = function(){
+window.toggleAdminStatus=async function(id,active){
+  if(currentAdmin && id===currentAdmin.id)
+    return alert("ไม่สามารถปิดใช้งานบัญชีที่กำลังล็อกอินอยู่ได้");
 
-  const file = excelFile.files[0];
-  if(!file) return alert("เลือกไฟล์");
+  try{
+    const target=await getDoc(doc(db,"admins",id));
+    if(target.exists()){
+      const a=target.data();
+      if(a.protected===true ||
+         String(a.role||"").toLowerCase()===DEVELOPER_ROLE ||
+         String(a.username||"").toLowerCase()===DEVELOPER_USERNAME.toLowerCase()){
+        return alert("🔒 บัญชีผู้พัฒนาระบบห้ามแก้ไขหรือปิดใช้งาน");
+      }
+    }
+    await updateDoc(doc(db,"admins",id),{active:!active});
+    await loadAdmins();
+  }catch(err){
+    console.error(err);
+    alert("❌ เปลี่ยนสถานะแอดมินไม่สำเร็จ\n"+err.message);
+  }
+};
 
-  const reader = new FileReader();
+window.deleteAdmin=async function(id,username){
+  if(currentAdmin && id===currentAdmin.id)
+    return alert("ไม่สามารถลบบัญชีแอดมินที่กำลังล็อกอินอยู่ได้");
 
-  reader.onload = async function(e){
-
-    const text = new TextDecoder("utf-8").decode(e.target.result);
-    let rows = text.split("\n");
-
-    let list = [];
-
-    for(let i=1;i<rows.length;i++){
-      let cols = rows[i].split(",");
-
-      let no = Number(cols[0]);
-      let name = cols[1]?.trim();
-
-      if(name){
-        list.push({no, name});
+  try{
+    const target=await getDoc(doc(db,"admins",id));
+    if(target.exists()){
+      const a=target.data();
+      if(a.protected===true ||
+         String(a.role||"").toLowerCase()===DEVELOPER_ROLE ||
+         String(a.username||"").toLowerCase()===DEVELOPER_USERNAME.toLowerCase()){
+        return alert("🔒 บัญชีผู้พัฒนาระบบห้ามลบหรือแก้ไข");
       }
     }
 
-    // 🔥 เรียงตามเลข
-    list.sort((a,b)=>a.no - b.no);
+    if(!confirm(`ยืนยันลบแอดมิน "${username}" ?`)) return;
 
-    // 🔥 เพิ่มเข้า Firebase
-    for(let item of list){
-      await addDoc(collection(db,"contestants"),{
-        name: `No.${item.no} ${item.name}`,
-        order: item.no,
-        totalScore:0,
-        j1:0,j2:0,j3:0
-      });
-    }
-
-    alert("นำเข้าเรียงลำดับแล้ว");
-  };
-
-  reader.readAsArrayBuffer(file);
+    await deleteDoc(doc(db,"admins",id));
+    await loadAdmins();
+    alert("✅ ลบแอดมินเรียบร้อยแล้ว");
+  }catch(err){
+    console.error(err);
+    alert("❌ ลบแอดมินไม่สำเร็จ\n"+err.message);
+  }
 };
+
+function escapeJs(value){
+  return String(value??"")
+    .replaceAll("\\","\\\\")
+    .replaceAll("'","\\'")
+    .replaceAll("\n","\\n")
+    .replaceAll("\r","\\r");
+}
+
 
 // คะแนน
 const items = [
@@ -1219,6 +1310,156 @@ let a=document.createElement("a");
 a.href=URL.createObjectURL(blob);
 a.download="backup.json";
 a.click();
+};
+
+// ===== RESTORE BACKUP =====
+let pendingRestoreData = null;
+
+window.selectBackupFile = function(){
+  const input = document.getElementById("backupFile");
+  const modal = document.getElementById("restoreModal");
+
+  if(!input || !modal){
+    alert("ระบบเรียกคืน Backup ยังไม่พร้อม");
+    return;
+  }
+
+  input.value = "";
+  document.getElementById("restorePreviewContent").innerHTML =
+    "<p style='text-align:center;'>กำลังรอเลือกไฟล์ Backup...</p>";
+  document.getElementById("restoreConfirmBtn").disabled = true;
+  modal.classList.add("show");
+  input.click();
+};
+
+window.restoreBackup = function(event){
+  const file = event?.target?.files?.[0];
+
+  if(!file){
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    try{
+      const parsed = JSON.parse(e.target.result);
+      const list = Array.isArray(parsed) ? parsed :
+                   Array.isArray(parsed.contestants) ? parsed.contestants : null;
+
+      if(!list) throw new Error("รูปแบบไฟล์ Backup ไม่ถูกต้อง");
+
+      pendingRestoreData = list;
+
+      const preview = list.slice(0,20);
+      let html = `
+        <p><b>พบข้อมูล ${list.length} คน</b>
+        ${list.length > 20 ? " (แสดงตัวอย่าง 20 คนแรก)" : ""}</p>
+        <table class="preview-table">
+          <tr>
+            <th>ลำดับ</th>
+            <th>หมายเลข</th>
+            <th>ชื่อผู้ประกวด</th>
+            <th>กก.1</th>
+            <th>กก.2</th>
+            <th>กก.3</th>
+            <th>รวม</th>
+          </tr>
+      `;
+
+      preview.forEach((c,i)=>{
+        html += `
+          <tr>
+            <td>${i+1}</td>
+            <td>No.${c.order ?? (i+1)}</td>
+            <td>${escapeHtml(c.name || "")}</td>
+            <td>${Number(c.j1 || 0)}</td>
+            <td>${Number(c.j2 || 0)}</td>
+            <td>${Number(c.j3 || 0)}</td>
+            <td><b>${Number(c.totalScore || 0)}</b></td>
+          </tr>
+        `;
+      });
+
+      html += `</table>
+        <p style="color:#b00000;font-weight:bold;text-align:center;">
+          ⚠️ การเรียกคืนจะลบข้อมูลผู้ประกวดปัจจุบันทั้งหมดก่อนนำข้อมูลจาก Backup เข้าแทนที่
+        </p>`;
+
+      document.getElementById("restorePreviewContent").innerHTML = html;
+      document.getElementById("restoreConfirmBtn").disabled = false;
+      document.getElementById("restoreModal").classList.add("show");
+
+    }catch(err){
+      pendingRestoreData = null;
+      document.getElementById("restoreConfirmBtn").disabled = true;
+      document.getElementById("restorePreviewContent").innerHTML =
+        `<p style="color:red;font-weight:bold;">❌ ${escapeHtml(err.message)}</p>`;
+      document.getElementById("restoreModal").classList.add("show");
+    }
+  };
+
+  reader.onerror = function(){
+    pendingRestoreData = null;
+    document.getElementById("restoreConfirmBtn").disabled = true;
+    alert("❌ ไม่สามารถอ่านไฟล์ Backup ได้");
+  };
+
+  reader.readAsText(file, "utf-8");
+};
+
+window.closeRestoreModal = function(){
+  pendingRestoreData = null;
+  const input = document.getElementById("backupFile");
+  if(input) input.value = "";
+  document.getElementById("restoreModal").classList.remove("show");
+};
+
+document.getElementById("backupFile").addEventListener("change", restoreBackup);
+
+window.confirmRestoreBackup = async function(){
+  if(!pendingRestoreData || !pendingRestoreData.length){
+    return alert("ไม่พบข้อมูลสำหรับเรียกคืน");
+  }
+
+  if(!confirm(
+    "ยืนยันเรียกคืนข้อมูลจากไฟล์ Backup?\n\n"+
+    "ข้อมูลผู้ประกวดปัจจุบันทั้งหมดจะถูกลบ และแทนที่ด้วยข้อมูลจาก Backup"
+  )) return;
+
+  try{
+    const snap = await getDocs(collection(db,"contestants"));
+
+    for(const d of snap.docs){
+      await deleteDoc(doc(db,"contestants",d.id));
+    }
+
+    for(const item of pendingRestoreData){
+      const clean = {...item};
+      delete clean.id;
+
+      // รองรับ backup ที่มีข้อมูลเก่า/ไม่ครบ
+      clean.name = clean.name || "";
+      clean.order = Number(clean.order ?? 9999);
+      clean.totalScore = Number(clean.totalScore || 0);
+      clean.j1 = Number(clean.j1 || 0);
+      clean.j2 = Number(clean.j2 || 0);
+      clean.j3 = Number(clean.j3 || 0);
+      clean.score1 = Array.isArray(clean.score1) ? clean.score1 : [];
+      clean.score2 = Array.isArray(clean.score2) ? clean.score2 : [];
+      clean.score3 = Array.isArray(clean.score3) ? clean.score3 : [];
+      clean.locked = Boolean(clean.locked);
+
+      await addDoc(collection(db,"contestants"), clean);
+    }
+
+    const restoredCount = pendingRestoreData.length;
+    closeRestoreModal();
+    alert(`✅ เรียกคืนข้อมูลสำเร็จ ${restoredCount} คน`);
+  }catch(err){
+    console.error(err);
+    alert("❌ เรียกคืนข้อมูลไม่สำเร็จ\n"+err.message);
+  }
 };
 
 // RESET
