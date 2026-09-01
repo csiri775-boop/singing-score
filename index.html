@@ -429,11 +429,6 @@ input[type="number"], select {
 
 <div id="appBox" style="display:none;">
 
-<div id="adminBar">
-  <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
-  <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
-</div>
-
 <!-- Admin management moved to admin.html -->
 
 </div>
@@ -450,11 +445,17 @@ input[type="number"], select {
 
 <div id="formArea"></div>
 
-<button onclick="submitScore()">💾 บันทึก</button>
+<button id="saveScoreBtn" class="save-score-btn" onclick="submitScore()">💾 บันทึก</button>
 <button onclick="clearScore()">🧹 ล้างช่อง</button>
 <button onclick="openMonitor()">📺 Monitor</button>
 <button type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
 <button onclick="resetAll()">🧨 สิ้นสุด</button>
+
+<!-- แถบผู้ดูแลอยู่ล่างสุด ต่อจากเมนูสิ้นสุด และชิดขอบขวา -->
+<div id="adminBar">
+  <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
+  <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
+</div>
 
 <hr>
 
@@ -979,8 +980,9 @@ window.announceResult = function(){
 
 
 /* ===== ADMIN MANAGEMENT / SESSION ===== */
-#adminBar{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+#adminBar{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;width:100%;margin:8px 0 0;padding:0}
 #adminUserLabel{font-weight:bold}
+.save-score-btn{font-size:30px!important;padding:18px 36px!important;min-width:180px;min-height:78px;font-weight:bold}
 #adminPanel{display:none!important;margin:10px 0 15px;padding:12px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
 #adminPanel.show{display:block}
 #adminPanel h3{margin:0 0 10px}
