@@ -1,0 +1,29 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ประกาศผล</title>
+<style>body{font-family:Arial;background:#111;color:#fff;margin:0;padding:20px;text-align:center}button{padding:10px 15px;margin:4px;border:0;border-radius:5px;background:#45ad54;color:#fff}table{width:90%;margin:20px auto;border-collapse:collapse;font-size:24px}th,td{border:1px solid #fff;padding:10px}th{background:#333}.gold{background:gold;color:#000;font-weight:bold}.tie{color:red;text-decoration:underline;font-weight:bold}</style></head><body>
+<div><button onclick="goAdmin()">⬅️ กลับ Admin</button><button onclick="logout()">🚪 Logout</button></div><h1>📢 ประกาศผลการประกวดร้องเพลง</h1><table><thead><tr><th>อันดับ</th><th>ชื่อผู้ประกวด</th><th>คะแนน</th></tr></thead><tbody id="tb"></tbody></table>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getFirestore, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "...",
+  projectId: "singing-contest-85f70"
+};
+const app=initializeApp(firebaseConfig); const db=getFirestore(app);
+const SESSION_KEY="singingContestAdminSession";
+async function requireSession(){
+ const raw=localStorage.getItem(SESSION_KEY);
+ if(!raw){ alert("🔐 กรุณาเข้าสู่ระบบ Admin ก่อน"); location.href="./admin.html"; return false; }
+ try{ const s=JSON.parse(raw); if(!s?.id) throw 0; return true; }
+ catch(e){ localStorage.removeItem(SESSION_KEY); location.href="./admin.html"; return false; }
+}
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+window.goAdmin=()=>location.href="./admin.html";
+window.logout=()=>{localStorage.removeItem(SESSION_KEY);location.href="./admin.html";};
+</script>
+
+<script>
+function render(s){let a=[];s.forEach(d=>{let x=d.data();a.push({name:String(x.name||""),score:Number(x.totalScore||0),order:Number(x.order||9999)})});a.sort((x,y)=>y.score-x.score||x.order-y.order);let cnt={};a.forEach(x=>cnt[x.score]=(cnt[x.score]||0)+1);document.getElementById("tb").innerHTML=a.map((x,i)=>{let tie=cnt[x.score]>1;return `<tr class="${tie?"tie":i===0?"gold":""}"><td>${i+1}</td><td>${esc(x.name)}</td><td>${x.score}</td></tr>`}).join("");}
+async function load(){if(!await requireSession())return;onSnapshot(collection(db,"contestants"),render);}load();
+</script></body></html>
