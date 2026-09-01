@@ -442,7 +442,7 @@ input[type="number"], select {
 
 <div id="adminBar">
   <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
-  <button onclick="openAdminPage()">⚙️ จัดการแอดมิน</button>
+  <button type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
   <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
 </div>
 
@@ -620,9 +620,7 @@ function showLoggedOut(){
   document.getElementById("adminUserLabel").textContent="👤 ผู้ดูแลระบบ";
 }
 
-function openAdminPage(){
-  window.location.href = "admin.html";
-}
+window.openAdminPage = function(){ window.location.assign("./admin.html"); };
 
 window.logout=function(){
   if(!confirm("ยืนยันล็อกเอาท์ออกจากระบบ?")) return;
