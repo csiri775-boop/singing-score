@@ -442,7 +442,6 @@ input[type="number"], select {
 
 <div id="adminBar">
   <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
-  <button onclick="openAdminPage()">⚙️ จัดการแอดมิน</button>
   <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
 </div>
 
@@ -478,14 +477,22 @@ input[type="number"], select {
 <button onclick="submitScore()">💾 บันทึก</button>
 <button onclick="clearScore()">🧹 ล้างช่อง</button>
 <button onclick="backupData()">💾 Backup</button>
-<button onclick="resetAll()">🧨 สิ้นสุด</button>
-<hr>
-
 <button onclick="exportExcel()">📊 Excel</button>
 <button onclick="printDetail()">🖨️ รายงาน</button>
 <button onclick="announceResult()">📢 ประกาศผล</button>
 <button onclick="openMonitor()">📺 Monitor</button>
 <button onclick="selectBackupFile()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
+<button type="button" id="adminPageBtn" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
+<button onclick="resetAll()">🧨 สิ้นสุด</button>
+
+<hr>
+
+
+
+
+
+
+
 <input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
 
 </div>
@@ -493,7 +500,7 @@ input[type="number"], select {
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, getDoc, updateDoc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSy...",
@@ -534,17 +541,14 @@ window.login = async function(){
 
     snap.forEach(d=>{
       const a=d.data();
-      const role=String(a.role||"admin").trim().toLowerCase();
-      const isAdminRole=(role==="admin" || role===DEVELOPER_ROLE);
-
       if(String(a.username||"").trim()===u &&
          String(a.password||"")===p &&
-         a.active!==false &&
-         isAdminRole){
+         a.active!==false){
         found={
           id:d.id,
           username:a.username,
-          role:role,
+          // บัญชีเดิมที่ยังไม่มีค่า role ให้ถือเป็น admin (ของเดิม) เพื่อไม่ล็อกคนที่ใช้งานอยู่
+          role:a.role || "admin",
           protected:a.protected===true
         };
       }
@@ -614,29 +618,43 @@ window.login = async function(){
   }
 };
 
+// ตรวจสอบว่ามีสิทธิ์เข้าหน้า "จัดการแอดมิน" หรือไม่
+// role ที่อนุญาต: admin, developer (protected). role="user" = ไม่มีสิทธิ์
+function canAccessAdminPage(){
+  if(!currentAdmin) return false;
+  if(currentAdmin.protected) return true;
+  const role=String(currentAdmin.role||"admin").toLowerCase();
+  return role==="admin" || role===DEVELOPER_ROLE;
+}
+
+function applyRolePermissions(){
+  const btn=document.getElementById("adminPageBtn");
+  if(!btn) return;
+  btn.style.display = canAccessAdminPage() ? "" : "none";
+}
+
 function showLoggedIn(){
   document.getElementById("loginWrapper").classList.add("hidden");
   document.getElementById("appBox").style.display="block";
   const label=document.getElementById("adminUserLabel");
   if(label) label.textContent=`👤 แอดมิน: ${currentAdmin?.username || "admin"}`;
+  applyRolePermissions();
 }
 
 function showLoggedOut(){
   currentAdmin=null;
   document.getElementById("loginWrapper").classList.remove("hidden");
   document.getElementById("appBox").style.display="none";
-  document.getElementById("adminPanel").classList.remove("show");
   document.getElementById("adminUserLabel").textContent="👤 ผู้ดูแลระบบ";
 }
 
-function openAdminPage(){
-  const role=String(currentAdmin?.role||"").toLowerCase();
-  if(!currentAdmin || (role!=="admin" && role!==DEVELOPER_ROLE)){
-    alert("⛔ คุณไม่มีสิทธิ์เข้าหน้า Admin");
+window.openAdminPage = function(){
+  if(!canAccessAdminPage()){
+    alert("🔒 คุณไม่มีสิทธิ์เข้าหน้าจัดการแอดมิน");
     return;
   }
-  window.location.href = "admin.html";
-}
+  window.location.assign("./admin.html");
+};
 
 window.logout=function(){
   if(!confirm("ยืนยันล็อกเอาท์ออกจากระบบ?")) return;
@@ -644,13 +662,6 @@ window.logout=function(){
   showLoggedOut();
   document.getElementById("user").value="";
   document.getElementById("pass").value="";
-};
-
-window.toggleAdminPanel=function(){
-  const panel=document.getElementById("adminPanel");
-  if(!panel) return;
-  panel.classList.toggle("show");
-  if(panel.classList.contains("show")) loadAdmins();
 };
 
 async function restoreAdminSession(){
@@ -665,19 +676,15 @@ async function restoreAdminSession(){
     let valid=false;
     snap.forEach(d=>{
       const a=d.data();
-      const role=String(a.role||"admin").trim().toLowerCase();
-      const isAdminRole=(role==="admin" || role===DEVELOPER_ROLE);
-
       if(d.id===saved.id &&
          String(a.username||"")===String(saved.username) &&
-         a.active!==false &&
-         isAdminRole){
+         a.active!==false){
         valid=true;
         currentAdmin={
           id:d.id,
           username:a.username,
-          role:role,
-          protected:a.protected === true || role === DEVELOPER_ROLE
+          role:a.role || "admin",
+          protected:a.protected === true || String(a.role||"") === DEVELOPER_ROLE
         };
       }
     });
@@ -692,164 +699,6 @@ async function restoreAdminSession(){
     localStorage.removeItem(ADMIN_SESSION_KEY);
     showLoggedOut();
   }
-}
-
-// ===== ADMIN MANAGEMENT =====
-window.loadAdmins=async function(){
-  const body=document.getElementById("adminListBody");
-  if(!body) return;
-  body.innerHTML='<tr><td colspan="3">กำลังโหลด...</td></tr>';
-
-  try{
-    const snap=await getDocs(collection(db,"admins"));
-    if(snap.empty){
-      body.innerHTML='<tr><td colspan="3">ยังไม่มีบัญชีแอดมิน</td></tr>';
-      return;
-    }
-
-    const admins=[];
-    snap.forEach(d=>{
-      const a=d.data();
-      admins.push({
-        id:d.id,
-        username:String(a.username||""),
-        active:a.active!==false,
-        role:String(a.role||"admin"),
-        protected:a.protected===true
-      });
-    });
-    admins.sort((a,b)=>a.username.localeCompare(b.username));
-
-    body.innerHTML=admins.map(a=>{
-      const isDeveloper =
-        a.protected === true ||
-        String(a.role || "").toLowerCase() === DEVELOPER_ROLE ||
-        a.username.toLowerCase() === DEVELOPER_USERNAME.toLowerCase();
-
-      return `
-      <tr>
-        <td class="${isDeveloper ? "admin-protected" : ""}">
-          ${escapeHtml(a.username)}
-          ${isDeveloper ? " 🛡️ ผู้พัฒนาระบบ" : ""}
-        </td>
-        <td class="${isDeveloper ? "admin-status-developer" : (a.active?"admin-status-active":"admin-status-disabled")}">
-          ${isDeveloper ? "ใช้งานถาวร" : (a.active?"ใช้งาน":"ปิดใช้งาน")}
-        </td>
-        <td>
-          ${
-            isDeveloper
-              ? '<span class="admin-protected">🔒 ห้ามลบ / ห้ามแก้ไข</span>'
-              : `
-                <button onclick="toggleAdminStatus('${a.id}',${a.active})">
-                  ${a.active?"🔒 ปิดใช้งาน":"🔓 เปิดใช้งาน"}
-                </button>
-                <button onclick="deleteAdmin('${a.id}','${escapeJs(a.username)}')" style="background:#d32f2f;">
-                  🗑️ ลบ
-                </button>
-              `
-          }
-        </td>
-      </tr>`;
-    }).join("");
-  }catch(err){
-    console.error(err);
-    body.innerHTML='<tr><td colspan="3" style="color:red;">โหลดรายชื่อแอดมินไม่สำเร็จ</td></tr>';
-  }
-};
-
-window.addAdmin=async function(){
-  const username=document.getElementById("adminNewUsername").value.trim();
-  const password=document.getElementById("adminNewPassword").value;
-
-  if(!username || !password) return alert("กรุณากรอกชื่อแอดมินและรหัสผ่าน");
-  if(password.length<4) return alert("รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร");
-
-  try{
-    const snap=await getDocs(collection(db,"admins"));
-    let duplicate=false;
-    snap.forEach(d=>{
-      if(String(d.data().username||"").toLowerCase()===username.toLowerCase()) duplicate=true;
-    });
-    if(duplicate) return alert("❌ มีชื่อแอดมินนี้อยู่แล้ว");
-
-    // ไม่อนุญาตให้สร้างบัญชีอื่นด้วยชื่อผู้พัฒนา
-    if(username.toLowerCase() === DEVELOPER_USERNAME.toLowerCase()){
-      return alert("❌ ชื่อ sirichai สงวนไว้สำหรับผู้พัฒนาระบบ");
-    }
-
-    await addDoc(collection(db,"admins"),{
-      username,
-      password,
-      active:true,
-      role:"admin",
-      protected:false,
-      createdAt:new Date().toISOString()
-    });
-
-    document.getElementById("adminNewUsername").value="";
-    document.getElementById("adminNewPassword").value="";
-    await loadAdmins();
-    alert("✅ เพิ่มแอดมินเรียบร้อยแล้ว");
-  }catch(err){
-    console.error(err);
-    alert("❌ เพิ่มแอดมินไม่สำเร็จ\n"+err.message);
-  }
-};
-
-window.toggleAdminStatus=async function(id,active){
-  if(currentAdmin && id===currentAdmin.id)
-    return alert("ไม่สามารถปิดใช้งานบัญชีที่กำลังล็อกอินอยู่ได้");
-
-  try{
-    const target=await getDoc(doc(db,"admins",id));
-    if(target.exists()){
-      const a=target.data();
-      if(a.protected===true ||
-         String(a.role||"").toLowerCase()===DEVELOPER_ROLE ||
-         String(a.username||"").toLowerCase()===DEVELOPER_USERNAME.toLowerCase()){
-        return alert("🔒 บัญชีผู้พัฒนาระบบห้ามแก้ไขหรือปิดใช้งาน");
-      }
-    }
-    await updateDoc(doc(db,"admins",id),{active:!active});
-    await loadAdmins();
-  }catch(err){
-    console.error(err);
-    alert("❌ เปลี่ยนสถานะแอดมินไม่สำเร็จ\n"+err.message);
-  }
-};
-
-window.deleteAdmin=async function(id,username){
-  if(currentAdmin && id===currentAdmin.id)
-    return alert("ไม่สามารถลบบัญชีแอดมินที่กำลังล็อกอินอยู่ได้");
-
-  try{
-    const target=await getDoc(doc(db,"admins",id));
-    if(target.exists()){
-      const a=target.data();
-      if(a.protected===true ||
-         String(a.role||"").toLowerCase()===DEVELOPER_ROLE ||
-         String(a.username||"").toLowerCase()===DEVELOPER_USERNAME.toLowerCase()){
-        return alert("🔒 บัญชีผู้พัฒนาระบบห้ามลบหรือแก้ไข");
-      }
-    }
-
-    if(!confirm(`ยืนยันลบแอดมิน "${username}" ?`)) return;
-
-    await deleteDoc(doc(db,"admins",id));
-    await loadAdmins();
-    alert("✅ ลบแอดมินเรียบร้อยแล้ว");
-  }catch(err){
-    console.error(err);
-    alert("❌ ลบแอดมินไม่สำเร็จ\n"+err.message);
-  }
-};
-
-function escapeJs(value){
-  return String(value??"")
-    .replaceAll("\\","\\\\")
-    .replaceAll("'","\\'")
-    .replaceAll("\n","\\n")
-    .replaceAll("\r","\\r");
 }
 
 // เพิ่ม
@@ -914,7 +763,7 @@ window.importExcel = function(){
 };
 
 // คะแนน
-const DEFAULT_SCORE_ITEMS = [
+const items = [
   {name:"น้ำเสียง",max:30},
   {name:"เทคนิค",max:10},
   {name:"จังหวะ",max:20},
@@ -923,30 +772,6 @@ const DEFAULT_SCORE_ITEMS = [
   {name:"ความยาก",max:10},
   {name:"แต่งกาย",max:10}
 ];
-
-let items = DEFAULT_SCORE_ITEMS.map(x=>({...x}));
-let scoreConfigReady = false;
-
-async function loadScoreConfig(){
-  try{
-    const ref=await getDoc(doc(db,"settings","scoreConfig"));
-
-    if(ref.exists() && Array.isArray(ref.data().items) && ref.data().items.length){
-      const normalized=ref.data().items.map(x=>({
-        name:String(x?.name||"").trim(),
-        max:Number(x?.max)
-      })).filter(x=>x.name && Number.isInteger(x.max) && x.max>0);
-
-      if(normalized.length) items=normalized;
-    }
-
-    scoreConfigReady=true;
-  }catch(err){
-    console.error("loadScoreConfig:",err);
-    scoreConfigReady=false;
-    items=DEFAULT_SCORE_ITEMS.map(x=>({...x}));
-  }
-}
 
 window.announceResult = function(){
   if(cache.length === 0){
@@ -1124,7 +949,7 @@ items.forEach(i=>html+=`<th>${i.name}(${i.max})</th>`);
 html+=`</tr><tr>`;
 items.forEach((i,idx)=>{
   html+=`<td>
-    <input type="number" id="j${j}_s${idx}" data-j="${j}" data-i="${idx}" min="0" max="${i.max}">
+    <input type="number" id="j${j}_s${idx}" data-j="${j}" data-i="${idx}">
   </td>`;
 });
 html+=`</tr></table><div class="judge-spacer"></div>`;
@@ -1151,12 +976,7 @@ setTimeout(()=>{
 },300);
 
 }
-// โหลดรายการคะแนนจาก Firebase ก่อนสร้างช่องคะแนน
-loadScoreConfig().then(()=>{
-  createForm();
-}).catch(()=>{
-  createForm();
-});
+createForm();
 
 restoreAdminSession();
 
