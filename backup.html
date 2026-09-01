@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backup / Restore - Singing Contest</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;padding:20px;background:#f5f5f5;color:#222;
+  font-family:Arial,"TH Sarabun New",sans-serif
+}
+.wrap{max-width:1100px;margin:auto}
+.header{
+  background:#fff;border-radius:12px;padding:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.12);margin-bottom:15px
+}
+h1{margin:0 0 5px;text-align:center;font-size:30px}
+.subtitle{text-align:center;color:#666}
+.topbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}
+button{
+  border:0;border-radius:6px;padding:9px 15px;
+  background:#45ad54;color:#fff;cursor:pointer;font-size:15px
+}
+button:hover{opacity:.9}
+button.gray{background:#777}
+button.red{background:#d9363e}
+button:disabled{opacity:.55;cursor:not-allowed}
+.card{
+  background:#fff;border-radius:12px;padding:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.10);margin-bottom:15px
+}
+.card h2{margin-top:0}
+.info{
+  padding:12px;background:#eef6ff;border-left:4px solid #1976d2;
+  margin-bottom:15px
+}
+.status{min-height:24px;margin-top:10px;font-weight:bold}
+.success{color:#188038}.error{color:#c5221f}.muted{color:#777}
+.preview-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #ccc;padding:7px;text-align:center}
+th{background:#eee}
+.hidden{display:none!important}
+#loginBox{
+  max-width:360px;margin:12vh auto;background:#fff;padding:25px;
+  border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,.15);text-align:center
+}
+#loginBox input{
+  width:100%;height:42px;margin:6px 0;padding:8px;
+  border:1px solid #ccc;border-radius:6px
+}
+#loginBox button{width:100%;margin-top:8px}
+.badge{
+  display:inline-block;padding:4px 9px;border-radius:20px;
+  background:#eee;font-size:13px
+}
+</style>
+</head>
+<body>
+
+<div id="loginBox">
+  <h2>🔐 Developer Verification</h2>
+  <p class="muted">กรุณาเข้าสู่ระบบผู้พัฒนาก่อนจัดการ Backup</p>
+  <input id="loginUser" placeholder="Username" autocomplete="username">
+  <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+  <button id="loginBtn">เข้าสู่ระบบ</button>
+  <div id="loginStatus" class="status"></div>
+</div>
+
+<div id="app" class="wrap hidden">
+  <div class="header">
+    <h1>♻️ Backup / Restore ข้อมูลการแข่งขัน</h1>
+    <div class="subtitle">Singing Contest Scoring System</div>
+    <div class="topbar">
+      <button id="backBtn">⬅️ กลับ Admin</button>
+      <button id="backupBtn">💾 สร้างไฟล์ Backup</button>
+      <button id="restoreBtn">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
+      <button id="logoutBtn" class="red">🚪 ล็อกเอาท์</button>
+      <input id="backupFile" type="file" accept=".json,application/json" class="hidden">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📦 Backup</h2>
+    <div class="info">
+      ระบบจะดึงข้อมูลผู้ประกวดทั้งหมดจาก Firestore แล้วสร้างไฟล์ <b>backup.json</b>
+      เพื่อเก็บไว้ในเครื่อง
+    </div>
+    <div id="backupStatus" class="status"></div>
+  </div>
+
+  <div class="card">
+    <h2>🔎 ตรวจสอบไฟล์ก่อนเรียกคืน</h2>
+    <div id="restoreInfo" class="muted">
+      กรุณาเลือกไฟล์ Backup (.json)
+    </div>
+    <div id="preview" class="preview-wrap" style="margin-top:12px;"></div>
+    <div style="margin-top:15px;">
+      <button id="confirmRestoreBtn" disabled>✅ ยืนยันเรียกคืนข้อมูล</button>
+      <button id="cancelRestoreBtn" class="gray" disabled>❌ ยกเลิก</button>
+    </div>
+    <div id="restoreStatus" class="status"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, doc, setDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "...",
+  projectId: "singing-contest-85f70"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const SESSION_KEY = "singingContestAdminSession";
+const DEV_USERNAME = "sirichai";
+const DEV_ROLE = "developer";
+
+let currentAdmin = null;
+let pendingBackup = null;
+
+const $ = id => document.getElementById(id);
+
+function setStatus(id,msg,ok=false){
+  const el=$(id);
+  el.textContent=msg;
+  el.className="status "+(ok?"success":"error");
+}
+
+function esc(v){
+  return String(v ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function isDeveloper(a){
+  return !!a && (
+    a.protected === true ||
+    String(a.role||"").trim().toLowerCase() === DEV_ROLE ||
+    String(a.username||"").trim().toLowerCase() === DEV_USERNAME
+  );
+}
+
+async function verifySession(){
+  const raw=localStorage.getItem(SESSION_KEY);
+  if(!raw) return null;
+
+  try{
+    const saved=JSON.parse(raw);
+    if(!saved?.id || !saved?.username) return null;
+
+    const snap=await getDocs(collection(db,"admins"));
+    let found=null;
+
+    snap.forEach(d=>{
+      const a=d.data();
+      if(
+        d.id===saved.id &&
+        String(a.username||"").trim().toLowerCase()===
+          String(saved.username||"").trim().toLowerCase() &&
+        a.active!==false
+      ){
+        found={
+          id:d.id,
+          username:String(a.username||"").trim(),
+          role:String(a.role||"admin").trim().toLowerCase(),
+          protected:a.protected===true
+        };
+      }
+    });
+
+    return isDeveloper(found) ? found : null;
+  }catch(err){
+    console.error(err);
+    return null;
+  }
+}
+
+async function enterApp(admin){
+  currentAdmin=admin;
+  $("loginBox").classList.add("hidden");
+  $("app").classList.remove("hidden");
+}
+
+async function login(){
+  const username=$("loginUser").value.trim();
+  const password=$("loginPass").value;
+
+  if(!username || !password){
+    setStatus("loginStatus","กรุณากรอก Username และ Password");
+    return;
+  }
+
+  $("loginBtn").disabled=true;
+  setStatus("loginStatus","กำลังตรวจสอบ...");
+
+  try{
+    const snap=await getDocs(collection(db,"admins"));
+    let found=null;
+
+    snap.forEach(d=>{
+      const a=d.data();
+      if(
+        String(a.username||"").trim().toLowerCase()===username.toLowerCase() &&
+        String(a.password||"")===password &&
+        a.active!==false
+      ){
+        found={
+          id:d.id,
+          username:String(a.username||"").trim(),
+          role:String(a.role||"admin").trim().toLowerCase(),
+          protected:a.protected===true
+        };
+      }
+    });
+
+    if(!found || !isDeveloper(found)){
+      setStatus("loginStatus","⛔ หน้านี้อนุญาตเฉพาะผู้พัฒนาระบบ");
+      return;
+    }
+
+    localStorage.setItem(SESSION_KEY,JSON.stringify({
+      id:found.id,
+      username:found.username,
+      role:found.role,
+      protected:found.protected,
+      loginAt:Date.now()
+    }));
+
+    await enterApp(found);
+  }catch(err){
+    console.error(err);
+    setStatus("loginStatus","❌ เชื่อมต่อ Firebase ไม่สำเร็จ: "+(err?.message||err));
+  }finally{
+    $("loginBtn").disabled=false;
+  }
+}
+
+async function createBackup(){
+  $("backupBtn").disabled=true;
+  setStatus("backupStatus","กำลังอ่านข้อมูลจาก Firestore...");
+
+  try{
+    const snap=await getDocs(collection(db,"contestants"));
+    const contestants=[];
+
+    snap.forEach(d=>{
+      contestants.push({
+        id:d.id,
+        data:d.data()
+      });
+    });
+
+    contestants.sort((a,b)=>
+      (Number(a.data.order)||999999)-(Number(b.data.order)||999999)
+    );
+
+    const payload={
+      format:"singing-contest-backup",
+      version:2,
+      createdAt:new Date().toISOString(),
+      collection:"contestants",
+      count:contestants.length,
+      contestants
+    };
+
+    const blob=new Blob(
+      [JSON.stringify(payload,null,2)],
+      {type:"application/json;charset=utf-8"}
+    );
+
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=
+      "singing-contest-backup-"+new Date().toISOString()
+      .replaceAll(":","-").replaceAll(".","-")+".json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+
+    setStatus("backupStatus",
+      `✅ สร้าง Backup สำเร็จ ${contestants.length} คน`,
+      true
+    );
+  }catch(err){
+    console.error(err);
+    setStatus("backupStatus","❌ สร้าง Backup ไม่สำเร็จ: "+(err?.message||err));
+  }finally{
+    $("backupBtn").disabled=false;
+  }
+}
+
+function chooseRestoreFile(){
+  $("backupFile").click();
+}
+
+async function readBackupFile(file){
+  pendingBackup=null;
+  $("confirmRestoreBtn").disabled=true;
+  $("cancelRestoreBtn").disabled=true;
+  $("preview").innerHTML="";
+  $("restoreStatus").textContent="";
+  $("restoreInfo").textContent="กำลังอ่านไฟล์...";
+
+  try{
+    if(!file) return;
+
+    if(!file.name.toLowerCase().endsWith(".json")){
+      throw new Error("ต้องเป็นไฟล์ .json เท่านั้น");
+    }
+
+    const text=await file.text();
+    const parsed=JSON.parse(text);
+
+    let list=[];
+
+    // รองรับทั้ง Backup รูปแบบใหม่ และ backup.json แบบเก่าที่เป็น array
+    if(Array.isArray(parsed)){
+      list=parsed.map(x=>({
+        id:x.id,
+        data:{...x}
+      }));
+      list.forEach(x=>{ delete x.data.id; });
+    }else if(
+      parsed &&
+      Array.isArray(parsed.contestants)
+    ){
+      list=parsed.contestants.map(x=>({
+        id:x.id,
+        data:x.data || {}
+      }));
+    }else{
+      throw new Error("ไม่พบรายการ contestants ในไฟล์ Backup");
+    }
+
+    list=list.filter(x=>x.id && x.data && typeof x.data==="object");
+
+    if(!list.length){
+      throw new Error("ไฟล์ Backup ไม่มีข้อมูลผู้ประกวด");
+    }
+
+    pendingBackup={
+      list,
+      fileName:file.name,
+      createdAt:parsed?.createdAt || ""
+    };
+
+    const previewRows=list.slice(0,100).map((x,i)=>{
+      const d=x.data;
+      return `
+        <tr>
+          <td>${i+1}</td>
+          <td>${esc(d.order ?? "")}</td>
+          <td style="text-align:left">${esc(d.name ?? "")}</td>
+          <td>${Number(d.j1||0)}</td>
+          <td>${Number(d.j2||0)}</td>
+          <td>${Number(d.j3||0)}</td>
+          <td>${Number(d.totalScore||0)}</td>
+          <td>${d.locked===true?"✔":"-"}</td>
+        </tr>`;
+    }).join("");
+
+    $("preview").innerHTML=`
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>หมายเลข</th><th>ชื่อ</th>
+            <th>กรรมการ 1</th><th>กรรมการ 2</th><th>กรรมการ 3</th>
+            <th>รวม</th><th>ล็อก</th>
+          </tr>
+        </thead>
+        <tbody>${previewRows}</tbody>
+      </table>
+      ${list.length>100?
+        `<p class="muted">แสดงตัวอย่าง 100 คนแรก จาก ${list.length} คน</p>`:""}
+    `;
+
+    $("restoreInfo").innerHTML=
+      `ไฟล์: <b>${esc(file.name)}</b> |
+       จำนวนข้อมูล: <b>${list.length}</b> คน
+       ${pendingBackup.createdAt?
+       ` | สร้างเมื่อ: ${esc(pendingBackup.createdAt)}`:""}`;
+
+    $("confirmRestoreBtn").disabled=false;
+    $("cancelRestoreBtn").disabled=false;
+  }catch(err){
+    console.error(err);
+    $("restoreInfo").textContent="❌ อ่านไฟล์ไม่ได้";
+    setStatus("restoreStatus","❌ "+(err?.message||err));
+  }
+}
+
+function cancelRestore(){
+  pendingBackup=null;
+  $("backupFile").value="";
+  $("preview").innerHTML="";
+  $("restoreInfo").textContent="กรุณาเลือกไฟล์ Backup (.json)";
+  $("restoreStatus").textContent="";
+  $("confirmRestoreBtn").disabled=true;
+  $("cancelRestoreBtn").disabled=true;
+}
+
+async function confirmRestore(){
+  if(!pendingBackup) return;
+
+  const list=pendingBackup.list;
+
+  const ok=confirm(
+    `⚠️ ยืนยันเรียกคืนข้อมูล\\n\\n`+
+    `ไฟล์: ${pendingBackup.fileName}\\n`+
+    `จำนวน: ${list.length} คน\\n\\n`+
+    `ข้อมูลผู้ประกวดใน Firestore ที่มี ID ตรงกันจะถูกเขียนทับ\\n`+
+    `และข้อมูล ID ที่ไม่มีอยู่จะถูกสร้างใหม่\\n\\n`+
+    `ต้องการดำเนินการต่อหรือไม่?`
+  );
+
+  if(!ok) return;
+
+  $("confirmRestoreBtn").disabled=true;
+  $("cancelRestoreBtn").disabled=true;
+  setStatus("restoreStatus","กำลังเรียกคืนข้อมูล...");
+
+  try{
+    let count=0;
+
+    for(const item of list){
+      if(!item.id) continue;
+
+      await setDoc(
+        doc(db,"contestants",String(item.id)),
+        item.data,
+        {merge:false}
+      );
+      count++;
+    }
+
+    setStatus(
+      "restoreStatus",
+      `✅ เรียกคืนข้อมูลสำเร็จ ${count} คน`,
+      true
+    );
+
+    alert(`✅ เรียกคืนข้อมูลสำเร็จ ${count} คน`);
+    cancelRestore();
+    setStatus("restoreStatus","เรียกคืนข้อมูลเรียบร้อยแล้ว",true);
+  }catch(err){
+    console.error(err);
+    $("confirmRestoreBtn").disabled=false;
+    $("cancelRestoreBtn").disabled=false;
+    setStatus(
+      "restoreStatus",
+      "❌ เรียกคืนข้อมูลไม่สำเร็จ: "+(err?.message||err)
+    );
+  }
+}
+
+function logout(){
+  localStorage.removeItem(SESSION_KEY);
+  currentAdmin=null;
+  location.href="./admin.html";
+}
+
+$("loginBtn").addEventListener("click",login);
+$("loginPass").addEventListener("keydown",e=>{
+  if(e.key==="Enter") login();
+});
+$("backupBtn").addEventListener("click",createBackup);
+$("restoreBtn").addEventListener("click",chooseRestoreFile);
+$("backupFile").addEventListener("change",e=>readBackupFile(e.target.files[0]));
+$("confirmRestoreBtn").addEventListener("click",confirmRestore);
+$("cancelRestoreBtn").addEventListener("click",cancelRestore);
+$("logoutBtn").addEventListener("click",logout);
+$("backBtn").addEventListener("click",()=>location.href="./admin.html");
+
+(async()=>{
+  const session=await verifySession();
+  if(session){
+    await enterApp(session);
+  }
+})();
+</script>
+</body>
+</html>
