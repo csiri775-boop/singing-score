@@ -28,22 +28,35 @@ body{
 }
 .topbar{
   display:flex;
-  justify-content:space-between;
+  justify-content:flex-start;
   align-items:center;
   gap:10px;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
   background:white;
   border-radius:8px;
   padding:12px 15px;
   box-shadow:0 2px 8px rgba(0,0,0,.12);
+  overflow-x:auto;
 }
 .user{
   font-weight:bold;
+  flex:0 0 auto;
+  white-space:nowrap;
+  display:flex;
+  align-items:center;
+  gap:6px;
 }
 .actions{
   display:flex;
+  align-items:center;
   gap:8px;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
+  flex:0 0 auto;
+}
+.actions button{
+  font-size:18.2px;
+  padding:11.7px 18.2px;
+  white-space:nowrap;
 }
 button{
   border:0;
@@ -79,6 +92,14 @@ input{
 }
 #newUsername{width:190px}
 #newPassword{width:190px}
+
+/* ===== TOP ADMIN BAR ===== */
+#userLabel{
+  font-size:22px;
+}
+#userLabel + .actions{
+  margin-left:0;
+}
 table{
   width:100%;
   border-collapse:collapse;
@@ -179,6 +200,10 @@ td:first-child{text-align:left}
   .score-table{font-size:13px}
   .score-table input.score-input{width:60px!important}
   #scoreContestant{min-width:220px;width:100%}
+  .topbar{flex-wrap:nowrap;overflow-x:auto}
+  .actions{flex-wrap:nowrap}
+  .actions button{font-size:16px;padding:10px 14px}
+  #userLabel{font-size:19px}
 }
 
 </style>
