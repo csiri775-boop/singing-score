@@ -1,38 +1,193 @@
-<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Excel</title>
-<style>body{font-family:Arial;margin:25px;background:#f5f5f5}.box{background:#fff;padding:20px;border-radius:10px}button{padding:10px 15px;margin:5px;border:0;border-radius:5px;background:#45ad54;color:#fff;cursor:pointer}table{width:100%;border-collapse:collapse;margin-top:15px}th,td{border:1px solid #ccc;padding:8px;text-align:center}th{background:#eee}</style></head><body>
-<div class="box"><h1>📊 Excel</h1><button onclick="goAdmin()">⬅️ กลับ Admin</button><button onclick="logout()">🚪 Logout</button><button onclick="downloadCSV()">📥 ดาวน์โหลด Excel</button><div id="status">กำลังโหลด...</div><div style="overflow:auto"><table><thead><tr><th>อันดับ</th><th>หมายเลข</th><th>ชื่อ</th><th>คะแนนรวม</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Excel - Singing Contest</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,"TH Sarabun New",sans-serif;margin:0;background:#f5f5f5;padding:18px}
+.box{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+h1{margin:0 0 15px}
+button{padding:9px 15px;margin:3px;border:0;border-radius:5px;background:#45ad54;color:#fff;cursor:pointer}
+button:hover{opacity:.9}
+#status{margin:10px 0}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{border:1px solid #ccc;padding:9px;text-align:center}
+th{background:#eee}
+.error{color:#c00}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>📊 Excel</h1>
+  <button type="button" onclick="goAdmin()">⬅️ กลับ Admin</button>
+  <button type="button" onclick="logout()">🚪 Logout</button>
+  <button type="button" id="downloadBtn">📥 ดาวน์โหลด Excel</button>
+  <div id="status">กำลังตรวจสอบสิทธิ์และโหลดข้อมูล...</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>อันดับ</th><th>หมายเลข</th><th>ชื่อ</th><th>คะแนนรวม</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="4">กำลังโหลด...</td></tr></tbody>
+    </table>
+  </div>
+</div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import {
+  getFirestore, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSy...",
   authDomain: "...",
   projectId: "singing-contest-85f70"
 };
-const app=initializeApp(firebaseConfig); const db=getFirestore(app);
-const SESSION_KEY="singingContestAdminSession";
-async function requireSession(){
- const raw=localStorage.getItem(SESSION_KEY);
- if(!raw){ alert("🔐 กรุณาเข้าสู่ระบบ Admin ก่อน"); location.href="./admin.html"; return false; }
- try{ const s=JSON.parse(raw); if(!s?.id) throw 0; return true; }
- catch(e){ localStorage.removeItem(SESSION_KEY); location.href="./admin.html"; return false; }
-}
-function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
-window.goAdmin=()=>location.href="./admin.html";
-window.logout=()=>{localStorage.removeItem(SESSION_KEY);location.href="./admin.html";};
-</script>
 
-<script>
-let rows=[];
-async function load(){
- if(!await requireSession())return;
- const s=await getDocs(collection(db,"contestants")); rows=[];
- s.forEach(d=>{let x=d.data();rows.push({number:x.order??"",name:x.name??"",score:Number(x.totalScore||0)})});
- rows.sort((a,b)=>b.score-a.score||Number(a.number)-Number(b.number));
- document.getElementById("tb").innerHTML=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.number)}</td><td>${esc(x.name)}</td><td>${x.score}</td></tr>`).join("");
- document.getElementById("status").textContent=`พบผู้ประกวด ${rows.length} คน`;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const SESSION_KEY = "singingContestAdminSession";
+
+function esc(v) {
+  return String(v ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
-window.downloadCSV=()=>{if(!rows.length)return alert("ยังไม่มีข้อมูล");let csv="อันดับ,หมายเลข,ชื่อ,คะแนนรวม\n"+rows.map((x,i)=>`${i+1},"${String(x.number).replaceAll('"','""')}","${String(x.name).replaceAll('"','""')}",${x.score}`).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"}));a.download="singing-contest-results.csv";a.click();};
+
+async function requireSession() {
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) {
+    location.replace("./admin.html");
+    return null;
+  }
+
+  try {
+    const saved = JSON.parse(raw);
+    if (!saved?.id || !saved?.username) throw new Error("Invalid session");
+
+    // ตรวจสอบบัญชีจริงใน Firestore ทุกครั้ง
+    const snap = await getDocs(collection(db, "admins"));
+    let current = null;
+
+    snap.forEach(d => {
+      const a = d.data();
+      if (
+        d.id === saved.id &&
+        String(a.username || "").trim().toLowerCase() ===
+          String(saved.username || "").trim().toLowerCase() &&
+        a.active !== false
+      ) {
+        current = {
+          id: d.id,
+          username: String(a.username || "").trim(),
+          role: String(a.role || "admin").trim().toLowerCase()
+        };
+      }
+    });
+
+    if (!current) {
+      localStorage.removeItem(SESSION_KEY);
+      location.replace("./admin.html");
+      return null;
+    }
+
+    return current;
+  } catch (err) {
+    console.error("Session error:", err);
+    localStorage.removeItem(SESSION_KEY);
+    location.replace("./admin.html");
+    return null;
+  }
+}
+
+window.goAdmin = () => location.replace("./admin.html");
+
+window.logout = () => {
+  localStorage.removeItem(SESSION_KEY);
+  location.replace("./admin.html");
+};
+
+async function loadContestants() {
+  const user = await requireSession();
+  if (!user) return [];
+
+  const snap = await getDocs(collection(db, "contestants"));
+  const rows = [];
+
+  snap.forEach(d => {
+    const x = d.data();
+    rows.push({
+      id: d.id,
+      number: x.order ?? "",
+      name: String(x.name ?? ""),
+      score: Number(x.totalScore ?? 0)
+    });
+  });
+
+  rows.sort((a,b) =>
+    b.score - a.score ||
+    (Number(a.number) || 999999) - (Number(b.number) || 999999)
+  );
+
+  return rows;
+}
+
+let rows = [];
+
+async function load() {
+  try {
+    rows = await loadContestants();
+    if (!rows.length) {
+      document.getElementById("tb").innerHTML =
+        '<tr><td colspan="4">ไม่พบข้อมูลผู้ประกวด</td></tr>';
+      document.getElementById("status").textContent = "ไม่พบข้อมูล";
+      return;
+    }
+
+    document.getElementById("tb").innerHTML = rows.map((x,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${esc(x.number)}</td>
+        <td>${esc(x.name)}</td>
+        <td>${x.score}</td>
+      </tr>
+    `).join("");
+
+    document.getElementById("status").textContent =
+      `พบผู้ประกวด ${rows.length} คน`;
+  } catch (err) {
+    console.error(err);
+    document.getElementById("status").innerHTML =
+      '<span class="error">❌ โหลดข้อมูลไม่ได้ กรุณาตรวจสอบ Firebase Configuration และ Firestore Rules</span>';
+  }
+}
+
+document.getElementById("downloadBtn").addEventListener("click", () => {
+  if (!rows.length) return alert("ยังไม่มีข้อมูลสำหรับดาวน์โหลด");
+
+  const csv =
+    "อันดับ,หมายเลข,ชื่อ,คะแนนรวม\n" +
+    rows.map((x,i) =>
+      `${i+1},"${String(x.number).replaceAll('"','""')}","${String(x.name).replaceAll('"','""')}",${x.score}`
+    ).join("\n");
+
+  const blob = new Blob(["\ufeff" + csv], {
+    type:"text/csv;charset=utf-8"
+  });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "singing-contest-results.csv";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
 load();
-</script></body></html>
+</script>
+</body>
+</html>
