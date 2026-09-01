@@ -14,7 +14,7 @@
     background: #fff;
     color: #111;
     font-family: Arial, "TH Sarabun New", Tahoma, sans-serif;
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .toolbar {
@@ -30,7 +30,7 @@
     background: #45ad54;
     color: #fff;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
   }
 
   h1 {
@@ -41,7 +41,7 @@
 
   #status {
     margin: 0 0 6px;
-    font-size: 13px;
+    font-size: 14px;
   }
 
   #report {
@@ -88,7 +88,7 @@
     height: 17px;
     line-height: 1.05;
     text-align: center;
-    font-size: 13px;
+    font-size: 14px;
   }
 
   th {
@@ -320,8 +320,7 @@ function buildContestant(c, rank) {
   return `
     <div class="contestant-box">
       <div class="contestant-title">
-        <span class="rank">อันดับที่ ${rank}</span>
-        &nbsp;&nbsp;หมายเลข ${esc(c.order)}
+        <span class="rank">อันดับ ${rank}</span>
         &nbsp;&nbsp;${esc(c.name)}
       </div>
 
@@ -396,7 +395,7 @@ async function loadReport() {
 
     document.getElementById("report").innerHTML = pages.join("");
     document.getElementById("status").textContent =
-      `พบผู้ประกวด ${rows.length} คน • แสดงรายละเอียดคะแนนกรรมการ 1–3 • ขนาดตัวอักษร 13px`;
+      `พบผู้ประกวด ${rows.length} คน • แสดงรายละเอียดคะแนนกรรมการ 1–3 • ขนาดตัวอักษร 14px`;
   } catch (err) {
     console.error(err);
     document.getElementById("status").innerHTML =
