@@ -97,7 +97,7 @@ button:hover{opacity:.9}
     padding:0;
     overflow:hidden;
     display:grid;
-    grid-template-rows:7mm 177mm 6mm;
+    grid-template-rows:7mm 174mm 9mm;
     page-break-after:always;
     break-after:page;
     page-break-inside:avoid;
@@ -116,9 +116,9 @@ button:hover{opacity:.9}
   }
   .score-sheet{
     width:100%;
-    height:177mm !important;
+    height:174mm !important;
     min-height:0 !important;
-    max-height:177mm !important;
+    max-height:174mm !important;
     table-layout:fixed;
     margin:0;
     border-collapse:collapse;
@@ -156,9 +156,9 @@ button:hover{opacity:.9}
     page-break-inside:avoid !important;
   }
   .score-sheet tbody td{
-    height:14.7mm !important;
+    height:13.9mm !important;
     min-height:0 !important;
-    max-height:14.7mm !important;
+    max-height:13.9mm !important;
     font-size:8px;
     padding:1px 3px;
     line-height:1.05;
@@ -179,9 +179,9 @@ button:hover{opacity:.9}
     display:block !important;
     text-align:left !important;
     width:100% !important;
-    height:6mm !important;
-    min-height:6mm !important;
-    max-height:6mm !important;
+    height:9mm !important;
+    min-height:9mm !important;
+    max-height:9mm !important;
     font-size:9px !important;
     margin:0 !important;
     padding:1.2mm 0 0 0 !important;
@@ -189,6 +189,9 @@ button:hover{opacity:.9}
     white-space:nowrap !important;
     overflow:hidden !important;
     align-self:end !important;
+    position:relative !important;
+    z-index:5 !important;
+    background:#fff !important;
   }
 }
 </style>
