@@ -154,11 +154,15 @@ button:hover{opacity:.9}
     padding:2px 3px;
     line-height:1.1;
   }
-  /* เซลล์ No./ชื่อ-สกุล และชื่อเพลง ในตาราง: ฟอนต์ 3 เท่า (8px -> 24px)
-     แถวสูง 14.6mm รองรับตัวอักษร 24px ได้สบาย ไม่ล้นเข้าช่องกรอกคะแนนข้างเคียง */
+  /* เซลล์ No./ชื่อ-สกุล และชื่อเพลง ในตาราง: บังคับให้อยู่แถวเดียวเสมอ
+     (ต่างจากหัวข้อเกณฑ์ 1-7 ที่ตัดขึ้น 2 บรรทัดได้) ใช้ขนาด 20px ให้พอดีความกว้างคอลัมน์
+     ถ้าชื่อยาวเกินคอลัมน์จริงๆ จะย่อด้วย ... แทนการดันแถวสูงขึ้นหรือทับคอลัมน์ข้างเคียง */
   .score-sheet tbody td.combined-info{
-    font-size:24px;
+    font-size:20px;
     line-height:1.1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
   }
   .footer-line{
     display:flex !important;
