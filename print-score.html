@@ -119,15 +119,19 @@ button:hover{opacity:.9}
     border-collapse:collapse;
     flex:0 0 auto;
   }
+  
+  /* หัวข้อหลัก: NO. / ชื่อ-สกุล และ ชื่อเพลง ปรับฟอนต์ 20px ตัวหนา */
   .score-sheet .main-head{
-    font-size:14px;
+    font-size:20px !important;
+    font-weight:bold !important;
     height:7mm;
     line-height:1.05;
   }
   
-  /* หัวข้อรายการเกณฑ์ให้คะแนน: ยอมให้ตัดขึ้น 2 บรรทัดได้ */
+  /* หัวข้อรายการเกณฑ์ให้คะแนน: ปรับฟอนต์ 20px ตัวหนา และยอมให้ตัดขึ้น 2 บรรทัดได้ */
   .score-sheet .criterion{
-    font-size:18px; /* ปรับขนาดลงจาก 33px เพื่อให้พอดีกับการตัด 2 บรรทัด */
+    font-size:20px !important;
+    font-weight:bold !important;
     height:19mm;
     line-height:1.1;
     white-space:normal; 
@@ -166,14 +170,13 @@ button:hover{opacity:.9}
   }
   
   .footer-line{
-    display:flex !important;
-    justify-content:space-between !important;
-    align-items:center !important;
+    display:block !important;
+    text-align:center !important;
     width:100% !important;
     height:6mm !important;
     min-height:6mm !important;
-    font-size:8px !important;
-    margin:0 !important;
+    font-size:11px !important;
+    margin:8px 0 0 0 !important;
     line-height:1.1 !important;
     white-space:nowrap !important;
     flex:0 0 auto;
@@ -373,10 +376,11 @@ function renderPages(list){
     }
     html += `</tbody></table>`;
 
-    html += `<div class="footer-line">`;
-    html += `<span>คะแนนเต็มรวมต่อกรรมการ: ${totalMax} คะแนน</span>`;
-    html += `<span>พิมพ์โดย: <span class="print-user">กำลังตรวจสอบ...</span> | วันเวลาที่พิมพ์: <span class="print-datetime">กำลังตรวจสอบ...</span> | หน้า ${page+1} / ${pages}</span>`;
+    // ส่วน Footer ที่ถูกปรับแก้ตามรูปแบบใหม่
+    html += `<div class="footer-line screen-only-hide">`;
+    html += `คะแนนเต็มรวมต่อกรรมการ: ${totalMax} คะแนน | พิมพ์โดย: <span class="print-user">กำลังตรวจสอบ...</span> | วันเวลาที่พิมพ์: <span class="print-datetime">กำลังตรวจสอบ...</span> | หน้า ${page+1} / จากจำนวนหน้า ${pages}`;
     html += `</div>`;
+    
     html += `</section>`;
   }
 
@@ -401,14 +405,15 @@ async function loadPrintData(){
   }
 }
 
+// ฟังก์ชันดึงชื่อ User จากระบบ (ถ้ามี)
 function getPrintUser(){
   try{
     const raw=localStorage.getItem("singingContestAdminSession");
-    if(!raw) return "-";
+    if(!raw) return "ผู้ดูแลระบบ"; // ค่าเริ่มต้นถ้าหา User ไม่เจอ
     const s=JSON.parse(raw);
-    return String(s?.username || s?.user || s?.name || "-").trim() || "-";
+    return String(s?.username || s?.user || s?.name || "ผู้ดูแลระบบ").trim();
   }catch(e){
-    return "-";
+    return "ผู้ดูแลระบบ";
   }
 }
 
