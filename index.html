@@ -82,48 +82,34 @@
   opacity:1 !important;
 }
 
-</style>
 
-/* ===== SONG NAME DISPLAY ===== */
-.song-name-box{
-  display:inline-flex;
+.contestant-select-row{
+  display:flex;
   align-items:center;
-  min-width:300px;
-  max-width:520px;
+  gap:18px;
+  flex-wrap:wrap;
+}
+.song-name-box{
+  min-width:420px;
+  max-width:850px;
   min-height:45px;
-  padding:8px 14px;
-  margin-left:10px;
-  border:2px solid #ff2b2b;
-  border-radius:7px;
+  padding:10px 16px;
+  border:3px solid #e53935;
+  border-radius:8px;
   background:#fff;
-  color:#222;
-  font-size:18px;
+  color:#111;
+  font-size:20px;
   font-weight:bold;
-  vertical-align:middle;
+  text-align:left;
+  display:flex;
+  align-items:center;
 }
 @media(max-width:800px){
-  .song-name-box{
-    min-width:220px;
-    width:100%;
-    margin:8px 0 0;
-  }
+  .contestant-select-row{flex-direction:column;align-items:stretch}
+  #contestant{width:100%!important}
+  .song-name-box{min-width:0;width:100%;max-width:none}
 }
-
-</head>
-
-<body>
-
-  <h1 id="mainTitle">
-    ระบบประมวลผลและตัดสินการประกวดร้องเพลง<br>
-    <span style="font-size:20px;">
-      Singing Contest Scoring System
-    </span>
-  </h1>
-
-</div>
-
-</body>
-</html>
+</style>
 
 <style>
 body{
@@ -417,10 +403,55 @@ input[type="number"], select {
     flex-wrap:wrap;
   }
 }
+
+/* ===== TOOLBAR ROW + ADMIN BAR (จริง ใช้กับหน้าเว็บ) ===== */
+.toolbar-row{
+  display:flex;
+  align-items:center;
+  flex-wrap:nowrap;
+  gap:10px;
+  width:100%;
+  margin:8px 0 0;
+  overflow-x:auto;
+  padding-bottom:4px;
+}
+#adminBar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:nowrap;
+  flex-shrink:0;
+  margin-left:auto;
+  white-space:nowrap;
+}
+#adminUserLabel{font-weight:bold;white-space:nowrap;}
+.save-score-btn{
+  font-size:39px!important;
+  padding:23px 47px!important;
+  min-width:234px;
+  min-height:101px;
+  font-weight:bold;
+  flex-shrink:0;
+  white-space:nowrap;
+}
+.toolbar-btn{
+  font-size:21px!important;
+  padding:13px 23px!important;
+  font-weight:bold;
+  flex-shrink:0;
+  white-space:nowrap;
+}
 </style>
 
 </head>
 <body>
+
+<h1 id="mainTitle">
+  ระบบประมวลผลและตัดสินการประกวดร้องเพลง<br>
+  <span style="font-size:20px;">
+    Singing Contest Scoring System
+  </span>
+</h1>
 
 <div id="loginWrapper">
   <div id="loginBox">
@@ -451,13 +482,11 @@ input[type="number"], select {
   </div>
 </div>
 
-</div>
 
 <div id="appBox" style="display:none;">
 
 <!-- Admin management moved to admin.html -->
 
-</div>
 
 <h2>🎤 ระบบให้คะแนน</h2>
 
@@ -465,25 +494,27 @@ input[type="number"], select {
   📊 กำลังโหลด...
 </div>
 
-<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-<select id="contestant" style="width:600px;height:45px;font-size:18px;"></select>
-<div id="songNameBox" class="song-name-box">🎵 ชื่อเพลง: -</div>
+<div class="contestant-select-row">
+  <select id="contestant" style="width:600px;height:45px;font-size:18px;"></select>
+  <div id="songNameBox" class="song-name-box">🎵 ชื่อเพลง: -</div>
 </div>
 
 <br><br>
 
 <div id="formArea"></div>
 
-<button id="saveScoreBtn" class="save-score-btn" onclick="submitScore()">💾 บันทึก</button>
-<button onclick="clearScore()">🧹 ล้างช่อง</button>
-<button onclick="openMonitor()">📺 Monitor</button>
-<button type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
-<button onclick="resetAll()">🧨 สิ้นสุด</button>
+<div class="toolbar-row">
+  <button id="saveScoreBtn" class="save-score-btn" onclick="submitScore()">💾 บันทึก</button>
+  <button class="toolbar-btn" onclick="clearScore()">🧹 ล้างช่อง</button>
+  <button class="toolbar-btn" onclick="openMonitor()">📺 Monitor</button>
+  <button class="toolbar-btn" type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
+  <button class="toolbar-btn" onclick="resetAll()">🧨 สิ้นสุด</button>
 
-<!-- แถบผู้ดูแลอยู่ล่างสุด ต่อจากเมนูสิ้นสุด และชิดขอบขวา -->
-<div id="adminBar">
-  <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
-  <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
+  <!-- แถบผู้ดูแล: ย้ายมาอยู่แถวเดียวกับเมนูบันทึก ชิดขวาสุดของหน้าจอ -->
+  <div id="adminBar">
+    <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
+    <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
+  </div>
 </div>
 
 <hr>
@@ -495,12 +526,11 @@ input[type="number"], select {
 
 
 
-</div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSy...",
@@ -850,61 +880,226 @@ if(!confirm("ลบ?")) return;
 await deleteDoc(doc(db,"contestants",id));
 };
 
-// IMPORT EXCEL
-window.importExcel = function(){
+// ===== IMPORT รายชื่อผู้ประกวด =====
+// รองรับ CSV ที่มีคอลัมน์: No., ชื่อผู้ประกวด, ชื่อเพลง
+// และยังรองรับ header ภาษาอังกฤษ/ไทย รวมถึงข้อมูลเก่าที่ไม่มีชื่อเพลง
+function parseCSVLine(line){
+  const result=[];
+  let current="";
+  let quoted=false;
 
-  const file = excelFile.files[0];
-  if(!file) return alert("เลือกไฟล์");
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
 
-  const reader = new FileReader();
-
-  reader.onload = async function(e){
-
-    const text = new TextDecoder("utf-8").decode(e.target.result);
-    let rows = text.split("\n");
-
-    let list = [];
-
-    for(let i=1;i<rows.length;i++){
-      let cols = rows[i].split(",");
-
-      let no = Number(cols[0]);
-      let name = cols[1]?.trim();
-
-      if(name){
-        list.push({no, name});
+    if(ch === '"'){
+      if(quoted && line[i+1] === '"'){
+        current+='"';
+        i++;
+      }else{
+        quoted=!quoted;
       }
+    }else if(ch === "," && !quoted){
+      result.push(current.trim());
+      current="";
+    }else{
+      current+=ch;
     }
+  }
 
-    // 🔥 เรียงตามเลข
-    list.sort((a,b)=>a.no - b.no);
+  result.push(current.trim());
+  return result;
+}
 
-    // 🔥 เพิ่มเข้า Firebase
-    for(let item of list){
-      await addDoc(collection(db,"contestants"),{
-        name: `No.${item.no} ${item.name}`,
-        order: item.no,
-        totalScore:0,
-        j1:0,j2:0,j3:0
-      });
+function normalizeHeader(value){
+  return String(value ?? "")
+    .replace(/^\uFEFF/,"")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g,"");
+}
+
+window.importExcel = function(){
+  const input=document.getElementById("excelFile");
+  const file=input?.files?.[0];
+
+  if(!file){
+    return alert("กรุณาเลือกไฟล์รายชื่อผู้ประกวด");
+  }
+
+  const reader=new FileReader();
+
+  reader.onload=async function(e){
+    try{
+      const text=new TextDecoder("utf-8").decode(e.target.result);
+      const rows=text
+        .replace(/\r/g,"")
+        .split("\n")
+        .map(x=>x.trim())
+        .filter(Boolean);
+
+      if(rows.length < 2){
+        throw new Error("ไฟล์ไม่มีข้อมูลผู้ประกวด");
+      }
+
+      const headers=parseCSVLine(rows[0]).map(normalizeHeader);
+
+      const findHeader=(names, fallback)=>{
+        const index=headers.findIndex(h=>names.includes(h));
+        return index >= 0 ? index : fallback;
+      };
+
+      const noIndex=findHeader(
+        ["no","no.","number","หมายเลข","ลำดับ","เลขที่"],0
+      );
+      const nameIndex=findHeader(
+        ["name","contestant","contestantname","ชื่อ","ชื่อผู้ประกวด","ชื่อผู้เข้าแข่งขัน"],1
+      );
+      const songIndex=findHeader(
+        ["song","songname","songtitle","เพลง","ชื่อเพลง"],2
+      );
+
+      const list=[];
+
+      for(let i=1;i<rows.length;i++){
+        const cols=parseCSVLine(rows[i]);
+
+        const no=Number(String(cols[noIndex] ?? "").replace(/[^\d.-]/g,""));
+        const name=String(cols[nameIndex] ?? "").trim();
+        const song=String(cols[songIndex] ?? "").trim();
+
+        if(!name) continue;
+
+        list.push({
+          no:Number.isFinite(no) && no>0 ? no : i,
+          name:name.replace(/^No\.\s*\d+\s*/i,"").trim(),
+          song:song || "-"
+        });
+      }
+
+      if(!list.length){
+        throw new Error("ไม่พบรายชื่อผู้ประกวดที่ถูกต้อง");
+      }
+
+      list.sort((a,b)=>a.no-b.no);
+
+      // เพิ่มเข้า Firebase โดยเก็บหมายเลข/ชื่อ/เพลงแยกกัน
+      for(const item of list){
+        await addDoc(collection(db,"contestants"),{
+          name:item.name,
+          songName:item.song,
+          order:item.no,
+          totalScore:0,
+          j1:0,
+          j2:0,
+          j3:0,
+          score1:[],
+          score2:[],
+          score3:[],
+          locked:false
+        });
+      }
+
+      alert(
+        `✅ นำเข้ารายชื่อสำเร็จ ${list.length} คน\\n`+
+        `ระบบจะแสดงเป็น No.${list[0].no} ชื่อผู้ประกวด และชื่อเพลงแยกจากกัน`
+      );
+
+    }catch(err){
+      console.error("importExcel:",err);
+      alert("❌ นำเข้ารายชื่อไม่สำเร็จ\\n"+err.message);
     }
+  };
 
-    alert("นำเข้าเรียงลำดับแล้ว");
+  reader.onerror=function(){
+    alert("❌ ไม่สามารถอ่านไฟล์รายชื่อได้");
   };
 
   reader.readAsArrayBuffer(file);
 };
 
-// คะแนน
-const items = [
-  {name:"น้ำเสียง",max:30},
-  {name:"เทคนิค",max:10},
-  {name:"จังหวะ",max:20},
-  {name:"อักขระ",max:10},
-  {name:"บุคลิก",max:10},
-  {name:"ความยาก",max:10},
-  {name:"แต่งกาย",max:10}
+// ===== รายการคะแนนกลางจาก Admin =====
+// Admin บันทึกไว้ที่ settings/scoringConfig
+const DEFAULT_SCORE_ITEMS = [
+  {id:"tone",name:"น้ำเสียง",max:30},
+  {id:"technique",name:"เทคนิค",max:10},
+  {id:"rhythm",name:"จังหวะ",max:20},
+  {id:"pronunciation",name:"อักขระ",max:10},
+  {id:"personality",name:"บุคลิก",max:10},
+  {id:"difficulty",name:"ความยาก",max:10},
+  {id:"costume",name:"แต่งกาย",max:10}
 ];
+
+let items = DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+let scoreConfigUnsubscribe = null;
+
+function normalizeScoreItems(raw){
+  if(!Array.isArray(raw) || raw.length===0){
+    return DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+  }
+
+  return raw.map((x,i)=>({
+    id:String(x?.id || `criterion_${i+1}`),
+    name:String(x?.name || `รายการ ${i+1}`).trim() || `รายการ ${i+1}`,
+    max:Math.max(1, Math.min(1000, Math.floor(Number(x?.max) || 1)))
+  }));
+}
+
+// โหลดรายการคะแนนจาก Firestore ก่อนสร้างฟอร์ม
+async function loadScoreCriteria(){
+  try{
+    const snap=await getDoc(doc(db,"settings","scoringConfig"));
+
+    if(snap.exists() && Array.isArray(snap.data()?.criteria)){
+      items=normalizeScoreItems(snap.data().criteria);
+    }else{
+      items=DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+    }
+  }catch(err){
+    console.error("โหลดรายการคะแนนจาก Admin ไม่สำเร็จ:",err);
+    items=DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+    console.warn("ระบบจะใช้รายการคะแนนเริ่มต้นชั่วคราว");
+  }
+}
+
+// ติดตามรายการคะแนนจาก Admin แบบ Real-time
+function watchScoreCriteria(){
+  if(scoreConfigUnsubscribe) scoreConfigUnsubscribe();
+
+  scoreConfigUnsubscribe=onSnapshot(
+    doc(db,"settings","scoringConfig"),
+    snap=>{
+      if(!snap.exists() || !Array.isArray(snap.data()?.criteria)) return;
+
+      const next=normalizeScoreItems(snap.data().criteria);
+      const changed=JSON.stringify(next)!==JSON.stringify(items);
+      if(!changed) return;
+
+      // เก็บคะแนนที่กำลังกรอกไว้ก่อนสร้างฟอร์มใหม่
+      const saved={j1:[],j2:[],j3:[]};
+
+      for(let j=1;j<=3;j++){
+        saved[`j${j}`]=items.map((_,idx)=>{
+          const el=document.getElementById(`j${j}_s${idx}`);
+          return el ? el.value : "";
+        });
+      }
+
+      items=next;
+      createForm();
+
+      // คืนค่าคะแนนเดิมตามตำแหน่งรายการ
+      for(let j=1;j<=3;j++){
+        items.forEach((_,idx)=>{
+          const el=document.getElementById(`j${j}_s${idx}`);
+          if(el && saved[`j${j}`][idx] !== undefined){
+            el.value=saved[`j${j}`][idx];
+          }
+        });
+      }
+    },
+    err=>console.error("Scoring config realtime error:",err)
+  );
+}
 
 window.announceResult = function(){
   if(cache.length === 0){
@@ -1008,10 +1203,7 @@ window.announceResult = function(){
 }
 
 
-/* ===== ADMIN MANAGEMENT / SESSION ===== */
-#adminBar{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;width:100%;margin:8px 0 0;padding:0}
-#adminUserLabel{font-weight:bold}
-.save-score-btn{font-size:30px!important;padding:18px 36px!important;min-width:180px;min-height:78px;font-weight:bold}
+/* ===== ADMIN MANAGEMENT / SESSION (ใช้เฉพาะหน้าประกาศผล/พิมพ์) ===== */
 #adminPanel{display:none!important;margin:10px 0 15px;padding:12px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
 #adminPanel.show{display:block}
 #adminPanel h3{margin:0 0 10px}
@@ -1034,7 +1226,8 @@ window.announceResult = function(){
   <table>
     <tr>
       <th>อันดับ</th>
-      <th>ชื่อผู้เข้าแข่งขัน</th>
+      <th>ผู้ประกวด</th>
+      <th>ชื่อเพลง</th>
       <th>คะแนนรวม</th>
     </tr>
   `;
@@ -1052,7 +1245,8 @@ window.announceResult = function(){
     html += `
       <tr class="${cls}">
         <td class="${tie ? "tie-rank" : ""}">อันดับที่ ${i+1}</td>
-        <td class="${nameClass}">${escapeHtml(c.name)}</td>
+        <td class="${nameClass}">No.${escapeHtml(c.number || c.order || (i+1))} ${escapeHtml(c.name)}</td>
+        <td class="${nameClass}">${escapeHtml(c.song || "-")}</td>
         <td class="${tie ? "tie-score" : ""}">${score}</td>
       </tr>
     `;
@@ -1110,68 +1304,80 @@ setTimeout(()=>{
 },300);
 
 }
-createForm();
+// โหลดเกณฑ์คะแนนจาก Admin ก่อนแสดงช่องให้คะแนน
+(async function initIndex(){
+  await loadScoreCriteria();
+  createForm();
+  restoreAdminSession();
+  watchScoreCriteria();
 
-restoreAdminSession();
-
-
-// ===== CONTESTANT NAME / SONG HELPERS =====
-// แยก No., ชื่อผู้ประกวด และชื่อเพลงออกจากกัน
-// รองรับทั้งข้อมูลใหม่ที่มี songName และข้อมูลเก่าที่ชื่อถูกนำเพลงมาต่อท้ายด้วย comma
-function contestantDisplayName(order, name){
-  const n = String(name ?? "").trim();
-  const no = Number(order);
-  if(!n) return Number.isFinite(no) && no < 9999 ? `No.${no}` : "";
-  if(Number.isFinite(no) && no < 9999){
-    const prefix = new RegExp(`^No\\.\\s*${no}\\s*`, "i");
-    if(prefix.test(n)) return n;
-    return `No.${no} ${n}`;
+  const contestantSelect=document.getElementById("contestant");
+  if(contestantSelect){
+    contestantSelect.addEventListener("change",()=>{
+      const selected=cache.find(x=>x.id===contestantSelect.value);
+      updateSongNameBox(selected?.song || "-");
+    });
   }
-  return n;
+})();
+
+
+// ===== ชื่อเพลง / ชื่อผู้ประกวด =====
+// รองรับข้อมูลใหม่ที่เก็บ songName/song/songTitle/เพลง/ชื่อเพลง
+// และข้อมูลเก่าที่อาจเก็บรวมใน name เช่น "NAI PHED,สมบัติ"
+function getSongName(data){
+  const candidates=[
+    data?.songName,
+    data?.song,
+    data?.songTitle,
+    data?.เพลง,
+    data?.ชื่อเพลง
+  ];
+
+  for(const v of candidates){
+    const text=String(v ?? "").trim();
+    if(text) return text;
+  }
+
+  const legacyName=String(data?.name ?? "").trim();
+  const commaIndex=legacyName.indexOf(",");
+  if(commaIndex>=0){
+    const song=legacyName.slice(commaIndex+1).trim();
+    if(song) return song;
+  }
+
+  return "-";
 }
 
-function splitLegacyNameSong(data){
-  let name = String(data?.name ?? "").trim();
-  let song = "";
-  const songCandidates=[data?.songName,data?.song,data?.songTitle,data?.เพลง,data?.ชื่อเพลง];
-  for(const v of songCandidates){
-    const s=String(v ?? "").trim();
-    if(s){ song=s; break; }
+function getContestantName(data){
+  const raw=String(data?.name ?? "").trim();
+
+  // ถ้า name เก็บรวม "ชื่อ,เพลง" ให้เอาเฉพาะชื่อ
+  const hasSeparateSong=[
+    data?.songName,
+    data?.song,
+    data?.songTitle,
+    data?.เพลง,
+    data?.ชื่อเพลง
+  ].some(v=>String(v ?? "").trim());
+
+  if(!hasSeparateSong){
+    const commaIndex=raw.indexOf(",");
+    if(commaIndex>=0) return raw.slice(0,commaIndex).trim();
   }
 
-  // ข้อมูลเก่าที่นำเข้าแบบเดิมอาจเป็น "NAI PHED,สมบัติ"
-  if(!song && name.includes(",")){
-    const parts=name.split(",");
-    if(parts.length>=2){
-      song=String(parts.pop() ?? "").trim();
-      name=parts.join(",").trim();
-    }
-  }
+  return raw;
+}
 
-  // ถ้าชื่อผู้ประกวดถูกบันทึกพร้อม No. ให้ตัด No. ออกจากชื่อก่อน
-  const no=Number(data?.order ?? 9999);
-  if(Number.isFinite(no) && no < 9999){
-    name=name.replace(new RegExp(`^No\\.\\s*${no}\\s*`, "i"), "").trim();
-  }
-  return {name,song:song||"-"};
+function getContestantNumber(data){
+  const n=Number(data?.order);
+  return Number.isFinite(n) && n > 0 ? n : "";
 }
 
 function updateSongNameBox(song){
   const box=document.getElementById("songNameBox");
-  if(box) box.textContent=`🎵 ชื่อเพลง: ${song && song !== "-" ? song : "-"}`;
-}
-
-function updateSongNameFromSelection(){
-  const select=document.getElementById("contestant");
-  if(!select){ updateSongNameBox("-"); return; }
-  const id=select.value;
-  const c=cache.find(x=>x.id===id);
-  updateSongNameBox(c?.song || "-");
-}
-
-const contestantSelectEl=document.getElementById("contestant");
-if(contestantSelectEl){
-  contestantSelectEl.addEventListener("change", updateSongNameFromSelection);
+  if(box){
+    box.textContent=`🎵 ชื่อเพลง: ${song && song !== "-" ? song : "-"}`;
+  }
 }
 
 // LOAD
@@ -1183,27 +1389,29 @@ async function loadContestants() {
 
   snapshot.forEach(docSnap => {
     const data = docSnap.data();
-    const order = Number(data.order ?? 9999);
-    const parsed = splitLegacyNameSong(data);
 
     list.push({
       id: docSnap.id,
-      name: parsed.name,
-      song: parsed.song,
-      order,
-      locked: data.locked === true
+      name: getContestantName(data),
+      song: getSongName(data),
+      number: getContestantNumber(data),
+      order: Number(data.order) || 9999,
+      locked: data.locked || false   // ✅ เพิ่มตัวนี้
     });
   });
 
+  // 🔥 เรียงตามเลข
   list.sort((a, b) => a.order - b.order);
 
+  // 🔥 ล้างก่อน
   select.innerHTML = "";
 
   list.forEach(item => {
     const opt = document.createElement("option");
     opt.value = item.id;
-    opt.text = contestantDisplayName(item.order, item.name);
+    opt.text = item.name;
 
+    // ✅ สีเขียวถ้ากรอกแล้ว
     if (item.locked) {
       opt.style.color = "green";
       opt.text += " ✔";
@@ -1211,14 +1419,6 @@ async function loadContestants() {
 
     select.appendChild(opt);
   });
-
-  cache = [...list];
-  cache.sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
-
-  if(select.options.length > 0 && !select.value){
-    select.selectedIndex = 0;
-  }
-  updateSongNameFromSelection();
 }
 
 // CALC
@@ -1301,8 +1501,8 @@ window.submitScore = async () => {
 
     previewHead.innerHTML =
       `<span><b>หมายเลข:</b> No.${pendingScoreSave.order}</span>
-       <span><b>ชื่อผู้ประกวด:</b> ${escapeHtml(pendingScoreSave.name)}</span>
-       <span><b>ชื่อเพลง:</b> ${escapeHtml(pendingScoreSave.song || "-")}</span>`;
+       <span><b>ชื่อผู้ประกวด:</b> No.${pendingScoreSave.order} ${escapeHtml(pendingScoreSave.name)}</span>
+       <span><b>เพลง:</b> ${escapeHtml(c.song || "-")}</span>`;
 
     previewTable.innerHTML = `
       <thead>
@@ -1614,23 +1814,22 @@ onSnapshot(collection(db,"contestants"),snap=>{
 
     if(data.locked) done++;   // 🔥 นับคนที่ให้คะแนนแล้ว
 
-    const order = Number(data.order ?? 9999);
-    const parsed = splitLegacyNameSong(data);
-
     list.push({
-      id:d.id,
-      name:parsed.name,
-      song:parsed.song,
-      order,
-      totalScore:Number(data.totalScore || 0),
-      locked:data.locked === true,
-      score1:Array.isArray(data.score1) ? data.score1 : [],
-      score2:Array.isArray(data.score2) ? data.score2 : [],
-      score3:Array.isArray(data.score3) ? data.score3 : [],
-      j1:Number(data.j1 || 0),
-      j2:Number(data.j2 || 0),
-      j3:Number(data.j3 || 0)
-    });
+  id:d.id,
+  name:data.name,
+  song:getSongName(data),
+  order:data.order || 9999,
+  totalScore:data.totalScore||0,
+  locked:data.locked || false,
+
+  // 🔥 เพิ่มตรงนี้
+  score1: data.score1 || [],
+  score2: data.score2 || [],
+  score3: data.score3 || [],
+  j1: data.j1 || 0,
+  j2: data.j2 || 0,
+  j3: data.j3 || 0
+});
   });
 
   // 🔥 เรียง No.
@@ -1653,7 +1852,7 @@ onSnapshot(collection(db,"contestants"),snap=>{
     list.forEach(item=>{
       let o=document.createElement("option");
       o.value=item.id;
-      o.text=contestantDisplayName(item.order,item.name);
+      o.text=item.name;
 
       if(item.locked){
         o.text += " ✔";
@@ -1674,12 +1873,13 @@ onSnapshot(collection(db,"contestants"),snap=>{
     }
   }
 
+  // แสดงชื่อเพลงของผู้ประกวดที่กำลังเลือก
+  const selectedNow = list.find(item => item.id === select.value);
+  updateSongNameBox(selectedNow?.song || "-");
+
   // ใช้เป้าหมายนี้เพียงครั้งเดียว แล้วปล่อยให้การเลือกครั้งต่อไป
   // ทำงานตามปกติ ไม่เด้งกลับไปคนที่ 1
   pendingNextContestantId = null;
-
-  // แสดงชื่อเพลงของผู้ประกวดที่กำลังเลือก
-  updateSongNameFromSelection();
 
   // ตารางคะแนนในหน้า index ถูกนำออกแล้ว
   // ยังคง cache สำหรับรายงานและประกาศผล
@@ -1758,7 +1958,7 @@ window.printDetail = function(){
 
     html+=`
     <div class="box">
-    <b>No.${i+1} ${c.name}</b>
+    <b>อันดับ ${i+1} &nbsp;&nbsp; No.${c.number || c.order || (i+1)} ${escapeHtml(c.name)}, เพลง: ${escapeHtml(c.song || "-")}</b>
 
     <table>
     <tr>
