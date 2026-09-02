@@ -16,7 +16,7 @@ button{
   background:#45ad54;color:#fff;cursor:pointer
 }
 h1{font-size:34px;margin:12px 0 20px}
-table{width:90%;margin:0 auto;border-collapse:collapse;font-size:24px}
+table{width:92%;margin:0 auto;border-collapse:collapse;font-size:24px}
 th,td{border:1px solid #fff;padding:10px}
 th{background:#333}
 .gold{background:gold;color:#000;font-weight:bold}
@@ -25,6 +25,7 @@ th{background:#333}
   text-decoration-thickness:2px;text-underline-offset:3px
 }
 .error{color:#ff5555}
+
 @media (min-width:1600px){
   table{font-size:30px}
   h1{font-size:50px}
@@ -46,9 +47,7 @@ th{background:#333}
     color:#000 !important;
   }
 
-  .bar{
-    display:none !important;
-  }
+  .bar{display:none !important}
 
   h1{
     color:#000 !important;
@@ -68,15 +67,15 @@ th{background:#333}
     margin:0 !important;
     border-collapse:collapse !important;
     table-layout:fixed !important;
-    font-size:12pt !important;
+    font-size:11pt !important;
     line-height:1.15 !important;
   }
 
   th,td{
     border:1px solid #000 !important;
     color:#000 !important;
-    padding:3mm 2mm !important;
-    font-size:12pt !important;
+    padding:3mm 1.5mm !important;
+    font-size:11pt !important;
     line-height:1.15 !important;
     word-break:break-word;
   }
@@ -86,12 +85,14 @@ th{background:#333}
     color:#000 !important;
   }
 
-  /* รายการปกติ = ดำ */
-  tr:not(.print-tie) td{
-    color:#000 !important;
-  }
+  /* ความกว้างคอลัมน์สำหรับพิมพ์ A4 */
+  th:nth-child(1),td:nth-child(1){width:16%}
+  th:nth-child(2),td:nth-child(2){width:36%}
+  th:nth-child(3),td:nth-child(3){width:36%}
+  th:nth-child(4),td:nth-child(4){width:12%}
 
-  /* คะแนนเสมอ = แดง เฉพาะอันดับ/ชื่อ/คะแนน */
+  tr:not(.print-tie) td{color:#000 !important}
+
   .print-tie,
   .print-tie td{
     color:red !important;
@@ -102,22 +103,18 @@ th{background:#333}
     font-weight:bold !important;
   }
 
-  /* อันดับ 1 ปกติยังคงพื้นทองเมื่อพิมพ์ */
   tr.gold:not(.print-tie) td{
     background:gold !important;
     color:#000 !important;
     font-weight:bold !important;
   }
 
-  /* ป้องกันแถวถูกตัดครึ่ง */
   tr{
     break-inside:avoid !important;
     page-break-inside:avoid !important;
   }
 
-  thead{
-    display:table-header-group;
-  }
+  thead{display:table-header-group}
 }
 </style>
 </head>
@@ -135,13 +132,14 @@ th{background:#333}
 <table>
 <thead>
 <tr>
-  <th>อันดับ</th>
-  <th>ชื่อผู้ประกวด</th>
+  <th>อันดับที่</th>
+  <th>ผู้ประกวด</th>
+  <th>ชื่อเพลง</th>
   <th>คะแนน</th>
 </tr>
 </thead>
 <tbody id="tb">
-<tr><td colspan="3">กำลังโหลด...</td></tr>
+<tr><td colspan="4">กำลังโหลด...</td></tr>
 </tbody>
 </table>
 
@@ -170,8 +168,38 @@ function esc(v) {
     .replaceAll("'","&#039;");
 }
 
+/* รองรับชื่อฟิลด์ชื่อเพลงหลายแบบ */
+function getSongName(x) {
+  const candidates = [
+    x?.songName,
+    x?.song,
+    x?.songTitle,
+    x?.เพลง,
+    x?.ชื่อเพลง
+  ];
+
+  for (const value of candidates) {
+    const text = String(value ?? "").trim();
+    if (text) return text;
+  }
+
+  return "-";
+}
+
+/* แสดงหมายเลขประจำตัวเป็น No.1, No.2 ... */
+function formatContestantNumber(value) {
+  const n = Number(value);
+  if (Number.isFinite(n) && n > 0 && n < 999999) {
+    return `No.${n}`;
+  }
+
+  const text = String(value ?? "").trim();
+  return text || "-";
+}
+
 async function requireSession() {
   const raw = localStorage.getItem(SESSION_KEY);
+
   if (!raw) {
     location.replace("./admin.html");
     return null;
@@ -179,13 +207,17 @@ async function requireSession() {
 
   try {
     const saved = JSON.parse(raw);
-    if (!saved?.id || !saved?.username) throw new Error("Invalid session");
+
+    if (!saved?.id || !saved?.username) {
+      throw new Error("Invalid session");
+    }
 
     const snap = await getDocs(collection(db, "admins"));
     let current = null;
 
     snap.forEach(d => {
       const a = d.data();
+
       if (
         d.id === saved.id &&
         String(a.username || "").trim().toLowerCase() ===
@@ -207,6 +239,7 @@ async function requireSession() {
     }
 
     return current;
+
   } catch (err) {
     console.error("Session error:", err);
     localStorage.removeItem(SESSION_KEY);
@@ -231,14 +264,18 @@ async function loadContestants() {
 
   snap.forEach(d => {
     const x = d.data();
+
     rows.push({
       id: d.id,
       number: x.order ?? "",
-      name: String(x.name ?? ""),
+      name: String(x.name ?? "").trim(),
+      song: getSongName(x),
       score: Number(x.totalScore ?? 0)
     });
   });
 
+  /* เรียงคะแนนจากมากไปน้อย
+     ถ้าคะแนนเท่ากัน ให้เรียงตามหมายเลขประจำตัว */
   rows.sort((a,b) =>
     b.score - a.score ||
     (Number(a.number) || 999999) - (Number(b.number) || 999999)
@@ -253,18 +290,23 @@ async function load() {
 
     if (!rows.length) {
       document.getElementById("tb").innerHTML =
-        '<tr><td colspan="3">ไม่พบข้อมูลผู้ประกวด</td></tr>';
+        '<tr><td colspan="4">ไม่พบข้อมูลผู้ประกวด</td></tr>';
+
       document.getElementById("status").textContent = "ไม่พบข้อมูล";
       return;
     }
 
+    /* ตรวจสอบคะแนนเสมอ */
     const scoreCount = {};
+
     rows.forEach(x => {
       scoreCount[x.score] = (scoreCount[x.score] || 0) + 1;
     });
 
     document.getElementById("tb").innerHTML = rows.map((x,i) => {
+
       const tie = scoreCount[x.score] > 1;
+
       const rowClass = [
         (!tie && i === 0) ? "gold" : "",
         tie ? "print-tie" : ""
@@ -274,17 +316,20 @@ async function load() {
 
       return `
         <tr class="${rowClass}">
-          <td class="${cls}">อันดับ ${i+1}</td>
-          <td class="${cls}">${esc(x.name)}</td>
-          <td class="${cls}">${x.score}</td>
+          <td class="${cls}">อันดับที่ ${i+1}</td>
+          <td class="${cls}">${esc(formatContestantNumber(x.number))} ${esc(x.name || "-")}</td>
+          <td class="${cls}">${esc(x.song)}</td>
+          <td class="${cls}">${esc(x.score)}</td>
         </tr>
       `;
     }).join("");
 
     document.getElementById("status").textContent =
       `พบผู้ประกวด ${rows.length} คน`;
+
   } catch (err) {
     console.error(err);
+
     document.getElementById("status").innerHTML =
       '<span class="error">❌ โหลดข้อมูลไม่ได้ กรุณาตรวจสอบ Firebase Configuration และ Firestore Rules</span>';
   }
