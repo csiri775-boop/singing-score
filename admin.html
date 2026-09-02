@@ -546,8 +546,9 @@ function showLogin(){
 }
 
 // สิทธิ์เข้าหน้า Admin: developer, admin และ user เข้าได้
-// developer = เห็น/ใช้ทุกเมนู
-// admin/user ทั่วไป = เห็นเฉพาะ Excel, รายงาน, ประกาศผล
+// developer = เห็น/ใช้เมนูจัดการทั้งหมด
+// admin/user = เห็นและใช้งาน 4 เมนูสาธารณะ:
+// พิมพ์ใบบันทึกคะแนน, Excel, พิมพ์รายงานคะแนน และประกาศผล
 function canAccessAdminPage(admin){
   if(!admin) return false;
   if(admin.protected) return true;
@@ -582,11 +583,16 @@ function applyRolePermissions(){
   if(scoreCard) scoreCard.classList.toggle("role-hidden", !developer);
   if(adminCard) adminCard.classList.toggle("role-hidden", !developer);
 
-  // บัญชีทั่วไปเห็นเฉพาะ 3 เมนูนี้
-  const publicIds=["excelBtn","reportBtn","announceBtn"];
+  // 4 เมนูสาธารณะสำหรับผู้ใช้ทุกระดับ (developer / admin / user)
+  // ทุก User ที่เข้าสู่ระบบได้ต้องเห็นและใช้งานเมนูเหล่านี้ได้
+  const publicIds=["scoreSheetBtn","excelBtn","reportBtn","announceBtn"];
   publicIds.forEach(id=>{
     const el=document.getElementById(id);
-    if(el) el.classList.remove("role-hidden");
+    if(el){
+      el.classList.remove("role-hidden");
+      el.disabled=false;
+      el.removeAttribute("aria-disabled");
+    }
   });
 }
 
