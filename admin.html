@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin Management - Singing Contest Scoring System</title>
+<title>ระบบแอดมิน - Singing Contest Scoring System</title>
 
 <style>
 *{box-sizing:border-box}
@@ -255,6 +255,7 @@ td:first-child{text-align:left}
       <button type="button" onclick="window.goIndex()">⬅️ กลับหน้าหลัก</button>
       <button type="button" id="restoreBtn" class="developer-only" onclick="window.open('./backup.html','_blank')">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
       <button type="button" id="backupBtn" class="developer-only" onclick="window.open('./backup.html','_blank')">💾 Backup</button>
+      <button type="button" id="scoreSheetBtn" onclick="window.open('./print-score.html','_blank')">📝 พิมพ์ใบบันทึกคะแนน</button>
       <button type="button" id="excelBtn" onclick="window.open('./excel.html','_blank')">ดาวโหลด📊 Excel</button>
       <button type="button" id="reportBtn" onclick="window.open('./report.html','_blank')">📄 พิมพ์รายงานคะแนน</button>
       <button type="button" id="announceBtn" onclick="window.open('./announce.html','_blank')">พิมพ์📢 ประกาศผล</button>
@@ -263,7 +264,7 @@ td:first-child{text-align:left}
   </div>
 
   <div id="limitedAdminNote" class="admin-public-note role-hidden">
-    🔐 บัญชีทั่วไป: สามารถใช้งานได้เฉพาะ ดาวโหลด📊 Excel, 📄 พิมพ์รายงานคะแนน และ พิมพ์📢 ประกาศผล
+    🔐 บัญชีทั่วไป: สามารถใช้งานได้เฉพาะ พิมพ์ใบบันทึกคะแนน, ดาวโหลด📊 Excel, 📄 พิมพ์รายงานคะแนน และ พิมพ์📢 ประกาศผล
   </div>
 
   <div id="contestantManagementCard" class="contestant-card">
