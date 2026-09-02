@@ -82,6 +82,33 @@
   opacity:1 !important;
 }
 
+
+.contestant-select-row{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  flex-wrap:wrap;
+}
+.song-name-box{
+  min-width:420px;
+  max-width:850px;
+  min-height:45px;
+  padding:10px 16px;
+  border:3px solid #e53935;
+  border-radius:8px;
+  background:#fff;
+  color:#111;
+  font-size:20px;
+  font-weight:bold;
+  text-align:left;
+  display:flex;
+  align-items:center;
+}
+@media(max-width:800px){
+  .contestant-select-row{flex-direction:column;align-items:stretch}
+  #contestant{width:100%!important}
+  .song-name-box{min-width:0;width:100%;max-width:none}
+}
 </style>
 </head>
 
@@ -475,7 +502,10 @@ input[type="number"], select {
   📊 กำลังโหลด...
 </div>
 
-<select id="contestant" style="width:600px;height:45px;font-size:18px;"></select>
+<div class="contestant-select-row">
+  <select id="contestant" style="width:600px;height:45px;font-size:18px;"></select>
+  <div id="songNameBox" class="song-name-box">🎵 ชื่อเพลง: -</div>
+</div>
 
 <br><br>
 
@@ -1194,8 +1224,37 @@ setTimeout(()=>{
   createForm();
   restoreAdminSession();
   watchScoreCriteria();
+
+  const contestantSelect=document.getElementById("contestant");
+  if(contestantSelect){
+    contestantSelect.addEventListener("change",()=>{
+      const selected=cache.find(x=>x.id===contestantSelect.value);
+      updateSongNameBox(selected?.song || "-");
+    });
+  }
 })();
 
+
+// ดึงชื่อเพลงจากข้อมูลผู้ประกวด รองรับชื่อฟิลด์หลายแบบเพื่อให้เข้ากับไฟล์เดิม
+function getSongName(data){
+  const candidates=[
+    data?.songName,
+    data?.song,
+    data?.songTitle,
+    data?.เพลง,
+    data?.ชื่อเพลง
+  ];
+  for(const v of candidates){
+    const text=String(v ?? "").trim();
+    if(text) return text;
+  }
+  return "-";
+}
+
+function updateSongNameBox(song){
+  const box=document.getElementById("songNameBox");
+  if(box) box.textContent=`🎵 ชื่อเพลง: ${song && song !== "-" ? song : "-"}`;
+}
 
 // LOAD
 async function loadContestants() {
@@ -1210,6 +1269,7 @@ async function loadContestants() {
     list.push({
       id: docSnap.id,
       name: data.name,
+      song: getSongName(data),
       order: data.order || 9999,
       locked: data.locked || false   // ✅ เพิ่มตัวนี้
     });
@@ -1630,6 +1690,7 @@ onSnapshot(collection(db,"contestants"),snap=>{
     list.push({
   id:d.id,
   name:data.name,
+  song:getSongName(data),
   order:data.order || 9999,
   totalScore:data.totalScore||0,
   locked:data.locked || false,
@@ -1684,6 +1745,10 @@ onSnapshot(collection(db,"contestants"),snap=>{
       select.selectedIndex = 0;
     }
   }
+
+  // แสดงชื่อเพลงของผู้ประกวดที่กำลังเลือก
+  const selectedNow = list.find(item => item.id === select.value);
+  updateSongNameBox(selectedNow?.song || "-");
 
   // ใช้เป้าหมายนี้เพียงครั้งเดียว แล้วปล่อยให้การเลือกครั้งต่อไป
   // ทำงานตามปกติ ไม่เด้งกลับไปคนที่ 1
