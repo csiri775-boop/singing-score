@@ -1526,6 +1526,13 @@ function getContestantNumber(data){
   return Number.isFinite(n) && n > 0 ? n : "";
 }
 
+// แสดงใน Dropdown เป็น "No.1 NAI PHED"
+function formatContestantOption(item){
+  const number = item?.number || item?.order || "";
+  const name = String(item?.name || "").trim();
+  return number ? `No.${number} ${name}` : name;
+}
+
 function updateSongNameBox(song){
   const box=document.getElementById("songNameBox");
   if(box){
@@ -1562,7 +1569,7 @@ async function loadContestants() {
   list.forEach(item => {
     const opt = document.createElement("option");
     opt.value = item.id;
-    opt.text = item.name;
+    opt.text = formatContestantOption(item);
 
     // ✅ สีเขียวถ้ากรอกแล้ว
     if (item.locked) {
@@ -1744,7 +1751,7 @@ window.confirmSaveScore = async function(){
     // เพราะ onSnapshot จะโหลดข้อมูลล่าสุดจาก Firebase ให้อัตโนมัติ
     // และจะเลือก pendingNextContestantId ให้เอง
 
-    const targetName = nextContestant ? nextContestant.name : "";
+    const targetName = nextContestant ? formatContestantOption(nextContestant) : "";
 
     setTimeout(()=>{
       const first = document.getElementById("j1_s0");
@@ -1969,9 +1976,10 @@ onSnapshot(collection(db,"contestants"),snap=>{
 
     list.push({
   id:d.id,
-  name:data.name,
+  name:getContestantName(data),
   song:getSongName(data),
-  order:data.order || 9999,
+  number:getContestantNumber(data),
+  order:Number(data.order) || 9999,
   totalScore:data.totalScore||0,
   locked:data.locked || false,
 
@@ -2005,7 +2013,7 @@ onSnapshot(collection(db,"contestants"),snap=>{
     list.forEach(item=>{
       let o=document.createElement("option");
       o.value=item.id;
-      o.text=item.name;
+      o.text=formatContestantOption(item);
 
       if(item.locked){
         o.text += " ✔";
