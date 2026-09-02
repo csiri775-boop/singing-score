@@ -184,6 +184,22 @@ td:first-child{text-align:left}
 .score-card{margin-top:15px;background:white;border-radius:8px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
 .score-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #scoreContestant{min-width:320px;height:40px;padding:6px;font-size:16px}
+.song-name-box{
+  min-width:420px;
+  max-width:850px;
+  min-height:40px;
+  padding:8px 14px;
+  border:3px solid #e53935;
+  border-radius:8px;
+  background:#fff;
+  color:#111;
+  font-size:18px;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  text-align:left;
+}
+@media(max-width:800px){.song-name-box{min-width:0;width:100%;max-width:none}}
 .score-info{margin:12px 0;padding:10px;background:#f7f7f7;border-left:4px solid #45ad54}
 .score-table{width:100%;border-collapse:collapse;margin-top:10px}
 .score-table th,.score-table td{border:1px solid #ccc;padding:7px;text-align:center}
@@ -304,6 +320,7 @@ td:first-child{text-align:left}
         <option value="">-- เลือกผู้ประกวด --</option>
       </select>
       <button type="button" onclick="loadScoreEditor()">🔄 โหลดคะแนน</button>
+      <div id="adminSongNameBox" class="song-name-box">🎵 ชื่อเพลง: -</div>
     </div>
 
     <div id="scoreInfo" class="score-info">กรุณาเลือกผู้ประกวด</div>
@@ -438,6 +455,26 @@ function contestantDisplayName(order, name){
     return `No.${no} ${n}`;
   }
   return n;
+}
+
+function getSongName(data){
+  const candidates=[
+    data?.songName,
+    data?.song,
+    data?.songTitle,
+    data?.เพลง,
+    data?.ชื่อเพลง
+  ];
+  for(const v of candidates){
+    const text=String(v ?? "").trim();
+    if(text) return text;
+  }
+  return "-";
+}
+
+function updateAdminSongName(song){
+  const box=document.getElementById("adminSongNameBox");
+  if(box) box.textContent=`🎵 ชื่อเพลง: ${song && song !== "-" ? song : "-"}`;
 }
 
 function showMessage(msg, ok=true){
@@ -1181,6 +1218,7 @@ async function loadScoreContestants(){
       scoreContestants.push({
         id:d.id,
         name:String(a.name||""),
+        song:getSongName(a),
         order:Number(a.order||9999),
         score1:normalizeScoreArray(a.score1,SCORE_ITEMS.length),
         score2:normalizeScoreArray(a.score2,SCORE_ITEMS.length),
@@ -1207,6 +1245,7 @@ async function loadScoreContestants(){
 }
 
 function clearScoreEditor(){
+  updateAdminSongName("-");
   document.getElementById("scoreInfo").textContent="กรุณาเลือกผู้ประกวด";
   document.getElementById("scoreEditorBody").innerHTML='<tr><td colspan="5">ยังไม่ได้เลือกผู้ประกวด</td></tr>';
   document.getElementById("scoreSum1").textContent="0";
@@ -1225,6 +1264,8 @@ window.loadScoreEditor=function(){
   c.score1=normalizeScoreArray(c.score1,SCORE_ITEMS.length);
   c.score2=normalizeScoreArray(c.score2,SCORE_ITEMS.length);
   c.score3=normalizeScoreArray(c.score3,SCORE_ITEMS.length);
+  updateAdminSongName(c.song);
+
   scoreEditorOriginal={id:c.id,score1:[...c.score1],score2:[...c.score2],score3:[...c.score3]};
   document.getElementById("scoreInfo").innerHTML=`<b>${esc(contestantDisplayName(c.order,c.name))}</b> ${c.locked?'<span style="color:green;font-weight:bold;"> ✔ บันทึกแล้ว</span>':''}`;
   const body=document.getElementById("scoreEditorBody");
