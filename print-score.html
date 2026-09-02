@@ -65,6 +65,12 @@ button:hover{opacity:.9}
   height:39px;font-family:Arial,sans-serif;font-size:11px;
 }
 .score-sheet .no{font-weight:bold}
+.score-sheet .combined-info{
+  text-align:center;
+  vertical-align:middle;
+  font-weight:normal;
+  padding:2px 5px;
+}
 .score-sheet .name,.score-sheet .song{text-align:left;padding-left:5px}
 .footer-line{
   display:flex;justify-content:space-between;font-size:9px;margin-top:4px;
@@ -88,7 +94,18 @@ button:hover{opacity:.9}
   .score-sheet .main-head{font-size:15px;height:25px}
   .score-sheet .criterion{font-size:12px;height:36px}
   .score-sheet .max{font-size:8.5px;height:21px}
-  .score-sheet tbody td{height:43px;font-size:9px;padding:2px 3px}
+  /* ขยายช่องกรอกคะแนนให้ใช้พื้นที่ A4 แนวนอนเต็มขึ้น */
+  .score-sheet tbody td{
+    height:25mm;
+    min-height:25mm;
+    font-size:9px;
+    padding:2px 3px;
+  }
+  .score-sheet tbody tr{
+    height:25mm;
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
   .footer-line{
     font-size:8.5px;margin-top:3px;line-height:1.25;
   }
@@ -251,18 +268,14 @@ function renderPages(list){
     // ความกว้างให้ใกล้เคียงไฟล์ Excel ตัวอย่าง:
     // A=NO., B=ชื่อ-สกุล, C=ชื่อเพลง, D...=รายการคะแนน
     html += `<colgroup>`;
-    html += `<col style="width:9%">`;
-    html += `<col style="width:20%">`;
-    html += `<col style="width:14%">`;
+    html += `<col style="width:43%">`;
     const remaining=57/SCORE_ITEMS.length;
     SCORE_ITEMS.forEach(()=>html += `<col style="width:${remaining.toFixed(4)}%">`);
     html += `</colgroup>`;
 
     html += `<thead>`;
     html += `<tr>`;
-    html += `<th class="main-head" rowspan="2">NO.</th>`;
-    html += `<th class="main-head" rowspan="2">ชื่อ-สกุล</th>`;
-    html += `<th class="main-head" rowspan="2">ชื่อเพลง</th>`;
+    html += `<th class="main-head" rowspan="3">NO. / ชื่อ-สกุล / ชื่อเพลง</th>`;
     html += `<th class="main-head" colspan="${SCORE_ITEMS.length}">หลักเกณฑ์การให้คะแนน</th>`;
     html += `</tr>`;
 
@@ -273,7 +286,6 @@ function renderPages(list){
     html += `</tr>`;
 
     html += `<tr>`;
-    html += `<th></th><th></th><th></th>`;
     SCORE_ITEMS.forEach(item=>{
       html += `<th class="max">${item.max} คะแนน</th>`;
     });
@@ -284,9 +296,7 @@ function renderPages(list){
     for(let i=0;i<perPage;i++){
       const c=rows[i];
       html += `<tr>`;
-      html += `<td class="no">${c ? esc(c.order) : ""}</td>`;
-      html += `<td class="name">${c ? esc(c.name) : ""}</td>`;
-      html += `<td class="song">${c ? esc(c.song) : ""}</td>`;
+      html += `<td class="combined-info">${c ? `No.${esc(c.order)} ${esc(c.name)}<br>เพลง: ${esc(c.song)}` : ""}</td>`;
       SCORE_ITEMS.forEach(()=>html += `<td></td>`);
       html += `</tr>`;
     }
