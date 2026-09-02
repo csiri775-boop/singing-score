@@ -83,11 +83,7 @@ button:hover{opacity:.9}
   .screen-only{display:none!important}
   .page-wrap{max-width:none;width:100%;margin:0}
   .card{padding:0;box-shadow:none;border-radius:0}
-  /* พื้นที่พิมพ์จริงของ A4 แนวนอน หลังหักขอบกระดาษ 7mm รอบด้าน
-     = 297mm - 14mm = 283mm (กว้าง) x 210mm - 14mm = 196mm (สูง)
-     ค่าความสูง .print-page เดิมใช้ 283mm (ค่าความกว้าง) ผิดพลาด
-     ทำให้เนื้อหาเกินพื้นที่จริงไปมาก เบราว์เซอร์เลยตัดหน้าแทรกเอง
-     กลางตาราง ทำให้หัวกระดาษ/ท้ายกระดาษหายไปในหน้าที่ล้นออกมา */
+  
   .print-page{
     width:100%;
     height:194mm;
@@ -128,20 +124,23 @@ button:hover{opacity:.9}
     height:7mm;
     line-height:1.05;
   }
-  /* หัวข้อรายการเกณฑ์ให้คะแนน: ฟอนต์ 3 เท่า (11px -> 33px) เพิ่มความสูงแถวให้พอรองรับ */
+  
+  /* หัวข้อรายการเกณฑ์ให้คะแนน: ยอมให้ตัดขึ้น 2 บรรทัดได้ */
   .score-sheet .criterion{
-    font-size:33px;
+    font-size:18px; /* ปรับขนาดลงจาก 33px เพื่อให้พอดีกับการตัด 2 บรรทัด */
     height:19mm;
-    line-height:1.05;
+    line-height:1.1;
+    white-space:normal; 
+    word-break:break-word;
   }
-  /* แถวคะแนนเต็มของแต่ละเกณฑ์: ฟอนต์ 3 เท่า (8px -> 24px) */
+  
+  /* แถวคะแนนเต็มของแต่ละเกณฑ์ */
   .score-sheet .max{
     font-size:24px;
     height:9mm;
     line-height:1;
   }
-  /* บังคับ 10 รายการให้อยู่ใน A4 แนวนอนแผ่นเดียวจริง
-     thead 7+19+9=35mm, tbody 10 แถว x 14.6mm = 146mm, รวม 181mm พอดีกับ .score-sheet */
+  
   .score-sheet tbody tr{
     height:14.6mm;
     break-inside:avoid !important;
@@ -154,16 +153,18 @@ button:hover{opacity:.9}
     padding:2px 3px;
     line-height:1.1;
   }
-  /* เซลล์ No./ชื่อ-สกุล และชื่อเพลง ในตาราง: บังคับให้อยู่แถวเดียวเสมอ
-     (ต่างจากหัวข้อเกณฑ์ 1-7 ที่ตัดขึ้น 2 บรรทัดได้) ใช้ขนาด 20px ให้พอดีความกว้างคอลัมน์
-     ถ้าชื่อยาวเกินคอลัมน์จริงๆ จะย่อด้วย ... แทนการดันแถวสูงขึ้นหรือทับคอลัมน์ข้างเคียง */
+  
+  /* เซลล์ No./ชื่อ-สกุล และชื่อเพลง: บังคับให้อยู่แถวเดียวเสมอ ฟอนต์ขนาด 20px */
   .score-sheet tbody td.combined-info{
     font-size:20px;
     line-height:1.1;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
+    text-align:left;
+    padding-left:8px;
   }
+  
   .footer-line{
     display:flex !important;
     justify-content:space-between !important;
@@ -333,16 +334,11 @@ function renderPages(list){
     html += `<div class="sheet-title">ใบบันทึกคะแนนสำหรับคณะกรรมการตัดสิน</div>`;
     html += `<table class="score-sheet">`;
 
-    // แยกคอลัมน์ให้ตรงตามแบบตัวอย่าง:
-    // กรอบที่ 1 = NO. / ชื่อ-สกุล
-    // กรอบที่ 2 = ชื่อเพลง
-    // D... = รายการคะแนน
-    // ลดความกว้างคอลัมน์ No./ชื่อ-สกุล และ ชื่อเพลง ลง 40% แล้วนำส่วนที่ลด
-    // ไปเฉลี่ยเพิ่มให้กับ 7 ช่องคะแนนแทน (24%->14.4%, 19%->11.4%, เดิม 57% -> 74.2%)
+    // ปรับความกว้างให้ช่องชื่อและเพลงเพียงพอต่อฟอนต์ขนาด 20px แบบแถวเดี่ยว
     html += `<colgroup>`;
-    html += `<col style="width:14.4%">`;
-    html += `<col style="width:11.4%">`;
-    const remaining=74.2/SCORE_ITEMS.length;
+    html += `<col style="width:25%">`; /* ช่อง NO. / ชื่อ-สกุล */
+    html += `<col style="width:20%">`; /* ช่อง ชื่อเพลง */
+    const remaining=55/SCORE_ITEMS.length; /* พื้นที่เหลือ 55% หารเฉลี่ยให้ช่องคะแนน */
     SCORE_ITEMS.forEach(()=>html += `<col style="width:${remaining.toFixed(4)}%">`);
     html += `</colgroup>`;
 
