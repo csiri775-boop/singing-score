@@ -508,7 +508,7 @@ input[type="number"], select {
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSy...",
@@ -903,16 +903,89 @@ window.importExcel = function(){
   reader.readAsArrayBuffer(file);
 };
 
-// คะแนน
-const items = [
-  {name:"น้ำเสียง",max:30},
-  {name:"เทคนิค",max:10},
-  {name:"จังหวะ",max:20},
-  {name:"อักขระ",max:10},
-  {name:"บุคลิก",max:10},
-  {name:"ความยาก",max:10},
-  {name:"แต่งกาย",max:10}
+// ===== รายการคะแนนกลางจาก Admin =====
+// Admin บันทึกไว้ที่ settings/scoringConfig
+const DEFAULT_SCORE_ITEMS = [
+  {id:"tone",name:"น้ำเสียง",max:30},
+  {id:"technique",name:"เทคนิค",max:10},
+  {id:"rhythm",name:"จังหวะ",max:20},
+  {id:"pronunciation",name:"อักขระ",max:10},
+  {id:"personality",name:"บุคลิก",max:10},
+  {id:"difficulty",name:"ความยาก",max:10},
+  {id:"costume",name:"แต่งกาย",max:10}
 ];
+
+let items = DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+let scoreConfigUnsubscribe = null;
+
+function normalizeScoreItems(raw){
+  if(!Array.isArray(raw) || raw.length===0){
+    return DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+  }
+
+  return raw.map((x,i)=>({
+    id:String(x?.id || `criterion_${i+1}`),
+    name:String(x?.name || `รายการ ${i+1}`).trim() || `รายการ ${i+1}`,
+    max:Math.max(1, Math.min(1000, Math.floor(Number(x?.max) || 1)))
+  }));
+}
+
+// โหลดรายการคะแนนจาก Firestore ก่อนสร้างฟอร์ม
+async function loadScoreCriteria(){
+  try{
+    const snap=await getDoc(doc(db,"settings","scoringConfig"));
+
+    if(snap.exists() && Array.isArray(snap.data()?.criteria)){
+      items=normalizeScoreItems(snap.data().criteria);
+    }else{
+      items=DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+    }
+  }catch(err){
+    console.error("โหลดรายการคะแนนจาก Admin ไม่สำเร็จ:",err);
+    items=DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+    console.warn("ระบบจะใช้รายการคะแนนเริ่มต้นชั่วคราว");
+  }
+}
+
+// ติดตามรายการคะแนนจาก Admin แบบ Real-time
+function watchScoreCriteria(){
+  if(scoreConfigUnsubscribe) scoreConfigUnsubscribe();
+
+  scoreConfigUnsubscribe=onSnapshot(
+    doc(db,"settings","scoringConfig"),
+    snap=>{
+      if(!snap.exists() || !Array.isArray(snap.data()?.criteria)) return;
+
+      const next=normalizeScoreItems(snap.data().criteria);
+      const changed=JSON.stringify(next)!==JSON.stringify(items);
+      if(!changed) return;
+
+      // เก็บคะแนนที่กำลังกรอกไว้ก่อนสร้างฟอร์มใหม่
+      const saved={j1:[],j2:[],j3:[]};
+
+      for(let j=1;j<=3;j++){
+        saved[`j${j}`]=items.map((_,idx)=>{
+          const el=document.getElementById(`j${j}_s${idx}`);
+          return el ? el.value : "";
+        });
+      }
+
+      items=next;
+      createForm();
+
+      // คืนค่าคะแนนเดิมตามตำแหน่งรายการ
+      for(let j=1;j<=3;j++){
+        items.forEach((_,idx)=>{
+          const el=document.getElementById(`j${j}_s${idx}`);
+          if(el && saved[`j${j}`][idx] !== undefined){
+            el.value=saved[`j${j}`][idx];
+          }
+        });
+      }
+    },
+    err=>console.error("Scoring config realtime error:",err)
+  );
+}
 
 window.announceResult = function(){
   if(cache.length === 0){
@@ -1115,9 +1188,13 @@ setTimeout(()=>{
 },300);
 
 }
-createForm();
-
-restoreAdminSession();
+// โหลดเกณฑ์คะแนนจาก Admin ก่อนแสดงช่องให้คะแนน
+(async function initIndex(){
+  await loadScoreCriteria();
+  createForm();
+  restoreAdminSession();
+  watchScoreCriteria();
+})();
 
 
 // LOAD
