@@ -443,6 +443,75 @@ input[type="number"], select {
 }
 </style>
 
+
+<style>
+/* ===== COMPACT SPACING / BOTTOM TOOLBAR 25% SMALLER ===== */
+#mainTitle{
+  margin:8px 0 5px !important;
+}
+#appBox > h2{
+  margin:4px 0 3px !important;
+}
+#statusBox{
+  margin-bottom:4px !important;
+}
+.contestant-select-row{
+  gap:8px !important;
+  margin:0 !important;
+}
+#contestant{
+  height:38px !important;
+}
+.song-name-box{
+  min-height:38px !important;
+  padding:6px 12px !important;
+  font-size:18px !important;
+}
+#formArea{
+  margin-top:2px !important;
+}
+#formArea h3{
+  margin:4px 0 2px !important;
+}
+#formArea table{
+  margin-top:0 !important;
+  margin-bottom:2px !important;
+}
+.judge-spacer{
+  height:2px !important;
+}
+.toolbar-row{
+  gap:7px !important;
+  margin:3px 0 0 !important;
+  padding-bottom:2px !important;
+}
+.toolbar-row button{
+  margin:2px !important;
+}
+/* Bottom menu: exactly 25% smaller than the current toolbar sizing */
+.save-score-btn{
+  font-size:29.25px !important;
+  padding:17.25px 35.25px !important;
+  min-width:175.5px !important;
+  min-height:75.75px !important;
+}
+.toolbar-btn{
+  font-size:15.75px !important;
+  padding:9.75px 17.25px !important;
+}
+#adminBar{
+  gap:6px !important;
+}
+#adminBar button{
+  font-size:15.75px !important;
+  padding:7px 12px !important;
+  margin:2px !important;
+}
+hr{
+  margin:4px 0 !important;
+}
+</style>
+
 </head>
 <body>
 
@@ -498,8 +567,6 @@ input[type="number"], select {
   <select id="contestant" style="width:600px;height:45px;font-size:18px;"></select>
   <div id="songNameBox" class="song-name-box">🎵 ชื่อเพลง: -</div>
 </div>
-
-<br><br>
 
 <div id="formArea"></div>
 
