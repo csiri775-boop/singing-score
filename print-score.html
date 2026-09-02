@@ -265,17 +265,21 @@ function renderPages(list){
     html += `<div class="sheet-title">ใบบันทึกคะนนสำหรับคณะกรรมการตัดสิน</div>`;
     html += `<table class="score-sheet">`;
 
-    // ความกว้างให้ใกล้เคียงไฟล์ Excel ตัวอย่าง:
-    // A=NO., B=ชื่อ-สกุล, C=ชื่อเพลง, D...=รายการคะแนน
+    // แยกคอลัมน์ให้ตรงตามแบบตัวอย่าง:
+    // กรอบที่ 1 = NO. / ชื่อ-สกุล
+    // กรอบที่ 2 = ชื่อเพลง
+    // D... = รายการคะแนน
     html += `<colgroup>`;
-    html += `<col style="width:43%">`;
+    html += `<col style="width:24%">`;
+    html += `<col style="width:19%">`;
     const remaining=57/SCORE_ITEMS.length;
     SCORE_ITEMS.forEach(()=>html += `<col style="width:${remaining.toFixed(4)}%">`);
     html += `</colgroup>`;
 
     html += `<thead>`;
     html += `<tr>`;
-    html += `<th class="main-head" rowspan="3">NO. / ชื่อ-สกุล / ชื่อเพลง</th>`;
+    html += `<th class="main-head" rowspan="3">NO. / ชื่อ-สกุล</th>`;
+    html += `<th class="main-head" rowspan="3">ชื่อเพลง</th>`;
     html += `<th class="main-head" colspan="${SCORE_ITEMS.length}">หลักเกณฑ์การให้คะแนน</th>`;
     html += `</tr>`;
 
@@ -296,7 +300,8 @@ function renderPages(list){
     for(let i=0;i<perPage;i++){
       const c=rows[i];
       html += `<tr>`;
-      html += `<td class="combined-info">${c ? `No.${esc(c.order)} ${esc(c.name)}<br>เพลง: ${esc(c.song)}` : ""}</td>`;
+      html += `<td class="combined-info">${c ? `No.${esc(c.order)} ${esc(c.name)}` : ""}</td>`;
+      html += `<td class="combined-info">${c ? esc(c.song) : ""}</td>`;
       SCORE_ITEMS.forEach(()=>html += `<td></td>`);
       html += `</tr>`;
     }
