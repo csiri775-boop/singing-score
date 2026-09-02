@@ -173,6 +173,7 @@ td:first-child{text-align:left}
 .criteria-manager-note{margin-top:9px;color:#666;font-size:13px}
 .criteria-manager-status{min-height:22px;margin-top:10px;font-weight:bold}
 .criteria-manager-card .btn-save{background:#ef8b17}
+.criteria-manager-card .btn-save:disabled{opacity:.55;cursor:not-allowed}
 @media(max-width:800px){
   .criteria-row{grid-template-columns:42px 1fr 105px 92px;gap:6px;padding:7px}
   .criteria-add-fields{grid-template-columns:1fr 105px}
@@ -966,34 +967,84 @@ async function applyCriteriaToAllContestants(oldItems){
 }
 
 window.saveScoreCriteriaSettings=async function(){
-  if(!isDeveloper()) return alert("🔒 เฉพาะผู้พัฒนาระบบเท่านั้น");
+  if(!isDeveloper()){
+    alert("🔒 เฉพาะผู้พัฒนาระบบเท่านั้น");
+    return;
+  }
+
+  const btn=document.querySelector('.criteria-manager-header .btn-save');
   const oldItems=SCORE_ITEMS.map(x=>({...x}));
   const next=[];
-  for(let i=0;i<SCORE_ITEMS.length;i++){
-    const name=document.getElementById(`criterion_name_${i}`)?.value.trim();
-    const max=Number(document.getElementById(`criterion_max_${i}`)?.value);
-    if(!name) return setCriteriaManagerStatus(`❌ รายการที่ ${i+1} ต้องมีชื่อ`,false);
-    if(!Number.isInteger(max)||max<1||max>1000) return setCriteriaManagerStatus(`❌ รายการที่ ${i+1} คะแนนสูงสุดต้องเป็นจำนวนเต็ม 1-1000`,false);
-    if(next.some(x=>x.name.toLowerCase()===name.toLowerCase())) return setCriteriaManagerStatus(`❌ มีชื่อรายการ “${name}” ซ้ำกัน`,false);
-    next.push({id:SCORE_ITEMS[i].id,name,max});
+
+  // อ่านค่าจากช่องแก้ไขทั้งหมดก่อนทำการเขียน Firebase
+  for(let i=0;i<oldItems.length;i++){
+    const nameEl=document.getElementById(`criterion_name_${i}`);
+    const maxEl=document.getElementById(`criterion_max_${i}`);
+    const name=String(nameEl?.value ?? "").trim();
+    const max=Number(maxEl?.value);
+
+    if(!name){
+      setCriteriaManagerStatus(`❌ รายการที่ ${i+1} ต้องมีชื่อ`,false);
+      nameEl?.focus();
+      return;
+    }
+    if(!Number.isInteger(max) || max<1 || max>1000){
+      setCriteriaManagerStatus(`❌ รายการที่ ${i+1} คะแนนสูงสุดต้องเป็นจำนวนเต็ม 1-1000`,false);
+      maxEl?.focus();
+      return;
+    }
+    if(next.some(x=>x.name.toLowerCase()===name.toLowerCase())){
+      setCriteriaManagerStatus(`❌ มีชื่อรายการ “${name}” ซ้ำกัน`,false);
+      nameEl?.focus();
+      return;
+    }
+    next.push({id:oldItems[i].id,name,max});
   }
-  const changed=JSON.stringify(next)!==JSON.stringify(SCORE_ITEMS);
-  if(!changed) return setCriteriaManagerStatus("ℹ️ ไม่มีการเปลี่ยนแปลง",true);
-  if(!confirm("ยืนยันบันทึกการตั้งค่ารายการคะแนน?\n\nระบบจะปรับคะแนนที่เกินคะแนนสูงสุดใหม่ และคำนวณคะแนนรวมของผู้ประกวดทุกคนใหม่")) return;
+
+  const changed=JSON.stringify(next)!==JSON.stringify(oldItems);
+  if(!changed){
+    setCriteriaManagerStatus("ℹ️ ยังไม่มีการเปลี่ยนแปลงที่จะบันทึก",true);
+    return;
+  }
+
+  const detail=next.map((x,i)=>`${i+1}. ${x.name} (เต็ม ${x.max})`).join("\n");
+  if(!confirm("ยืนยันบันทึกการตั้งค่ารายการคะแนน?\n\n"+detail+"\n\nระบบจะปรับคะแนนผู้ประกวดให้ไม่เกินคะแนนสูงสุด และคำนวณคะแนนรวมใหม่")) return;
+
+  if(btn) btn.disabled=true;
+  setCriteriaManagerStatus("⏳ กำลังบันทึกการตั้งค่าไปยัง Firebase...",true);
+
   try{
-    SCORE_ITEMS=next;
-    const count=await applyCriteriaToAllContestants(oldItems);
+    // เปลี่ยนค่าในหน่วยความจำก่อน เพื่อให้การสร้าง array ใช้โครงสร้างใหม่
+    SCORE_ITEMS=next.map(x=>({...x}));
+
+    // ขั้นที่ 1: บันทึกโครงสร้างกลางก่อน
+    // หาก Firestore Rules ไม่อนุญาต จะหยุดทันทีและไม่ทำข้อมูลผู้ประกวดต่อ
     await saveScoreCriteria();
+    setCriteriaManagerStatus("⏳ บันทึกโครงสร้างแล้ว กำลังปรับคะแนนผู้ประกวด...",true);
+
+    // ขั้นที่ 2: ปรับ array คะแนนของผู้ประกวดทุกคนให้ตรงกับโครงสร้างใหม่
+    const count=await applyCriteriaToAllContestants(oldItems);
+
     renderCriteriaManager();
     refreshCriteriaDeleteSelect();
     await loadScoreContestants();
-    setCriteriaManagerStatus(`✅ บันทึกการตั้งค่าแล้ว และปรับข้อมูลผู้ประกวด ${count} คนเรียบร้อย`,true);
+
+    setCriteriaManagerStatus(`✅ บันทึกการตั้งค่าสำเร็จ และปรับข้อมูลผู้ประกวด ${count} คนเรียบร้อยแล้ว`,true);
+    alert(`✅ บันทึกการตั้งค่ารายการคะแนนสำเร็จ\n\nรายการคะแนน: ${SCORE_ITEMS.length} รายการ\nคะแนนเต็มรวมต่อกรรมการ: ${SCORE_ITEMS.reduce((s,x)=>s+Number(x.max||0),0)} คะแนน\nผู้ประกวดที่ปรับข้อมูล: ${count} คน`);
   }catch(err){
-    console.error(err);
-    SCORE_ITEMS=oldItems;
+    console.error("saveScoreCriteriaSettings ERROR:",err);
+
+    // คืนค่าในหน้าเว็บให้เหมือนก่อนกดบันทึก
+    SCORE_ITEMS=oldItems.map(x=>({...x}));
     renderCriteriaManager();
     refreshCriteriaDeleteSelect();
-    setCriteriaManagerStatus("❌ บันทึกการตั้งค่าไม่สำเร็จ: "+err.message,false);
+
+    const code=err?.code ? ` [${err.code}]` : "";
+    const msg=err?.message || String(err);
+    setCriteriaManagerStatus("❌ บันทึกการตั้งค่าไม่สำเร็จ"+code+": "+msg,false);
+    alert("❌ บันทึกการตั้งค่าไม่สำเร็จ\n\n"+msg+"\n\nหากขึ้นว่า permission-denied ให้ตรวจสอบ Firestore Rules ของ settings/scoringConfig และ contestants");
+  }finally{
+    if(btn) btn.disabled=false;
   }
 };
 
