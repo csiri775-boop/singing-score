@@ -128,28 +128,36 @@ button:hover{opacity:.9}
     height:7mm;
     line-height:1.05;
   }
+  /* หัวข้อรายการเกณฑ์ให้คะแนน: ฟอนต์ 3 เท่า (11px -> 33px) เพิ่มความสูงแถวให้พอรองรับ */
   .score-sheet .criterion{
-    font-size:11px;
-    height:9mm;
+    font-size:33px;
+    height:19mm;
     line-height:1.05;
   }
+  /* แถวคะแนนเต็มของแต่ละเกณฑ์: ฟอนต์ 3 เท่า (8px -> 24px) */
   .score-sheet .max{
-    font-size:8px;
-    height:5mm;
+    font-size:24px;
+    height:9mm;
     line-height:1;
   }
   /* บังคับ 10 รายการให้อยู่ใน A4 แนวนอนแผ่นเดียวจริง
-     thead 7+9+5=21mm, tbody 10 แถว x 16mm = 160mm, รวม 181mm พอดีกับ .score-sheet */
+     thead 7+19+9=35mm, tbody 10 แถว x 14.6mm = 146mm, รวม 181mm พอดีกับ .score-sheet */
   .score-sheet tbody tr{
-    height:16mm;
+    height:14.6mm;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
   }
   .score-sheet tbody td{
-    height:16mm;
-    min-height:16mm;
+    height:14.6mm;
+    min-height:14.6mm;
     font-size:8px;
     padding:2px 3px;
+    line-height:1.1;
+  }
+  /* เซลล์ No./ชื่อ-สกุล และชื่อเพลง ในตาราง: ฟอนต์ 3 เท่า (8px -> 24px)
+     แถวสูง 14.6mm รองรับตัวอักษร 24px ได้สบาย ไม่ล้นเข้าช่องกรอกคะแนนข้างเคียง */
+  .score-sheet tbody td.combined-info{
+    font-size:24px;
     line-height:1.1;
   }
   .footer-line{
@@ -325,10 +333,12 @@ function renderPages(list){
     // กรอบที่ 1 = NO. / ชื่อ-สกุล
     // กรอบที่ 2 = ชื่อเพลง
     // D... = รายการคะแนน
+    // ลดความกว้างคอลัมน์ No./ชื่อ-สกุล และ ชื่อเพลง ลง 40% แล้วนำส่วนที่ลด
+    // ไปเฉลี่ยเพิ่มให้กับ 7 ช่องคะแนนแทน (24%->14.4%, 19%->11.4%, เดิม 57% -> 74.2%)
     html += `<colgroup>`;
-    html += `<col style="width:24%">`;
-    html += `<col style="width:19%">`;
-    const remaining=57/SCORE_ITEMS.length;
+    html += `<col style="width:14.4%">`;
+    html += `<col style="width:11.4%">`;
+    const remaining=74.2/SCORE_ITEMS.length;
     SCORE_ITEMS.forEach(()=>html += `<col style="width:${remaining.toFixed(4)}%">`);
     html += `</colgroup>`;
 
