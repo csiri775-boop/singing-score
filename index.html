@@ -1350,6 +1350,7 @@ items.forEach((i,idx)=>{
 html+=`</tr></table><div class="judge-spacer"></div>`;
 }
 formArea.innerHTML=html;
+if(window.fitScoringScreen) window.fitScoringScreen();
 
 // auto focus
 // // ❌ ไม่เด้งอัตโนมัติอีกต่อไป
@@ -2023,7 +2024,61 @@ window.printDetail = function(){
       width:17%;
     }
   </style>
-  </head>
+  
+<style>
+/* ===== FIXED 100% VIEWPORT / AUTO FIT SCORING SCREEN ===== */
+html, body{
+  width:100%;
+  height:100%;
+  overflow:hidden !important;
+}
+body{
+  box-sizing:border-box;
+  overscroll-behavior:none;
+}
+#appBox{
+  transform-origin:top left;
+  will-change:transform;
+  overflow:visible !important;
+}
+/* Keep the scoring controls compact when the admin adds more criteria. */
+#formArea table{
+  width:100%;
+  table-layout:fixed;
+}
+#formArea th{
+  white-space:normal;
+  word-break:break-word;
+  line-height:1.05;
+}
+#formArea td{
+  height:auto;
+}
+#formArea input[type="number"]{
+  box-sizing:border-box;
+  max-width:90%;
+}
+/* The contestant row must stay on one line on desktop. */
+.contestant-select-row{
+  flex-wrap:nowrap !important;
+}
+#contestant{
+  width:min(600px,42vw) !important;
+  flex:0 1 42vw;
+  min-width:220px;
+}
+.song-name-box{
+  min-width:0 !important;
+  flex:1 1 auto;
+  max-width:none !important;
+}
+/* No accidental horizontal/vertical page movement. */
+#formArea, .toolbar-row{
+  overflow:visible !important;
+}
+</style>
+
+</head>
   <body>
   `;
 
@@ -2099,6 +2154,73 @@ window.printDetail = function(){
 function openMonitor() {
   window.open("monitor.html", "_blank");
 }
+</script>
+
+
+<script>
+/* ===== AUTO-FIT SCORING PAGE TO THE 100% BROWSER VIEWPORT =====
+   Browser zoom remains 100%. The scoring area is visually scaled only
+   when its content is taller/wider than the available viewport.
+*/
+(function(){
+  let fitRaf = 0;
+
+  function fitScoringScreen(){
+    cancelAnimationFrame(fitRaf);
+    fitRaf = requestAnimationFrame(function(){
+      const app = document.getElementById("appBox");
+      if(!app || getComputedStyle(app).display === "none") return;
+
+      /* Reset first so scrollHeight/scrollWidth are measured at natural size. */
+      app.style.transform = "scale(1)";
+
+      const rect = app.getBoundingClientRect();
+      const availableHeight = Math.max(1, window.innerHeight - rect.top - 3);
+      const availableWidth  = Math.max(1, document.documentElement.clientWidth - 3);
+
+      const contentHeight = Math.max(app.scrollHeight, app.offsetHeight);
+      const contentWidth  = Math.max(app.scrollWidth, app.offsetWidth);
+
+      let scale = Math.min(
+        1,
+        availableHeight / contentHeight,
+        availableWidth / contentWidth
+      );
+
+      /* Never allow an invalid/negative scale. */
+      if(!Number.isFinite(scale) || scale <= 0) scale = 1;
+
+      app.style.transform = "scale(" + scale.toFixed(4) + ")";
+      app.dataset.fitScale = scale.toFixed(4);
+    });
+  }
+
+  window.fitScoringScreen = fitScoringScreen;
+
+  window.addEventListener("resize", fitScoringScreen, {passive:true});
+  window.addEventListener("orientationchange", fitScoringScreen, {passive:true});
+
+  /* Re-fit after dynamic Firebase/admin changes and after the form is rebuilt. */
+  const observer = new MutationObserver(function(){
+    fitScoringScreen();
+  });
+
+  function startObserver(){
+    const app = document.getElementById("appBox");
+    if(app){
+      observer.observe(app, {childList:true, subtree:true});
+      fitScoringScreen();
+    }else{
+      setTimeout(startObserver, 100);
+    }
+  }
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", startObserver, {once:true});
+  }else{
+    startObserver();
+  }
+})();
 </script>
 
 </body>
