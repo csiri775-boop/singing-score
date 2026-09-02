@@ -113,76 +113,82 @@ button:hover{opacity:.9}
     padding:0;
     line-height:7mm;
     text-align:center;
-    flex:0 0 auto;
   }
   .score-sheet{
     width:100%;
-    height:177mm;
+    height:177mm !important;
+    min-height:0 !important;
+    max-height:177mm !important;
     table-layout:fixed;
     margin:0;
     border-collapse:collapse;
   }
-  
-  /* หัวข้อหลัก: NO. / ชื่อ-สกุล และ ชื่อเพลง ปรับฟอนต์ 20px ตัวหนา */
+
   .score-sheet .main-head{
     font-size:20px !important;
     font-weight:bold !important;
-    height:7mm;
+    height:7mm !important;
     line-height:1.05;
   }
-  
-  /* หัวข้อรายการเกณฑ์ให้คะแนน: ปรับฟอนต์ 20px ตัวหนา และยอมให้ตัดขึ้น 2 บรรทัดได้ */
+
   .score-sheet .criterion{
     font-size:20px !important;
     font-weight:bold !important;
-    height:16mm;
-    line-height:1.1;
-    white-space:normal; 
+    height:16mm !important;
+    line-height:1.05;
+    white-space:normal;
     word-break:break-word;
+    overflow:hidden;
   }
-  
-  /* แถวคะแนนเต็มของแต่ละเกณฑ์ */
+
   .score-sheet .max{
     font-size:24px;
-    height:7mm;
+    height:7mm !important;
     line-height:1;
+    overflow:hidden;
   }
-  
+
+  /* 10 rows must fit inside the remaining table height exactly.
+     Header = 30mm, body = 147mm (14.7mm x 10). */
   .score-sheet tbody tr{
-    height:14.7mm;
+    height:14.7mm !important;
+    max-height:14.7mm !important;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
   }
   .score-sheet tbody td{
-    height:14.7mm;
-    min-height:14.7mm;
+    height:14.7mm !important;
+    min-height:0 !important;
+    max-height:14.7mm !important;
     font-size:8px;
-    padding:2px 3px;
-    line-height:1.1;
+    padding:1px 3px;
+    line-height:1.05;
+    overflow:hidden;
   }
-  
-  /* เซลล์ No./ชื่อ-สกุล และชื่อเพลง: บังคับให้อยู่แถวเดียวเสมอ ฟอนต์ขนาด 20px */
+
   .score-sheet tbody td.combined-info{
     font-size:20px;
-    line-height:1.1;
+    line-height:1.05;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
     text-align:left;
     padding-left:8px;
   }
-  
+
   .footer-line{
     display:block !important;
     text-align:left !important;
     width:100% !important;
     height:6mm !important;
     min-height:6mm !important;
+    max-height:6mm !important;
     font-size:9px !important;
     margin:0 !important;
     padding:1.2mm 0 0 0 !important;
     line-height:1.1 !important;
     white-space:nowrap !important;
+    overflow:hidden !important;
     align-self:end !important;
   }
 }
