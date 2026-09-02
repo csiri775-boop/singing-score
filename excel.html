@@ -13,83 +13,38 @@ body{
   font-family:Arial,"TH Sarabun New",Tahoma,sans-serif;
   font-size:14px;
 }
-.container{
-  width:100%;
-  padding:12px;
-}
+.container{width:100%;padding:12px}
 .toolbar{
-  background:#fff;
-  padding:10px;
-  border-radius:8px;
-  margin-bottom:10px;
+  background:#fff;padding:10px;border-radius:8px;margin-bottom:10px;
   box-shadow:0 1px 5px rgba(0,0,0,.08);
 }
 button{
-  border:0;
-  border-radius:5px;
-  padding:8px 14px;
-  margin-right:5px;
-  background:#45ad54;
-  color:#fff;
-  cursor:pointer;
-  font-size:14px;
+  border:0;border-radius:5px;padding:8px 14px;margin-right:5px;
+  background:#45ad54;color:#fff;cursor:pointer;font-size:14px;
 }
 button:hover{opacity:.9}
 button:disabled{opacity:.55;cursor:not-allowed}
-h1{
-  text-align:center;
-  margin:8px 0 10px;
-  font-size:24px;
-}
-#status{
-  margin:0 0 8px;
-  padding:7px 9px;
-  background:#fff;
-  border-radius:5px;
-}
+h1{text-align:center;margin:8px 0 10px;font-size:24px}
+#status{margin:0 0 8px;padding:7px 9px;background:#fff;border-radius:5px}
 .error{color:#b00000}
 .contestant-box{
-  background:#fff;
-  border:1px solid #222;
-  margin:0 0 10px;
-  padding:4px;
-  border-radius:2px;
+  background:#fff;border:1px solid #222;margin:0 0 10px;padding:4px;border-radius:2px;
 }
 .contestant-title{
-  border-bottom:1px solid #222;
-  padding:3px 5px;
-  font-weight:700;
-  font-size:15px;
+  border-bottom:1px solid #222;padding:3px 5px;font-weight:700;font-size:15px;
 }
 .rank{font-weight:700}
-table{
-  width:100%;
-  border-collapse:collapse;
-}
+table{width:100%;border-collapse:collapse}
 th,td{
-  border:1px solid #222;
-  padding:3px 5px;
-  height:19px;
-  line-height:1.1;
-  text-align:center;
-  font-size:14px;
+  border:1px solid #222;padding:3px 5px;height:19px;line-height:1.1;
+  text-align:center;font-size:14px;
 }
-th{
-  background:#eee;
-  font-weight:700;
-}
-th:first-child,td:first-child{
-  text-align:left;
-  width:28%;
-}
+th{background:#eee;font-weight:700}
+th:first-child,td:first-child{text-align:left;width:28%}
 .judge-total td,.grand-total td{font-weight:700}
-.grand-total td{
-  border-top:2px solid #111;
-}
+.grand-total td{border-top:2px solid #111}
 .grand-total td:last-child{font-size:15px}
-@media screen and (min-width:1200px){
-  .container{padding:15px 20px}
-}
+@media screen and (min-width:1200px){.container{padding:15px 20px}}
 </style>
 </head>
 <body>
@@ -107,16 +62,11 @@ th:first-child,td:first-child{
 
 </div>
 
-<!-- ใช้ SheetJS สำหรับสร้างไฟล์ .xlsx จริง -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  getDocs
-} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSy...",
@@ -150,6 +100,38 @@ function esc(v){
     .replaceAll("'","&#039;");
 }
 
+/* แยกชื่อเพลงออกจากชื่อผู้ประกวดสำหรับข้อมูลเก่า/ข้อมูลใหม่ */
+function getSongName(x){
+  const fields = [x?.songName, x?.song, x?.songTitle, x?.เพลง, x?.ชื่อเพลง];
+  for(const v of fields){
+    const s = String(v ?? "").trim();
+    if(s) return s;
+  }
+  return "-";
+}
+
+function getContestantName(x){
+  let name = String(x?.name ?? "").trim();
+  const no = Number(x?.order ?? 999999);
+
+  // ป้องกัน No. ซ้ำ หากข้อมูลเดิมมี No.X ติดอยู่กับชื่อ
+  if(Number.isFinite(no) && no < 999999){
+    name = name.replace(new RegExp(`^No\\.\\s*${no}\\s*`, "i"), "").trim();
+  }
+
+  // รองรับข้อมูลเก่าที่ชื่อและเพลงคั่นด้วย comma
+  const hasSeparateSong = [
+    x?.songName, x?.song, x?.songTitle, x?.เพลง, x?.ชื่อเพลง
+  ].some(v => String(v ?? "").trim());
+
+  if(!hasSeparateSong && name.includes(",")){
+    const parts = name.split(",");
+    if(parts.length >= 2) name = parts.slice(0,-1).join(",").trim();
+  }
+
+  return name;
+}
+
 async function requireSession(){
   const raw = localStorage.getItem(SESSION_KEY);
 
@@ -160,10 +142,7 @@ async function requireSession(){
 
   try{
     const saved = JSON.parse(raw);
-
-    if(!saved?.id || !saved?.username){
-      throw new Error("Invalid session");
-    }
+    if(!saved?.id || !saved?.username) throw new Error("Invalid session");
 
     const snap = await getDocs(collection(db,"admins"));
     let current = null;
@@ -233,7 +212,8 @@ async function loadContestants(){
     rows.push({
       id:d.id,
       order:Number(x.order ?? 999999),
-      name:String(x.name ?? ""),
+      name:getContestantName(x),
+      song:getSongName(x),
       score1:Array.isArray(x.score1) ? x.score1 : [],
       score2:Array.isArray(x.score2) ? x.score2 : [],
       score3:Array.isArray(x.score3) ? x.score3 : [],
@@ -257,11 +237,14 @@ function renderContestant(c,rank){
   const t2=judgeTotal(c,2);
   const t3=judgeTotal(c,3);
 
+  /* ✅ แก้ตรงจุด: อันดับ + No.ประจำตัว + ชื่อ + ชื่อเพลง */
+  const contestantTitle =
+    `อันดับ ${rank}   No.${c.order} ${c.name}, เพลง: ${c.song || "-"}`;
+
   return `
     <div class="contestant-box">
       <div class="contestant-title">
-        <span class="rank">อันดับ ${rank}</span>
-        &nbsp;&nbsp;${esc(c.name)}
+        <span class="rank">${esc(contestantTitle)}</span>
       </div>
 
       <table>
@@ -314,7 +297,8 @@ function makeExcelRows(){
     criteria.forEach(item=>{
       rows.push({
         "อันดับ":idx+1,
-        "ผู้ประกวด":c.name,
+        "ผู้ประกวด":`No.${c.order} ${c.name}`,
+        "ชื่อเพลง":c.song,
         "รายการคะแนน":item.name,
         "คะแนนเต็ม":item.max,
         "กรรมการ 1":arrScore(c.score1,item.key),
@@ -325,7 +309,8 @@ function makeExcelRows(){
 
     rows.push({
       "อันดับ":idx+1,
-      "ผู้ประกวด":c.name,
+      "ผู้ประกวด":`No.${c.order} ${c.name}`,
+      "ชื่อเพลง":c.song,
       "รายการคะแนน":"รวมกรรมการ",
       "คะแนนเต็ม":"",
       "กรรมการ 1":t1,
@@ -335,7 +320,8 @@ function makeExcelRows(){
 
     rows.push({
       "อันดับ":idx+1,
-      "ผู้ประกวด":c.name,
+      "ผู้ประกวด":`No.${c.order} ${c.name}`,
+      "ชื่อเพลง":c.song,
       "รายการคะแนน":"รวมทั้งหมด",
       "คะแนนเต็ม":"",
       "กรรมการ 1":"",
@@ -402,6 +388,7 @@ document.getElementById("downloadBtn").addEventListener("click",()=>{
   ws["!cols"]=[
     {wch:8},
     {wch:30},
+    {wch:25},
     {wch:18},
     {wch:12},
     {wch:14},
