@@ -88,8 +88,10 @@ button:hover{opacity:.9}
   .score-sheet .main-head{font-size:15px;height:25px}
   .score-sheet .criterion{font-size:12px;height:36px}
   .score-sheet .max{font-size:8.5px;height:21px}
-  .score-sheet tbody td{height:34px;font-size:9px;padding:2px 3px}
-  .footer-line{font-size:8px;margin-top:2px}
+  .score-sheet tbody td{height:43px;font-size:9px;padding:2px 3px}
+  .footer-line{
+    font-size:8.5px;margin-top:3px;line-height:1.25;
+  }
 }
 </style>
 </head>
@@ -292,7 +294,7 @@ function renderPages(list){
 
     html += `<div class="footer-line">`;
     html += `<span>คะแนนเต็มรวมต่อกรรมการ: ${totalMax} คะแนน</span>`;
-    html += `<span>หน้า ${page+1} / ${pages}</span>`;
+    html += `<span>พิมพ์โดย: <span class="print-user">กำลังตรวจสอบ...</span> | วันเวลาที่พิมพ์: <span class="print-datetime">กำลังตรวจสอบ...</span> | หน้า ${page+1} / ${pages}</span>`;
     html += `</div>`;
     html += `</section>`;
   }
@@ -307,6 +309,7 @@ async function loadPrintData(){
     await loadCriteria();
     const contestants=await loadContestants();
     renderPages(contestants);
+    updatePrintMeta();
 
     status.textContent=`✅ ${contestants.length} คน | ${SCORE_ITEMS.length} รายการ | ${Math.ceil(contestants.length/10)} แผ่น | คะแนนเต็ม ${SCORE_ITEMS.reduce((s,x)=>s+x.max,0)}`;
   }catch(err){
@@ -317,8 +320,40 @@ async function loadPrintData(){
   }
 }
 
+function getPrintUser(){
+  try{
+    const raw=localStorage.getItem("singingContestAdminSession");
+    if(!raw) return "-";
+    const s=JSON.parse(raw);
+    return String(s?.username || s?.user || s?.name || "-").trim() || "-";
+  }catch(e){
+    return "-";
+  }
+}
+
+function updatePrintMeta(){
+  const now=new Date();
+  const dateTime=new Intl.DateTimeFormat("th-TH",{
+    dateStyle:"short",
+    timeStyle:"medium",
+    hour12:false
+  }).format(now);
+
+  document.querySelectorAll(".print-user").forEach(el=>{
+    el.textContent=getPrintUser();
+  });
+  document.querySelectorAll(".print-datetime").forEach(el=>{
+    el.textContent=dateTime;
+  });
+}
+
 window.loadPrintData=loadPrintData;
-window.addEventListener("load",loadPrintData);
+window.addEventListener("beforeprint",updatePrintMeta);
+window.addEventListener("afterprint",updatePrintMeta);
+window.addEventListener("load",()=>{
+  loadPrintData();
+  updatePrintMeta();
+});
 </script>
 </body>
 </html>
