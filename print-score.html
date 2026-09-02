@@ -73,7 +73,11 @@ button:hover{opacity:.9}
 }
 .score-sheet .name,.score-sheet .song{text-align:left;padding-left:5px}
 .footer-line{
-  display:flex;justify-content:space-between;font-size:9px;margin-top:4px;
+  text-align:center;
+  font-size:12px;
+  margin-top:8px;
+  font-weight:bold;
+  color:#333;
 }
 .loading{padding:30px;text-align:center;font-weight:bold;color:#666}
 
@@ -176,8 +180,8 @@ button:hover{opacity:.9}
     height:6mm !important;
     min-height:6mm !important;
     font-size:11px !important;
-    margin:8px 0 0 0 !important;
-    line-height:1.1 !important;
+    margin:4px 0 0 0 !important;
+    line-height:1.2 !important;
     white-space:nowrap !important;
     flex:0 0 auto;
   }
@@ -337,11 +341,10 @@ function renderPages(list){
     html += `<div class="sheet-title">ใบบันทึกคะแนนสำหรับคณะกรรมการตัดสิน</div>`;
     html += `<table class="score-sheet">`;
 
-    // ปรับความกว้างให้ช่องชื่อและเพลงเพียงพอต่อฟอนต์ขนาด 20px แบบแถวเดี่ยว
     html += `<colgroup>`;
     html += `<col style="width:25%">`; /* ช่อง NO. / ชื่อ-สกุล */
     html += `<col style="width:20%">`; /* ช่อง ชื่อเพลง */
-    const remaining=55/SCORE_ITEMS.length; /* พื้นที่เหลือ 55% หารเฉลี่ยให้ช่องคะแนน */
+    const remaining=55/SCORE_ITEMS.length;
     SCORE_ITEMS.forEach(()=>html += `<col style="width:${remaining.toFixed(4)}%">`);
     html += `</colgroup>`;
 
@@ -376,8 +379,8 @@ function renderPages(list){
     }
     html += `</tbody></table>`;
 
-    // ส่วน Footer ที่ถูกปรับแก้ตามรูปแบบใหม่
-    html += `<div class="footer-line screen-only-hide">`;
+    // ส่วน Footer บังคับแสดงผลตรงกลาง
+    html += `<div class="footer-line">`;
     html += `คะแนนเต็มรวมต่อกรรมการ: ${totalMax} คะแนน | พิมพ์โดย: <span class="print-user">กำลังตรวจสอบ...</span> | วันเวลาที่พิมพ์: <span class="print-datetime">กำลังตรวจสอบ...</span> | หน้า ${page+1} / จากจำนวนหน้า ${pages}`;
     html += `</div>`;
     
@@ -405,11 +408,10 @@ async function loadPrintData(){
   }
 }
 
-// ฟังก์ชันดึงชื่อ User จากระบบ (ถ้ามี)
 function getPrintUser(){
   try{
     const raw=localStorage.getItem("singingContestAdminSession");
-    if(!raw) return "ผู้ดูแลระบบ"; // ค่าเริ่มต้นถ้าหา User ไม่เจอ
+    if(!raw) return "ผู้ดูแลระบบ"; 
     const s=JSON.parse(raw);
     return String(s?.username || s?.user || s?.name || "ผู้ดูแลระบบ").trim();
   }catch(e){
@@ -419,11 +421,10 @@ function getPrintUser(){
 
 function updatePrintMeta(){
   const now=new Date();
-  const dateTime=new Intl.DateTimeFormat("th-TH",{
-    dateStyle:"short",
-    timeStyle:"medium",
-    hour12:false
-  }).format(now);
+  // จัดรูปแบบ วัน/เวลา ให้เป็น dd/mm/yy HH:MM:SS
+  const dateStr = now.toLocaleDateString('th-TH', { year: '2-digit', month: 'numeric', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
+  const dateTime = `${dateStr} ${timeStr}`;
 
   document.querySelectorAll(".print-user").forEach(el=>{
     el.textContent=getPrintUser();
