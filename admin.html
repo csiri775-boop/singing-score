@@ -469,7 +469,45 @@ function getSongName(data){
     const text=String(v ?? "").trim();
     if(text) return text;
   }
+
+  // รองรับข้อมูลเก่าที่เคยถูกนำเข้าเป็น "ชื่อผู้ประกวด,ชื่อเพลง"
+  const legacyName=String(data?.name ?? "").trim();
+  if(legacyName.includes(",")){
+    const parts=legacyName.split(",");
+    const last=String(parts[parts.length-1] ?? "").trim();
+    if(last) return last;
+  }
   return "-";
+}
+
+function getCleanContestantName(data){
+  let name=String(data?.name ?? "").trim();
+  const explicitSong=getSongName({
+    songName:data?.songName,
+    song:data?.song,
+    songTitle:data?.songTitle,
+    เพลง:data?.เพลง,
+    ชื่อเพลง:data?.ชื่อเพลง
+  });
+
+  // ถ้ามีชื่อเพลงแยกอยู่แล้ว ไม่แตะชื่อผู้ประกวด
+  if(explicitSong !== "-" || !name.includes(",")){
+    const no=Number(data?.order ?? 9999);
+    if(Number.isFinite(no) && no<9999){
+      name=name.replace(new RegExp(`^No\\.\\s*${no}\\s*`,"i"),"").trim();
+    }
+    return name;
+  }
+
+  // ข้อมูลเก่า: แยกชื่อเพลงที่ต่อท้ายด้วย comma ออกจากชื่อ
+  const parts=name.split(",");
+  if(parts.length>=2) name=parts.slice(0,-1).join(",").trim();
+
+  const no=Number(data?.order ?? 9999);
+  if(Number.isFinite(no) && no<9999){
+    name=name.replace(new RegExp(`^No\\.\\s*${no}\\s*`,"i"),"").trim();
+  }
+  return name;
 }
 
 function updateAdminSongName(song){
@@ -714,7 +752,7 @@ async function loadContestantManagement(){
     const list=[];
     snap.forEach(d=>{
       const a=d.data();
-      list.push({id:d.id,name:String(a.name||""),order:Number(a.order||9999)});
+      list.push({id:d.id,name:getCleanContestantName(a),song:getSongName(a),order:Number(a.order||9999)});
     });
     list.sort((a,b)=>a.order-b.order || a.name.localeCompare(b.name,"th"));
     select.innerHTML='<option value="">-- เลือกผู้ประกวดที่จะลบ --</option>';
@@ -791,6 +829,34 @@ async function clearAllContestants(){
   return ids.length;
 }
 
+// อ่าน CSV อย่างถูกต้อง รองรับข้อความในเครื่องหมาย "..." และ comma ภายในข้อความ
+function parseCSVLine(line){
+  const result=[];
+  let value="";
+  let quoted=false;
+
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+
+    if(ch === '"'){
+      if(quoted && line[i+1] === '"'){
+        value+='"';
+        i++;
+      }else{
+        quoted=!quoted;
+      }
+    }else if(ch === "," && !quoted){
+      result.push(value.trim());
+      value="";
+    }else{
+      value+=ch;
+    }
+  }
+
+  result.push(value.trim());
+  return result;
+}
+
 window.importContestantsFromAdmin=function(){
   const input=document.getElementById("contestantExcelFile");
   const file=input.files[0];
@@ -805,12 +871,16 @@ window.importContestantsFromAdmin=function(){
 
       const list=[];
       for(let i=1;i<lines.length;i++){
-        const cols=lines[i].split(",");
+        const cols=parseCSVLine(lines[i]);
         const no=Number(String(cols[0]||"").trim());
-        const name=String(cols.slice(1).join(",")||"").trim().replace(/^"|"$/g,"");
-        if(name && Number.isInteger(no) && no>0) list.push({no,name});
+        const name=String(cols[1]||"").trim();
+        const songName=String(cols[2]||"").trim();
+
+        if(name && Number.isInteger(no) && no>0){
+          list.push({no,name,songName});
+        }
       }
-      if(!list.length) throw new Error("ไม่พบข้อมูลรูปแบบ หมายเลข,ชื่อ ในไฟล์");
+      if(!list.length) throw new Error("ไม่พบข้อมูลรูปแบบ No.,Name,songName ในไฟล์");
 
       list.sort((a,b)=>a.no-b.no);
 
@@ -839,6 +909,7 @@ window.importContestantsFromAdmin=function(){
             // ใช้ชื่อ/No. ที่มากับไฟล์โดยตรง ไม่เติม No. ซ้ำ
             name:item.name,
             order:item.no,
+            songName:item.songName || "",
             totalScore:0,
             j1:0,j2:0,j3:0,
             score1:[],score2:[],score3:[],
@@ -1217,7 +1288,7 @@ async function loadScoreContestants(){
       const a=d.data();
       scoreContestants.push({
         id:d.id,
-        name:String(a.name||""),
+        name:getCleanContestantName(a),
         song:getSongName(a),
         order:Number(a.order||9999),
         score1:normalizeScoreArray(a.score1,SCORE_ITEMS.length),
