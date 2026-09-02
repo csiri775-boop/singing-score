@@ -220,6 +220,40 @@ function esc(v) {
     .replaceAll("'","&#039;");
 }
 
+/* แยกชื่อผู้ประกวดและชื่อเพลง
+   รองรับข้อมูลใหม่ที่มี songName/song/songTitle/เพลง/ชื่อเพลง
+   และข้อมูลเก่าที่เก็บรวมใน name เช่น "NAI PHED,สมบัติ" */
+function getSongName(x) {
+  const candidates = [
+    x?.songName, x?.song, x?.songTitle, x?.เพลง, x?.ชื่อเพลง
+  ];
+  for (const value of candidates) {
+    const text = String(value ?? "").trim();
+    if (text) return text;
+  }
+
+  const legacyName = String(x?.name ?? "").trim();
+  const commaIndex = legacyName.indexOf(",");
+  if (commaIndex >= 0) {
+    const song = legacyName.slice(commaIndex + 1).trim();
+    if (song) return song;
+  }
+  return "-";
+}
+
+function getContestantName(x) {
+  const name = String(x?.name ?? "").trim();
+  const hasSeparateSong = [
+    x?.songName, x?.song, x?.songTitle, x?.เพลง, x?.ชื่อเพลง
+  ].some(v => String(v ?? "").trim());
+
+  if (!hasSeparateSong) {
+    const commaIndex = name.indexOf(",");
+    if (commaIndex >= 0) return name.slice(0, commaIndex).trim();
+  }
+  return name;
+}
+
 async function requireSession() {
   const raw = localStorage.getItem(SESSION_KEY);
 
@@ -313,7 +347,9 @@ async function loadContestants() {
     rows.push({
       id: d.id,
       order: Number(x.order ?? 999999),
-      name: String(x.name ?? ""),
+      name: getContestantName(x),
+      song: getSongName(x),
+      number: String(x.order ?? ""),
       score1: Array.isArray(x.score1) ? x.score1 : [],
       score2: Array.isArray(x.score2) ? x.score2 : [],
       score3: Array.isArray(x.score3) ? x.score3 : [],
@@ -353,7 +389,7 @@ function buildContestant(c, rank) {
     <div class="contestant-box">
       <div class="contestant-title">
         <span class="rank">อันดับ ${rank}</span>
-        &nbsp;&nbsp;${esc(c.name)}
+        &nbsp;&nbsp;No.${esc(c.number)} ${esc(c.name)}, เพลง: ${esc(c.song)}
       </div>
 
       <table>
