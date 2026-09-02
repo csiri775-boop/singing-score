@@ -168,7 +168,8 @@ function esc(v) {
     .replaceAll("'","&#039;");
 }
 
-/* รองรับชื่อฟิลด์ชื่อเพลงหลายแบบ */
+/* แยกชื่อเพลงจากข้อมูลใหม่ และรองรับข้อมูลเก่าที่ชื่อถูกเก็บรวมกัน เช่น
+   "NAI PHED,สมบัติ" */
 function getSongName(x) {
   const candidates = [
     x?.songName,
@@ -183,7 +184,35 @@ function getSongName(x) {
     if (text) return text;
   }
 
+  /* ข้อมูลเก่า: ชื่อผู้ประกวด,ชื่อเพลง อยู่ในช่อง name เดียวกัน */
+  const legacyName = String(x?.name ?? "").trim();
+  const commaIndex = legacyName.indexOf(",");
+
+  if (commaIndex >= 0) {
+    const song = legacyName.slice(commaIndex + 1).trim();
+    if (song) return song;
+  }
+
   return "-";
+}
+
+/* แยกชื่อผู้ประกวดออกจากชื่อเพลงในข้อมูลเก่า */
+function getContestantName(x) {
+  const name = String(x?.name ?? "").trim();
+
+  /* ถ้ามีชื่อเพลงแยกอยู่แล้ว ไม่ต้องตัดชื่อ */
+  const hasSeparateSong = [
+    x?.songName, x?.song, x?.songTitle, x?.เพลง, x?.ชื่อเพลง
+  ].some(v => String(v ?? "").trim());
+
+  if (!hasSeparateSong) {
+    const commaIndex = name.indexOf(",");
+    if (commaIndex >= 0) {
+      return name.slice(0, commaIndex).trim();
+    }
+  }
+
+  return name;
 }
 
 /* แสดงหมายเลขประจำตัวเป็น No.1, No.2 ... */
@@ -268,7 +297,7 @@ async function loadContestants() {
     rows.push({
       id: d.id,
       number: x.order ?? "",
-      name: String(x.name ?? "").trim(),
+      name: getContestantName(x),
       song: getSongName(x),
       score: Number(x.totalScore ?? 0)
     });
