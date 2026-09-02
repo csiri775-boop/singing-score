@@ -444,71 +444,155 @@ input[type="number"], select {
 </style>
 
 
-<style>
-/* ===== COMPACT SPACING / BOTTOM TOOLBAR 25% SMALLER ===== */
+<style id="fullScreenFitCSS">
+/* ===== FULL SCREEN 100% / NO VERTICAL SCROLL ===== */
+html,body{
+  width:100%;
+  height:100%;
+  margin:0 !important;
+  padding:0 !important;
+  overflow:hidden !important;
+}
+body{
+  font-family:Arial,"TH Sarabun New",sans-serif;
+  background:#f5f5f5;
+  overscroll-behavior:none;
+}
 #mainTitle{
-  margin:8px 0 5px !important;
+  margin:4px 0 5px !important;
+  line-height:1.05 !important;
+  font-size:28px !important;
+}
+#mainTitle span{font-size:16px !important;}
+#loginWrapper{height:calc(100vh - 70px) !important;}
+#appBox{
+  width:100% !important;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 6px !important;
+  height:calc(100vh - 72px) !important;
+  overflow:hidden !important;
 }
 #appBox > h2{
-  margin:4px 0 3px !important;
+  margin:2px 0 !important;
+  font-size:21px !important;
+  line-height:1 !important;
 }
 #statusBox{
-  margin-bottom:4px !important;
+  margin:1px 0 3px !important;
+  font-size:15px !important;
+  line-height:1 !important;
 }
 .contestant-select-row{
-  gap:8px !important;
+  width:100% !important;
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  align-items:center !important;
+  gap:6px !important;
   margin:0 !important;
 }
 #contestant{
-  height:38px !important;
+  width:32% !important;
+  min-width:250px !important;
+  max-width:none !important;
+  height:34px !important;
+  font-size:16px !important;
+  margin:0 !important;
 }
 .song-name-box{
-  min-height:38px !important;
-  padding:6px 12px !important;
-  font-size:18px !important;
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  max-width:none !important;
+  min-height:34px !important;
+  height:34px !important;
+  padding:5px 10px !important;
+  border:2px solid #e53935 !important;
+  font-size:17px !important;
+  line-height:1 !important;
+  margin:0 !important;
 }
+/* Remove the large blank gap before the scoring tables. */
+#appBox > br{display:none !important;}
 #formArea{
-  margin-top:2px !important;
+  width:100% !important;
+  margin:2px 0 0 !important;
+  padding:0 !important;
+  height:auto !important;
+  overflow:visible !important;
 }
 #formArea h3{
-  margin:4px 0 2px !important;
+  margin:3px 0 1px !important;
+  padding:0 !important;
+  font-size:18px !important;
+  line-height:1 !important;
 }
 #formArea table{
-  margin-top:0 !important;
-  margin-bottom:2px !important;
+  width:100% !important;
+  margin:0 !important;
+  table-layout:fixed !important;
+  border-collapse:collapse !important;
 }
-.judge-spacer{
-  height:2px !important;
+#formArea th{
+  padding:3px 2px !important;
+  font-size:16px !important;
+  line-height:1.02 !important;
+  height:34px !important;
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
 }
+#formArea td{
+  padding:2px !important;
+  height:48px !important;
+}
+#formArea input[type="number"]{
+  width:min(78px,70%) !important;
+  height:34px !important;
+  margin:0 auto !important;
+  padding:2px !important;
+  font-size:18px !important;
+  text-align:center !important;
+}
+.judge-spacer{height:1px !important;}
 .toolbar-row{
-  gap:7px !important;
-  margin:3px 0 0 !important;
-  padding-bottom:2px !important;
+  width:100% !important;
+  min-height:42px !important;
+  height:42px !important;
+  margin:2px 0 0 !important;
+  padding:0 !important;
+  gap:5px !important;
+  overflow:hidden !important;
 }
-.toolbar-row button{
-  margin:2px !important;
-}
-/* Bottom menu: exactly 25% smaller than the current toolbar sizing */
 .save-score-btn{
-  font-size:29.25px !important;
-  padding:17.25px 35.25px !important;
-  min-width:175.5px !important;
-  min-height:75.75px !important;
+  font-size:22px !important;
+  min-width:120px !important;
+  min-height:40px !important;
+  height:40px !important;
+  padding:5px 12px !important;
 }
 .toolbar-btn{
-  font-size:15.75px !important;
-  padding:9.75px 17.25px !important;
+  font-size:14px !important;
+  height:36px !important;
+  padding:5px 10px !important;
 }
 #adminBar{
-  gap:6px !important;
+  margin-left:auto !important;
+  gap:5px !important;
+  font-size:15px !important;
 }
-#adminBar button{
-  font-size:15.75px !important;
-  padding:7px 12px !important;
-  margin:2px !important;
-}
-hr{
-  margin:4px 0 !important;
+#adminBar button{margin:0 !important;padding:5px 9px !important;font-size:14px !important;}
+hr{margin:2px 0 !important;}
+/* Auto-fit state: scale the scoring area only when criteria become numerous. */
+#appBox.fit-compact #formArea th{font-size:14px !important;}
+#appBox.fit-compact #formArea td{height:38px !important;}
+#appBox.fit-compact #formArea input[type="number"]{height:28px !important;font-size:16px !important;}
+#appBox.fit-compact #formArea h3{font-size:16px !important;margin:2px 0 1px !important;}
+@media(max-width:900px){
+  #mainTitle{font-size:23px !important;}
+  #mainTitle span{font-size:14px !important;}
+  #contestant{width:42% !important;min-width:180px !important;font-size:14px !important;}
+  .song-name-box{font-size:15px !important;}
+  #formArea th{font-size:13px !important;}
+  #formArea input[type="number"]{width:60px !important;}
 }
 </style>
 
@@ -567,6 +651,8 @@ hr{
   <select id="contestant" style="width:600px;height:45px;font-size:18px;"></select>
   <div id="songNameBox" class="song-name-box">🎵 ชื่อเพลง: -</div>
 </div>
+
+<br><br>
 
 <div id="formArea"></div>
 
@@ -1350,7 +1436,6 @@ items.forEach((i,idx)=>{
 html+=`</tr></table><div class="judge-spacer"></div>`;
 }
 formArea.innerHTML=html;
-if(window.fitScoringScreen) window.fitScoringScreen();
 
 // auto focus
 // // ❌ ไม่เด้งอัตโนมัติอีกต่อไป
@@ -1417,7 +1502,7 @@ function getSongName(data){
 }
 
 function getContestantName(data){
-  let raw=String(data?.name ?? "").trim();
+  const raw=String(data?.name ?? "").trim();
 
   // ถ้า name เก็บรวม "ชื่อ,เพลง" ให้เอาเฉพาะชื่อ
   const hasSeparateSong=[
@@ -1430,24 +1515,15 @@ function getContestantName(data){
 
   if(!hasSeparateSong){
     const commaIndex=raw.indexOf(",");
-    if(commaIndex>=0) raw=raw.slice(0,commaIndex).trim();
+    if(commaIndex>=0) return raw.slice(0,commaIndex).trim();
   }
-
-  // ป้องกันข้อมูลเก่าที่มี No. อยู่ใน name อยู่แล้ว
-  // เช่น "No.1 NAI PHED" -> "NAI PHED"
-  raw=raw.replace(/^No\.\s*\d+\s*/i,"").trim();
 
   return raw;
 }
 
 function getContestantNumber(data){
   const n=Number(data?.order);
-  if(Number.isFinite(n) && n > 0) return n;
-
-  // รองรับข้อมูลเก่าที่เก็บหมายเลขไว้หน้า name
-  const raw=String(data?.name ?? "").trim();
-  const match=raw.match(/^No\.\s*(\d+)/i);
-  return match ? Number(match[1]) : "";
+  return Number.isFinite(n) && n > 0 ? n : "";
 }
 
 function updateSongNameBox(song){
@@ -1472,7 +1548,7 @@ async function loadContestants() {
       name: getContestantName(data),
       song: getSongName(data),
       number: getContestantNumber(data),
-      order: getContestantNumber(data) || 9999,
+      order: Number(data.order) || 9999,
       locked: data.locked || false   // ✅ เพิ่มตัวนี้
     });
   });
@@ -1486,7 +1562,7 @@ async function loadContestants() {
   list.forEach(item => {
     const opt = document.createElement("option");
     opt.value = item.id;
-    opt.text = `No.${item.number || item.order} ${item.name}`;
+    opt.text = item.name;
 
     // ✅ สีเขียวถ้ากรอกแล้ว
     if (item.locked) {
@@ -1893,10 +1969,9 @@ onSnapshot(collection(db,"contestants"),snap=>{
 
     list.push({
   id:d.id,
-  name:getContestantName(data),
+  name:data.name,
   song:getSongName(data),
-  number:getContestantNumber(data),
-  order:getContestantNumber(data) || 9999,
+  order:data.order || 9999,
   totalScore:data.totalScore||0,
   locked:data.locked || false,
 
@@ -1930,7 +2005,7 @@ onSnapshot(collection(db,"contestants"),snap=>{
     list.forEach(item=>{
       let o=document.createElement("option");
       o.value=item.id;
-      o.text=`No.${item.number || item.order} ${item.name}`;
+      o.text=item.name;
 
       if(item.locked){
         o.text += " ✔";
@@ -2024,61 +2099,7 @@ window.printDetail = function(){
       width:17%;
     }
   </style>
-  
-<style>
-/* ===== FIXED 100% VIEWPORT / AUTO FIT SCORING SCREEN ===== */
-html, body{
-  width:100%;
-  height:100%;
-  overflow:hidden !important;
-}
-body{
-  box-sizing:border-box;
-  overscroll-behavior:none;
-}
-#appBox{
-  transform-origin:top left;
-  will-change:transform;
-  overflow:visible !important;
-}
-/* Keep the scoring controls compact when the admin adds more criteria. */
-#formArea table{
-  width:100%;
-  table-layout:fixed;
-}
-#formArea th{
-  white-space:normal;
-  word-break:break-word;
-  line-height:1.05;
-}
-#formArea td{
-  height:auto;
-}
-#formArea input[type="number"]{
-  box-sizing:border-box;
-  max-width:90%;
-}
-/* The contestant row must stay on one line on desktop. */
-.contestant-select-row{
-  flex-wrap:nowrap !important;
-}
-#contestant{
-  width:min(600px,42vw) !important;
-  flex:0 1 42vw;
-  min-width:220px;
-}
-.song-name-box{
-  min-width:0 !important;
-  flex:1 1 auto;
-  max-width:none !important;
-}
-/* No accidental horizontal/vertical page movement. */
-#formArea, .toolbar-row{
-  overflow:visible !important;
-}
-</style>
-
-</head>
+  </head>
   <body>
   `;
 
@@ -2158,68 +2179,42 @@ function openMonitor() {
 
 
 <script>
-/* ===== AUTO-FIT SCORING PAGE TO THE 100% BROWSER VIEWPORT =====
-   Browser zoom remains 100%. The scoring area is visually scaled only
-   when its content is taller/wider than the available viewport.
-*/
 (function(){
-  let fitRaf = 0;
-
   function fitScoringScreen(){
-    cancelAnimationFrame(fitRaf);
-    fitRaf = requestAnimationFrame(function(){
-      const app = document.getElementById("appBox");
-      if(!app || getComputedStyle(app).display === "none") return;
+    const app=document.getElementById('appBox');
+    if(!app || getComputedStyle(app).display==='none') return;
+    const form=document.getElementById('formArea');
+    if(!form) return;
 
-      /* Reset first so scrollHeight/scrollWidth are measured at natural size. */
-      app.style.transform = "scale(1)";
+    app.style.zoom='1';
+    app.style.width='100%';
+    app.classList.remove('fit-compact');
 
-      const rect = app.getBoundingClientRect();
-      const availableHeight = Math.max(1, window.innerHeight - rect.top - 3);
-      const availableWidth  = Math.max(1, document.documentElement.clientWidth - 3);
+    // First compact pass for more criteria.
+    const criteriaCount=form.querySelectorAll('table:first-of-type th').length;
+    if(criteriaCount>=8) app.classList.add('fit-compact');
 
-      const contentHeight = Math.max(app.scrollHeight, app.offsetHeight);
-      const contentWidth  = Math.max(app.scrollWidth, app.offsetWidth);
+    // Measure natural content height and shrink only as much as needed.
+    const available=Math.max(260, window.innerHeight-72);
+    let needed=app.scrollHeight;
+    let scale=needed>available ? available/needed : 1;
+    scale=Math.max(0.58, Math.min(1, scale));
 
-      let scale = Math.min(
-        1,
-        availableHeight / contentHeight,
-        availableWidth / contentWidth
-      );
-
-      /* Never allow an invalid/negative scale. */
-      if(!Number.isFinite(scale) || scale <= 0) scale = 1;
-
-      app.style.transform = "scale(" + scale.toFixed(4) + ")";
-      app.dataset.fitScale = scale.toFixed(4);
-    });
-  }
-
-  window.fitScoringScreen = fitScoringScreen;
-
-  window.addEventListener("resize", fitScoringScreen, {passive:true});
-  window.addEventListener("orientationchange", fitScoringScreen, {passive:true});
-
-  /* Re-fit after dynamic Firebase/admin changes and after the form is rebuilt. */
-  const observer = new MutationObserver(function(){
-    fitScoringScreen();
-  });
-
-  function startObserver(){
-    const app = document.getElementById("appBox");
-    if(app){
-      observer.observe(app, {childList:true, subtree:true});
-      fitScoringScreen();
-    }else{
-      setTimeout(startObserver, 100);
+    if(scale<0.995){
+      app.style.zoom=String(scale);
+      app.style.width=(100/scale)+'%';
     }
   }
 
-  if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", startObserver, {once:true});
-  }else{
-    startObserver();
-  }
+  window.addEventListener('resize',()=>setTimeout(fitScoringScreen,80));
+  window.addEventListener('load',()=>setTimeout(fitScoringScreen,250));
+  const observer=new MutationObserver(()=>setTimeout(fitScoringScreen,30));
+  window.addEventListener('load',()=>{
+    const form=document.getElementById('formArea');
+    if(form) observer.observe(form,{childList:true,subtree:true,characterData:true});
+  });
+  window.fitScoringScreen=fitScoringScreen;
+  setInterval(fitScoringScreen,1000);
 })();
 </script>
 
