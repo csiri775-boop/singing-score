@@ -83,14 +83,21 @@ button:hover{opacity:.9}
   .screen-only{display:none!important}
   .page-wrap{max-width:none;width:100%;margin:0}
   .card{padding:0;box-shadow:none;border-radius:0}
+  /* พื้นที่พิมพ์จริงของ A4 แนวนอน หลังหักขอบกระดาษ 7mm รอบด้าน
+     = 297mm - 14mm = 283mm (กว้าง) x 210mm - 14mm = 196mm (สูง)
+     ค่าความสูง .print-page เดิมใช้ 283mm (ค่าความกว้าง) ผิดพลาด
+     ทำให้เนื้อหาเกินพื้นที่จริงไปมาก เบราว์เซอร์เลยตัดหน้าแทรกเอง
+     กลางตาราง ทำให้หัวกระดาษ/ท้ายกระดาษหายไปในหน้าที่ล้นออกมา */
   .print-page{
     width:100%;
-    height:283mm;
-    min-height:283mm;
-    max-height:283mm;
+    height:194mm;
+    min-height:194mm;
+    max-height:194mm;
     margin:0;
     padding:0;
     overflow:hidden;
+    display:flex;
+    flex-direction:column;
     page-break-after:always;
     break-after:page;
     page-break-inside:avoid;
@@ -101,44 +108,47 @@ button:hover{opacity:.9}
     break-after:auto;
   }
   .sheet-title{
-    font-size:18px;
-    height:8mm;
+    font-size:16px;
+    height:7mm;
     padding:0;
-    line-height:8mm;
+    line-height:7mm;
     text-align:center;
+    flex:0 0 auto;
   }
   .score-sheet{
     width:100%;
-    height:264mm;
+    height:181mm;
     table-layout:fixed;
     margin:0;
     border-collapse:collapse;
+    flex:0 0 auto;
   }
   .score-sheet .main-head{
-    font-size:15px;
-    height:8mm;
+    font-size:14px;
+    height:7mm;
     line-height:1.05;
   }
   .score-sheet .criterion{
-    font-size:12px;
-    height:10mm;
+    font-size:11px;
+    height:9mm;
     line-height:1.05;
   }
   .score-sheet .max{
-    font-size:8.5px;
-    height:6mm;
+    font-size:8px;
+    height:5mm;
     line-height:1;
   }
-  /* บังคับ 10 รายการให้อยู่ใน A4 แนวนอนแผ่นเดียว */
+  /* บังคับ 10 รายการให้อยู่ใน A4 แนวนอนแผ่นเดียวจริง
+     thead 7+9+5=21mm, tbody 10 แถว x 16mm = 160mm, รวม 181mm พอดีกับ .score-sheet */
   .score-sheet tbody tr{
-    height:24mm;
+    height:16mm;
     break-inside:avoid !important;
     page-break-inside:avoid !important;
   }
   .score-sheet tbody td{
-    height:24mm;
-    min-height:24mm;
-    font-size:9px;
+    height:16mm;
+    min-height:16mm;
+    font-size:8px;
     padding:2px 3px;
     line-height:1.1;
   }
@@ -147,12 +157,13 @@ button:hover{opacity:.9}
     justify-content:space-between !important;
     align-items:center !important;
     width:100% !important;
-    height:7mm !important;
-    min-height:7mm !important;
-    font-size:8.5px !important;
+    height:6mm !important;
+    min-height:6mm !important;
+    font-size:8px !important;
     margin:0 !important;
     line-height:1.1 !important;
     white-space:nowrap !important;
+    flex:0 0 auto;
   }
 }
 </style>
