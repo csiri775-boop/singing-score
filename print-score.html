@@ -90,6 +90,465 @@ button:hover{opacity:.9}
   
   .print-page{
     width:100%;
+    height:196mm;
+    min-height:196mm;
+    max-height:196mm;
+    margin:0;
+    padding:0;
+    overflow:hidden;
+    display:grid;
+    grid-template-rows:7mm 174mm 15mm;
+    page-break-after:always;
+    break-after:page;
+    page-break-inside:avoid;
+    break-inside:avoid;
+  }
+  .print-page:last-child{
+    page-break-after:auto;
+    break-after:auto;
+  }
+  .sheet-title{
+    font-size:16px;
+    height:7mm;
+    padding:0;
+    line-height:7mm;
+    text-align:center;
+  }
+  .score-sheet{
+    width:100%;
+    height:174mm !important;
+    min-height:0 !important;
+    max-height:174mm !important;
+    table-layout:fixed;
+    margin:0;
+    border-collapse:collapse;
+    border-bottom:1px solid #222 !important;
+  }
+  .score-sheet tbody tr:last-child td{
+    border-bottom:1px solid #222 !important;
+  }
+
+  .score-sheet .main-head{
+    font-size:20px !important;
+    font-weight:bold !important;
+    height:6.65mm !important;
+    line-height:1.05;
+  }
+
+  .score-sheet .criterion{
+    font-size:20px !important;
+    font-weight:bold !important;
+    height:15.2mm !important;
+    line-height:1.05;
+    white-space:normal;
+    word-break:break-word;
+    overflow:hidden;
+  }
+
+  .score-sheet .max{
+    font-size:24px;
+    height:6.65mm !important;
+    line-height:1;
+    overflow:hidden;
+  }
+
+  /* ลดความสูงของเซลล์ทุกบรรทัดลง 5% จากค่าก่อนหน้า */
+  .score-sheet tbody tr{
+    height:13.965mm !important;
+    max-height:13.965mm !important;
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+  }
+  .score-sheet tbody td{
+    height:13.9mm !important;
+    min-height:0 !important;
+    max-height:13.9mm !important;
+    font-size:8px;
+    padding:1px 3px;
+    line-height:1.05;
+    overflow:hidden;
+  }
+
+  .score-sheet tbody td.combined-info{
+    font-size:20px;
+    line-height:1.05;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    text-align:left;
+    padding-left:8px;
+  }
+
+  .footer-line{
+    display:flex !important;
+    align-items:flex-end !important;
+    justify-content:flex-start !important;
+    text-align:left !important;
+    width:100% !important;
+    height:15mm !important;
+    min-height:15mm !important;
+    max-height:15mm !important;
+    font-size:9px !important;
+    margin:0 !important;
+    padding:0 0 0 0 !important;
+    line-height:1.1 !important;
+    white-space:nowrap !important;
+    overflow:hidden !important;
+    align-self:end !important;
+    position:relative !important;
+    z-index:5 !important;
+    background:#fff !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+  <div class="screen-only screen-header">
+    <h1>📝 พิมพ์ใบบันทึกคะแนน</h1>
+    <p>Score Recording Sheet</p>
+  </div>
+
+  <div class="screen-only toolbar">
+    <div class="toolbar-left">
+      <button type="button" onclick="window.location.assign('./admin.html')">⬅️ กลับหน้าจัดการแอดมิน</button>
+      <button type="button" class="btn-orange" onclick="window.print()">🖨️ พิมพ์ / PDF A4 แนวนอน</button>
+      <button type="button" class="btn-blue" onclick="loadPrintData()">🔄 โหลดข้อมูลใหม่</button>
+    </div>
+    <div class="toolbar-right">
+      <div id="status" class="status">กำลังโหลดข้อมูล...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="screen-only note">
+      1 แผ่น = 10 รายการ • A4 แนวนอน • คะแนนใหม่ตามไฟล์ตัวอย่าง: 30, 10, 20, 10, 10, 10, 10 = 100 คะแนนต่อกรรมการ
+    </div>
+    <div id="printArea">
+      <div class="loading">กำลังโหลดรายการคะแนนและรายชื่อผู้ประกวด...</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "...",
+  projectId: "singing-contest-85f70"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const DEFAULT_SCORE_ITEMS = [
+  {id:"tone",name:"น้ำเสียง/ความไพเราะ",max:30},
+  {id:"technique",name:"เทคนิคการร้อง",max:10},
+  {id:"rhythm",name:"จังหวะทำนอง",max:20},
+  {id:"pronunciation",name:"อักขระวิธี",max:10},
+  {id:"personality",name:"บุคคลิก ลีลา อารมณ์",max:10},
+  {id:"difficulty",name:"ความยากง่ายของเพลง",max:10},
+  {id:"costume",name:"การแต่งกาย",max:10}
+];
+
+let SCORE_ITEMS = DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+
+function esc(v){
+  return String(v ?? "")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;")
+    .replaceAll(">","&gt;").replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function cleanName(data){
+  let name=String(data?.name ?? "").trim();
+  const no=Number(data?.order ?? 9999);
+
+  if(Number.isFinite(no) && no<9999){
+    name=name.replace(new RegExp(`^No\\.\\s*${no}\\s*`,"i"),"").trim();
+  }
+
+  const songFields=[data?.songName,data?.song,data?.songTitle,data?.เพลง,data?.ชื่อเพลง];
+  const hasSong=songFields.some(v=>String(v ?? "").trim());
+
+  if(!hasSong && name.includes(",")){
+    const parts=name.split(",");
+    if(parts.length>=2) name=parts.slice(0,-1).join(",").trim();
+  }
+  return name;
+}
+
+function songName(data){
+  const fields=[data?.songName,data?.song,data?.songTitle,data?.เพลง,data?.ชื่อเพลง];
+  for(const v of fields){
+    const s=String(v ?? "").trim();
+    if(s) return s;
+  }
+
+  const legacy=String(data?.name ?? "").trim();
+  if(legacy.includes(",")){
+    const parts=legacy.split(",");
+    return String(parts[parts.length-1] ?? "").trim() || "-";
+  }
+  return "-";
+}
+
+function normalizeCriteria(list){
+  if(!Array.isArray(list) || !list.length)
+    return DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+
+  return list.map((x,i)=>({
+    id:String(x?.id || `criterion_${i+1}`),
+    name:String(x?.name || `รายการ ${i+1}`).trim() || `รายการ ${i+1}`,
+    max:Math.max(1,Math.min(1000,Math.floor(Number(x?.max)||1)))
+  }));
+}
+
+async function loadCriteria(){
+  const snap=await getDoc(doc(db,"settings","scoringConfig"));
+
+  if(snap.exists() && Array.isArray(snap.data()?.criteria)){
+    SCORE_ITEMS=normalizeCriteria(snap.data().criteria);
+  }else{
+    SCORE_ITEMS=DEFAULT_SCORE_ITEMS.map(x=>({...x}));
+  }
+}
+
+async function loadContestants(){
+  const snap=await getDocs(collection(db,"contestants"));
+  const list=[];
+
+  snap.forEach(d=>{
+    const a=d.data();
+    list.push({
+      order:Number(a.order ?? 9999),
+      name:cleanName(a),
+      song:songName(a)
+    });
+  });
+
+  list.sort((a,b)=>a.order-b.order || a.name.localeCompare(b.name,"th"));
+  return list;
+}
+
+function renderPages(list){
+  const area=document.getElementById("printArea");
+  if(!list.length){
+    area.innerHTML='<div class="loading">ไม่พบรายชื่อผู้ประกวดใน Firestore</div>';
+    return;
+  }
+
+  const perPage=10;
+  const pages=Math.ceil(list.length/perPage);
+  const totalMax=SCORE_ITEMS.reduce((s,x)=>s+Number(x.max||0),0);
+
+  let html="";
+
+  for(let page=0; page<pages; page++){
+    const rows=list.slice(page*perPage,page*perPage+perPage);
+
+    html += `<section class="print-page">`;
+    html += `<div class="sheet-title">ใบบันทึกคะแนนสำหรับคณะกรรมการตัดสิน</div>`;
+    html += `<table class="score-sheet">`;
+
+    html += `<colgroup>`;
+    html += `<col style="width:25%">`; /* ช่อง NO. / ชื่อ-สกุล */
+    html += `<col style="width:20%">`; /* ช่อง ชื่อเพลง */
+    const remaining=55/SCORE_ITEMS.length;
+    SCORE_ITEMS.forEach(()=>html += `<col style="width:${remaining.toFixed(4)}%">`);
+    html += `</colgroup>`;
+
+    html += `<thead>`;
+    html += `<tr>`;
+    html += `<th class="main-head" rowspan="3">NO. / ชื่อ-สกุล</th>`;
+    html += `<th class="main-head" rowspan="3">ชื่อเพลง</th>`;
+    html += `<th class="main-head" colspan="${SCORE_ITEMS.length}">หลักเกณฑ์การให้คะแนน</th>`;
+    html += `</tr>`;
+
+    html += `<tr>`;
+    SCORE_ITEMS.forEach((item,i)=>{
+      html += `<th class="criterion">${i+1}. ${esc(item.name)}</th>`;
+    });
+    html += `</tr>`;
+
+    html += `<tr>`;
+    SCORE_ITEMS.forEach(item=>{
+      html += `<th class="max">${item.max} คะแนน</th>`;
+    });
+    html += `</tr>`;
+    html += `</thead>`;
+
+    html += `<tbody>`;
+    for(let i=0;i<perPage;i++){
+      const c=rows[i];
+      html += `<tr>`;
+      html += `<td class="combined-info">${c ? `No.${esc(c.order)} ${esc(c.name)}` : ""}</td>`;
+      html += `<td class="combined-info">${c ? esc(c.song) : ""}</td>`;
+      SCORE_ITEMS.forEach(()=>html += `<td></td>`);
+      html += `</tr>`;
+    }
+    html += `</tbody></table>`;
+
+    // ส่วน Footer บังคับแสดงผลตรงกลาง
+    html += `<div class="footer-line">`;
+    html += `คะแนนเต็มรวมต่อกรรมการ: ${totalMax} คะแนน | พิมพ์โดย: <span class="print-user">กำลังตรวจสอบ...</span> | วันเวลาที่พิมพ์: <span class="print-datetime">กำลังตรวจสอบ...</span> | หน้า ${page+1} / ${pages}`;
+    html += `</div>`;
+    
+    html += `</section>`;
+  }
+
+  area.innerHTML=html;
+}
+
+async function loadPrintData(){
+  const status=document.getElementById("status");
+  try{
+    status.textContent="⏳ กำลังโหลด...";
+    await loadCriteria();
+    const contestants=await loadContestants();
+    renderPages(contestants);
+    updatePrintMeta();
+
+    status.textContent=`✅ ${contestants.length} คน | ${SCORE_ITEMS.length} รายการ | ${Math.ceil(contestants.length/10)} แผ่น | คะแนนเต็ม ${SCORE_ITEMS.reduce((s,x)=>s+x.max,0)}`;
+  }catch(err){
+    console.error(err);
+    status.textContent="❌ โหลดข้อมูลไม่สำเร็จ";
+    document.getElementById("printArea").innerHTML=
+      `<div class="loading" style="color:#b00000">❌ ${esc(err?.message || err)}</div>`;
+  }
+}
+
+function getPrintUser(){
+  try{
+    const raw=localStorage.getItem("singingContestAdminSession");
+    if(!raw) return "ผู้ดูแลระบบ"; 
+    const s=JSON.parse(raw);
+    return String(s?.username || s?.user || s?.name || "ผู้ดูแลระบบ").trim();
+  }catch(e){
+    return "ผู้ดูแลระบบ";
+  }
+}
+
+function updatePrintMeta(){
+  const now=new Date();
+  // จัดรูปแบบ วัน/เวลา ให้เป็น dd/mm/yy HH:MM:SS
+  const dateStr = now.toLocaleDateString('th-TH', { year: '2-digit', month: 'numeric', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
+  const dateTime = `${dateStr} ${timeStr}`;
+
+  document.querySelectorAll(".print-user").forEach(el=>{
+    el.textContent=getPrintUser();
+  });
+  document.querySelectorAll(".print-datetime").forEach(el=>{
+    el.textContent=dateTime;
+  });
+}
+
+window.loadPrintData=loadPrintData;
+window.addEventListener("beforeprint",updatePrintMeta);
+window.addEventListener("afterprint",updatePrintMeta);
+window.addEventListener("load",()=>{
+  loadPrintData();
+  updatePrintMeta();
+});
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>พิมพ์ใบบันทึกคะแนน - Singing Contest Scoring System</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;padding:18px;background:#f5f5f5;color:#222;
+  font-family:Arial,sans-serif;
+}
+.page-wrap{max-width:1400px;margin:0 auto}
+.screen-header{text-align:center;margin-bottom:14px}
+.screen-header h1{margin:0;font-size:28px}
+.screen-header p{margin:5px 0 0;font-weight:bold}
+.toolbar{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:8px;flex-wrap:wrap;background:#fff;border-radius:8px;
+  padding:11px 14px;box-shadow:0 2px 8px rgba(0,0,0,.12);
+  margin-bottom:14px;
+}
+.toolbar-left,.toolbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{
+  border:0;border-radius:5px;padding:9px 14px;background:#45ad54;
+  color:#fff;cursor:pointer;font-size:14px;
+}
+button:hover{opacity:.9}
+.btn-blue{background:#1976d2}
+.btn-orange{background:#ef8b17}
+.status{font-weight:bold;min-height:20px}
+.card{background:#fff;border-radius:8px;padding:15px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
+.note{
+  padding:9px 12px;background:#eef6ff;border-left:4px solid #1976d2;
+  margin-bottom:12px;font-weight:bold;
+}
+.print-area{width:100%}
+.print-page{
+  background:#fff;margin:0 auto 18px;width:100%;overflow:hidden;
+}
+.sheet-title{
+  text-align:center;font-size:21px;font-weight:bold;padding:4px 0 7px;
+}
+.score-sheet{
+  width:100%;border-collapse:collapse;table-layout:fixed;
+}
+.score-sheet th,.score-sheet td{
+  border:1px solid #222;text-align:center;vertical-align:middle;
+  padding:2px 3px;
+}
+.score-sheet th{font-weight:bold}
+.score-sheet .main-head{
+  font-family:"BrowalliaUPC",Arial,sans-serif;font-size:17px;
+  height:29px;
+}
+.score-sheet .criterion{
+  font-family:"BrowalliaUPC",Arial,sans-serif;font-size:15px;
+  line-height:1.05;height:42px;word-break:break-word;
+}
+.score-sheet .max{
+  font-family:Sarabun,Arial,sans-serif;font-size:10px;
+  background:#fae2d5;font-weight:bold;height:24px;
+}
+.score-sheet tbody td{
+  height:39px;font-family:Arial,sans-serif;font-size:11px;
+}
+.score-sheet .no{font-weight:bold}
+.score-sheet .combined-info{
+  text-align:center;
+  vertical-align:middle;
+  font-weight:normal;
+  padding:2px 5px;
+}
+.score-sheet .name,.score-sheet .song{text-align:left;padding-left:5px}
+.footer-line{
+  text-align:center;
+  font-size:12px;
+  margin-top:8px;
+  font-weight:bold;
+  color:#333;
+}
+.loading{padding:30px;text-align:center;font-weight:bold;color:#666}
+
+@media print{
+  @page{size:A4 landscape;margin:7mm 7mm 7mm 7mm}
+  body{padding:0;background:#fff}
+  .screen-only{display:none!important}
+  .page-wrap{max-width:none;width:100%;margin:0}
+  .card{padding:0;box-shadow:none;border-radius:0}
+  
+  .print-page{
+    width:100%;
     height:190mm;
     min-height:190mm;
     max-height:190mm;
