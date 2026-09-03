@@ -368,9 +368,15 @@ td:first-child{text-align:left}
     <div class="form-row">
       <input id="newUsername" placeholder="ชื่อแอดมิน">
       <input id="newPassword" type="password" placeholder="รหัสผ่าน">
-      <select id="newRole">
+      <select id="newRole" onchange="toggleJudgeNoField()">
         <option value="admin">Admin (ให้คะแนน + จัดการแอดมิน)</option>
         <option value="user">User (ให้คะแนนอย่างเดียว)</option>
+      </select>
+      <select id="newJudgeNo" disabled>
+        <option value="">-- เลือกกรรมการ --</option>
+        <option value="1">กรรมการ 1</option>
+        <option value="2">กรรมการ 2</option>
+        <option value="3">กรรมการ 3</option>
       </select>
       <button onclick="addAdmin()">➕ เพิ่มแอดมิน</button>
       <button class="btn-gray" onclick="loadAdmins()">🔄 รีเฟรช</button>
@@ -1456,6 +1462,7 @@ window.loadAdmins=async function(){
         username:String(a.username||""),
         active:a.active!==false,
         role:String(a.role||"admin"),
+        judgeNo:Number(a.judgeNo||0),
         protected:a.protected===true
       });
     });
@@ -1471,7 +1478,9 @@ window.loadAdmins=async function(){
       // บัญชีเดิมที่ยังไม่มีค่า role ให้แสดงเป็น Admin (ของเดิม)
       const roleLabel = developer
         ? ""
-        : (a.role.toLowerCase()==="user" ? " (User)" : " (Admin)");
+        : (a.role.toLowerCase()==="user"
+            ? ` (User${[1,2,3].includes(a.judgeNo) ? ` • กรรมการ ${a.judgeNo}` : ""})`
+            : " (Admin)");
 
       return `
       <tr>
@@ -1509,14 +1518,33 @@ window.loadAdmins=async function(){
   }
 };
 
+window.toggleJudgeNoField=function(){
+  const role=document.getElementById("newRole")?.value;
+  const judgeNo=document.getElementById("newJudgeNo");
+  if(!judgeNo) return;
+
+  const isUser=role==="user";
+  judgeNo.disabled=!isUser;
+
+  if(!isUser){
+    judgeNo.value="";
+  }
+};
+
 window.addAdmin=async function(){
   const username=document.getElementById("newUsername").value.trim();
   const password=document.getElementById("newPassword").value;
   const roleSelect=document.getElementById("newRole");
+  const judgeNoSelect=document.getElementById("newJudgeNo");
   const role=(roleSelect?.value==="user") ? "user" : "admin";
+  const judgeNo=(role==="user") ? Number(judgeNoSelect?.value||0) : 0;
 
   if(!username || !password){
     return showMessage("กรุณากรอกชื่อแอดมินและรหัสผ่าน",false);
+  }
+
+  if(role==="user" && ![1,2,3].includes(judgeNo)){
+    return showMessage("กรุณาเลือกกรรมการ 1, 2 หรือ 3 สำหรับบัญชี User",false);
   }
 
   if(password.length<4){
@@ -1531,13 +1559,29 @@ window.addAdmin=async function(){
     const snap=await getDocs(collection(db,"admins"));
 
     let duplicate=false;
+    let duplicateJudgeNo=false;
     snap.forEach(d=>{
-      if(String(d.data().username||"").toLowerCase()===username.toLowerCase())
+      const existing=d.data();
+
+      if(String(existing.username||"").toLowerCase()===username.toLowerCase())
         duplicate=true;
+
+      if(
+        role==="user" &&
+        String(existing.role||"").toLowerCase()==="user" &&
+        Number(existing.judgeNo||0)===judgeNo &&
+        existing.active!==false
+      ){
+        duplicateJudgeNo=true;
+      }
     });
 
     if(duplicate){
       return showMessage("❌ มีชื่อแอดมินนี้อยู่แล้ว",false);
+    }
+
+    if(duplicateJudgeNo){
+      return showMessage(`❌ กรรมการ ${judgeNo} ถูกกำหนดให้บัญชี User อื่นแล้ว`,false);
     }
 
     await addDoc(collection(db,"admins"),{
@@ -1545,6 +1589,7 @@ window.addAdmin=async function(){
       password,
       active:true,
       role,
+      ...(role==="user" ? {judgeNo} : {}),
       protected:false,
       createdAt:new Date().toISOString()
     });
@@ -1552,6 +1597,10 @@ window.addAdmin=async function(){
     document.getElementById("newUsername").value="";
     document.getElementById("newPassword").value="";
     if(roleSelect) roleSelect.value="admin";
+    if(judgeNoSelect){
+      judgeNoSelect.value="";
+      judgeNoSelect.disabled=true;
+    }
 
     await loadAdmins();
     showMessage("✅ เพิ่มแอดมินเรียบร้อยแล้ว",true);
