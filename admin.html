@@ -148,8 +148,95 @@ td:first-child{text-align:left}
 }
 .hidden{display:none!important}
 .role-hidden{display:none!important}
-.clear-contestants-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:12px}
+/* ===== MODERN CLEAR CONTESTANTS MODAL (เฉพาะ UI ส่วนล้างรายชื่อ) ===== */
+.clear-contestants-modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  background:rgba(15,23,42,.62);
+  backdrop-filter:blur(5px);
+  -webkit-backdrop-filter:blur(5px);
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
 .clear-contestants-modal.show{display:flex}
+.clear-contestants-modal .modal-box{
+  width:min(500px,94vw);
+  max-width:100%;
+  padding:28px 26px 24px;
+  border-radius:20px;
+  background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);
+  border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 24px 70px rgba(15,23,42,.30),0 4px 16px rgba(0,0,0,.12);
+  animation:clearModalIn .18s ease-out;
+}
+.clear-contestants-modal .modal-box h2{
+  margin:0 0 10px!important;
+  color:#172033;
+  font-size:24px;
+  line-height:1.25;
+  letter-spacing:.1px;
+}
+.clear-contestants-modal #clearContestantsQuestion{
+  margin:0;
+  color:#4b5563;
+  font-size:16px;
+  line-height:1.65;
+}
+.clear-contestants-modal .modal-box > div[style*="display:flex"]{
+  display:grid!important;
+  grid-template-columns:1fr 1fr;
+  gap:12px!important;
+  margin-top:20px!important;
+}
+.clear-contestants-modal .modal-box button{
+  min-height:46px;
+  margin:0!important;
+  border-radius:12px;
+  font-size:15px;
+  font-weight:bold;
+  padding:10px 14px;
+  box-shadow:0 4px 10px rgba(0,0,0,.08);
+  transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease;
+}
+.clear-contestants-modal .modal-box button:hover:not(:disabled){
+  transform:translateY(-1px);
+  box-shadow:0 7px 16px rgba(0,0,0,.12);
+}
+.clear-contestants-modal .modal-box button:active:not(:disabled){
+  transform:translateY(0);
+}
+.clear-contestants-modal #clearBackupYesBtn{
+  background:linear-gradient(135deg,#2fb344,#1f9d45);
+}
+.clear-contestants-modal #clearBackupNoBtn{
+  background:linear-gradient(135deg,#ef4444,#d9363e);
+}
+.clear-contestants-modal #clearContestantsStatus{
+  min-height:24px!important;
+  margin-top:14px!important;
+  padding:8px 10px;
+  border-radius:10px;
+  color:#374151;
+  font-size:14px;
+  line-height:1.45;
+}
+.clear-contestants-modal #clearContestantsStatus:not(:empty){
+  background:#f3f7fb;
+}
+@keyframes clearModalIn{
+  from{opacity:0;transform:translateY(8px) scale(.98)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(max-width:520px){
+  .clear-contestants-modal{padding:14px}
+  .clear-contestants-modal .modal-box{padding:22px 18px 18px;border-radius:16px}
+  .clear-contestants-modal .modal-box h2{font-size:21px}
+  .clear-contestants-modal #clearContestantsQuestion{font-size:15px}
+  .clear-contestants-modal .modal-box button{font-size:14px;min-height:44px}
+}
 /* ===== CONTESTANT MANAGEMENT (Developer + User) ===== */
 .contestant-card{margin-top:15px;background:white;border-radius:8px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
 .contestant-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
