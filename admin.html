@@ -58,13 +58,15 @@ button:hover{opacity:.9}
 /* ===== ADMIN TOPBAR: keep all menus on one row ===== */
 .topbar .actions{
   flex-wrap:nowrap;
-  gap:5px;
+  gap:4px;
   min-width:0;
+  overflow:hidden;
 }
 .topbar .actions button{
-  flex:0 1 auto;
-  padding:8px 10px;
-  font-size:13px;
+  flex:1 1 auto;
+  min-width:0;
+  padding:7px 7px;
+  font-size:12px;
   white-space:nowrap;
   margin:0;
 }
@@ -187,6 +189,9 @@ td:first-child{text-align:left}
 .criteria-manager-status{min-height:22px;margin-top:10px;font-weight:bold}
 .criteria-manager-card .btn-save{background:#ef8b17}
 .criteria-manager-card .btn-save:disabled{opacity:.55;cursor:not-allowed}
+.criteria-settings-content{display:none}
+.criteria-settings-content.open{display:block}
+.criteria-manager-actions{display:flex;justify-content:flex-end;margin-top:12px}
 @media(max-width:800px){
   .criteria-row{grid-template-columns:42px 1fr 105px 92px;gap:6px;padding:7px}
   .criteria-add-fields{grid-template-columns:1fr 105px}
@@ -267,6 +272,7 @@ td:first-child{text-align:left}
     <div class="actions">
       <button type="button" onclick="window.goIndex()">⬅️ กลับหน้าหลัก</button>
       <button type="button" id="judgeLinkBtn" onclick="window.open('./judge.html','_blank')">🎤 ลิงค์คะแนนกรรมการ</button>
+      <button type="button" id="monitorLinkBtn" onclick="window.open('./monitor_JUDGE.html','_blank')">📊 Monitor กรรมการ</button>
       <button type="button" id="restoreBtn" class="developer-only" onclick="window.open('./backup.html','_blank')">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
       <button type="button" id="backupBtn" class="developer-only" onclick="window.open('./backup.html','_blank')">💾 Backup</button>
       <button type="button" id="scoreSheetBtn" onclick="window.open('./print-score.html','_blank')">📝 พิมพ์ใบบันทึกคะแนน</button>
@@ -301,27 +307,34 @@ td:first-child{text-align:left}
   <div id="developerCriteriaCard" class="criteria-manager-card">
     <div class="criteria-manager-header">
       <h2>⚙️ ตั้งค่ารายการคะแนน</h2>
-      <button type="button" class="btn-save" onclick="saveScoreCriteriaSettings()">💾 บันทึกการตั้งค่า</button>
-    </div>
-    <p class="criteria-manager-subtitle">แยกจากหน้าปรับคะแนนผู้ประกวด — ใช้สำหรับเพิ่ม/ลบรายการ แก้ชื่อรายการ และกำหนดคะแนนสูงสุด</p>
-
-    <div class="criteria-summary" id="criteriaSummary">📋 รายการคะแนนทั้งหมด: กำลังโหลด...</div>
-
-    <div class="criteria-list" id="criteriaManagerBody">
-      <div style="padding:12px;text-align:center;color:#666">กำลังโหลดรายการคะแนน...</div>
+      <button type="button" class="btn-blue" id="criteriaToggleBtn" onclick="toggleCriteriaSettings()">▶ แสดงรายการตั้งค่า</button>
     </div>
 
-    <div class="criteria-add-box">
-      <div class="criteria-add-title">➕ เพิ่มรายการคะแนนใหม่</div>
-      <div class="criteria-add-fields">
-        <input id="newCriteriaName" type="text" placeholder="ชื่อรายการคะแนน เช่น การสื่ออารมณ์">
-        <input id="newCriteriaMax" type="number" min="1" max="1000" step="1" placeholder="คะแนนเต็ม">
-        <button type="button" class="btn-blue" onclick="addScoreCriterion()">➕ เพิ่มรายการ</button>
+    <div id="criteriaSettingsContent" class="criteria-settings-content">
+      <p class="criteria-manager-subtitle">แยกจากหน้าปรับคะแนนผู้ประกวด — ใช้สำหรับเพิ่ม/ลบรายการ แก้ชื่อรายการ และกำหนดคะแนนสูงสุด</p>
+
+      <div class="criteria-summary" id="criteriaSummary">📋 รายการคะแนนทั้งหมด: กำลังโหลด...</div>
+
+      <div class="criteria-list" id="criteriaManagerBody">
+        <div style="padding:12px;text-align:center;color:#666">กำลังโหลดรายการคะแนน...</div>
       </div>
-    </div>
 
-    <div id="criteriaManagerStatus" class="criteria-manager-status"></div>
-    <div class="criteria-manager-note">💡 เมื่อเพิ่มรายการ ระบบจะสร้างช่องคะแนนของกรรมการ 1–3 ให้ผู้ประกวดทุกคนอัตโนมัติ เมื่อแก้คะแนนเต็ม ระบบจะตรวจสอบและปรับคะแนนที่เกินเพดานให้ และเมื่อบันทึกแล้วจะใช้เกณฑ์เดียวกันกับหน้ากรรมการ</div>
+      <div class="criteria-add-box">
+        <div class="criteria-add-title">➕ เพิ่มรายการคะแนนใหม่</div>
+        <div class="criteria-add-fields">
+          <input id="newCriteriaName" type="text" placeholder="ชื่อรายการคะแนน เช่น การสื่ออารมณ์">
+          <input id="newCriteriaMax" type="number" min="1" max="1000" step="1" placeholder="คะแนนเต็ม">
+          <button type="button" class="btn-blue" onclick="addScoreCriterion()">➕ เพิ่มรายการ</button>
+        </div>
+      </div>
+
+      <div class="criteria-manager-actions">
+        <button type="button" class="btn-save" onclick="saveScoreCriteriaSettings()">💾 บันทึกการตั้งค่า</button>
+      </div>
+
+      <div id="criteriaManagerStatus" class="criteria-manager-status"></div>
+      <div class="criteria-manager-note">💡 เมื่อเพิ่มรายการ ระบบจะสร้างช่องคะแนนของกรรมการ 1–3 ให้ผู้ประกวดทุกคนอัตโนมัติ เมื่อแก้คะแนนเต็ม ระบบจะตรวจสอบและปรับคะแนนที่เกินเพดานให้ และเมื่อบันทึกแล้วจะใช้เกณฑ์เดียวกันกับหน้ากรรมการ</div>
+    </div>
   </div>
 
   <div id="developerScoreCard" class="score-card">
@@ -1101,13 +1114,21 @@ async function applyCriteriaToAllContestants(oldItems){
   return docs.length;
 }
 
+window.toggleCriteriaSettings=function(){
+  const content=document.getElementById("criteriaSettingsContent");
+  const btn=document.getElementById("criteriaToggleBtn");
+  if(!content||!btn) return;
+  const open=content.classList.toggle("open");
+  btn.textContent=open ? "▼ ซ่อนรายการตั้งค่า" : "▶ แสดงรายการตั้งค่า";
+};
+
 window.saveScoreCriteriaSettings=async function(){
   if(!isDeveloper()){
     alert("🔒 เฉพาะผู้พัฒนาระบบเท่านั้น");
     return;
   }
 
-  const btn=document.querySelector('.criteria-manager-header .btn-save');
+  const btn=document.querySelector('#criteriaSettingsContent .btn-save');
   const oldItems=SCORE_ITEMS.map(x=>({...x}));
   const next=[];
 
