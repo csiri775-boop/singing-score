@@ -148,6 +148,8 @@ td:first-child{text-align:left}
 }
 .hidden{display:none!important}
 .role-hidden{display:none!important}
+.clear-contestants-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:12px}
+.clear-contestants-modal.show{display:flex}
 /* ===== CONTESTANT MANAGEMENT (Developer + User) ===== */
 .contestant-card{margin-top:15px;background:white;border-radius:8px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
 .contestant-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -300,6 +302,7 @@ td:first-child{text-align:left}
       <button type="button" class="btn-red" onclick="deleteContestantFromAdmin()">❌ ลบ</button>
       <input type="file" id="contestantExcelFile" accept=".csv">
       <button type="button" onclick="importContestantsFromAdmin()">📥 นำเข้า Excel</button>
+      <button type="button" class="btn-red" id="clearContestantsBtn" onclick="openClearContestantsPrompt()">🗑️ ล้างรายชื่อ</button>
     </div>
     <div id="contestantStatus" class="contestant-status"></div>
   </div>
@@ -427,6 +430,19 @@ td:first-child{text-align:left}
 
 </div>
 
+
+  <div id="clearContestantsModal" class="clear-contestants-modal" aria-hidden="true">
+    <div class="modal-box" style="width:min(520px,94vw);max-height:none;">
+      <h2 style="margin-top:0;text-align:center;">🗑️ ล้างรายชื่อผู้เข้าประกวด</h2>
+      <p id="clearContestantsQuestion" style="text-align:center;font-weight:bold;line-height:1.6;">ต้องการสำรองข้อมูลก่อนล้างรายชื่อหรือไม่?</p>
+      <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px;">
+        <button type="button" class="btn-blue" id="clearBackupYesBtn">ใช่</button>
+        <button type="button" class="btn-gray" id="clearBackupNoBtn">ไม่</button>
+      </div>
+      <div id="clearContestantsStatus" style="min-height:22px;margin-top:12px;text-align:center;font-weight:bold;"></div>
+    </div>
+  </div>
+
 <script type="module">
 
 import { initializeApp }
@@ -460,6 +476,7 @@ const DEVELOPER_PASSWORD = "Sb270887";
 const DEVELOPER_ROLE = "developer";
 
 let currentAdmin = null;
+let unsubscribeContestantManagement = null;
 
 function esc(v){
   return String(v ?? "")
@@ -787,26 +804,35 @@ function setContestantStatus(msg,ok=true){
 async function loadContestantManagement(){
   const select=document.getElementById("deleteContestantSelect");
   if(!select) return;
-  try{
-    const snap=await getDocs(collection(db,"contestants"));
-    const list=[];
-    snap.forEach(d=>{
-      const a=d.data();
-      list.push({id:d.id,name:getCleanContestantName(a),song:getSongName(a),order:Number(a.order||9999)});
-    });
-    list.sort((a,b)=>a.order-b.order || a.name.localeCompare(b.name,"th"));
-    select.innerHTML='<option value="">-- เลือกผู้ประกวดที่จะลบ --</option>';
-    list.forEach(c=>{
-      const opt=document.createElement("option");
-      opt.value=c.id;
-      opt.textContent=contestantDisplayName(c.order,c.name);
-      select.appendChild(opt);
-    });
-    setContestantStatus(`มีผู้ประกวด ${list.length} คน`,true);
-  }catch(err){
-    console.error(err);
-    setContestantStatus("❌ โหลดรายชื่อผู้ประกวดไม่สำเร็จ: "+err.message,false);
+
+  if(unsubscribeContestantManagement){
+    unsubscribeContestantManagement();
+    unsubscribeContestantManagement=null;
   }
+
+  unsubscribeContestantManagement=onSnapshot(
+    collection(db,"contestants"),
+    snap=>{
+      const list=[];
+      snap.forEach(d=>{
+        const a=d.data();
+        list.push({id:d.id,name:getCleanContestantName(a),song:getSongName(a),order:Number(a.order||9999)});
+      });
+      list.sort((a,b)=>a.order-b.order || a.name.localeCompare(b.name,"th"));
+      select.innerHTML='<option value="">-- เลือกผู้ประกวดที่จะลบ --</option>';
+      list.forEach(c=>{
+        const opt=document.createElement("option");
+        opt.value=c.id;
+        opt.textContent=contestantDisplayName(c.order,c.name);
+        select.appendChild(opt);
+      });
+      setContestantStatus(`มีผู้ประกวด ${list.length} คน`,true);
+    },
+    err=>{
+      console.error(err);
+      setContestantStatus("❌ โหลดรายชื่อผู้ประกวดไม่สำเร็จ: "+err.message,false);
+    }
+  );
 }
 
 window.addContestantFromAdmin=async function(){
@@ -1713,6 +1739,106 @@ window.deleteAdmin=async function(id,username){
 
 restoreSession();
 
+
+
+// ===== CLEAR CONTESTANT LIST (moved from index) =====
+let clearContestantsBusy = false;
+
+function closeClearContestantsPrompt(){
+  const modal=document.getElementById("clearContestantsModal");
+  if(modal){
+    modal.classList.remove("show");
+    modal.setAttribute("aria-hidden","true");
+  }
+}
+
+function openClearContestantsPrompt(){
+  if(clearContestantsBusy) return;
+  const modal=document.getElementById("clearContestantsModal");
+  const status=document.getElementById("clearContestantsStatus");
+  if(!modal) return;
+  if(status) status.textContent="";
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden","false");
+}
+
+window.openClearContestantsPrompt=openClearContestantsPrompt;
+
+async function backupContestantListBeforeClear(){
+  const snap=await getDocs(collection(db,"contestants"));
+  const backup=[];
+  snap.forEach(d=>backup.push({id:d.id,...d.data()}));
+
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=`backup_${new Date().toISOString().replace(/[:.]/g,"-")}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  return backup.length;
+}
+
+async function clearAllContestantsFromAdmin(){
+  const snap=await getDocs(collection(db,"contestants"));
+  const docs=snap.docs;
+  for(let i=0;i<docs.length;i+=450){
+    const batch=writeBatch(db);
+    docs.slice(i,i+450).forEach(d=>batch.delete(d.ref));
+    await batch.commit();
+  }
+  return docs.length;
+}
+
+async function continueClearAfterBackupChoice(shouldBackup){
+  if(clearContestantsBusy) return;
+  clearContestantsBusy=true;
+
+  const yesBtn=document.getElementById("clearBackupYesBtn");
+  const noBtn=document.getElementById("clearBackupNoBtn");
+  const status=document.getElementById("clearContestantsStatus");
+  if(yesBtn) yesBtn.disabled=true;
+  if(noBtn) noBtn.disabled=true;
+
+  try{
+    if(shouldBackup){
+      if(status) status.textContent="⏳ กำลังสำรองข้อมูล...";
+      const count=await backupContestantListBeforeClear();
+      if(status) status.textContent=`✅ สำรองข้อมูลแล้ว ${count} คน`;
+      await new Promise(resolve=>setTimeout(resolve,250));
+    }
+
+    closeClearContestantsPrompt();
+
+    const confirmed=confirm(
+      "ยืนยันการล้างรายชื่อผู้เข้าประกวดทั้งหมด?\n\n"+
+      "ข้อมูลรายชื่อและคะแนนของผู้เข้าประกวดทั้งหมดจะถูกลบออกจากระบบ\n\n"+
+      "ดำเนินการต่อหรือไม่?"
+    );
+    if(!confirmed) return;
+
+    const deleted=await clearAllContestantsFromAdmin();
+    setContestantStatus(`✅ ล้างรายชื่อผู้เข้าประกวดทั้งหมดแล้ว ${deleted} คน`,true);
+    if(isDeveloper()) await loadScoreContestants();
+  }catch(err){
+    console.error("clear contestant list error:",err);
+    if(status) status.textContent="❌ ดำเนินการไม่สำเร็จ";
+    setContestantStatus("❌ ล้างรายชื่อไม่สำเร็จ: "+(err?.message||err),false);
+  }finally{
+    if(yesBtn) yesBtn.disabled=false;
+    if(noBtn) noBtn.disabled=false;
+    clearContestantsBusy=false;
+  }
+}
+
+document.getElementById("clearBackupYesBtn")?.addEventListener("click",()=>continueClearAfterBackupChoice(true));
+document.getElementById("clearBackupNoBtn")?.addEventListener("click",()=>continueClearAfterBackupChoice(false));
+document.getElementById("clearContestantsModal")?.addEventListener("click",e=>{
+  if(e.target.id==="clearContestantsModal" && !clearContestantsBusy) closeClearContestantsPrompt();
+});
 </script>
+
 </body>
 </html>
