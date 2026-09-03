@@ -168,6 +168,17 @@
     .contestant-page {
       padding: 0;
     }
+
+    /* เฉพาะหน้าแรกของการพิมพ์:
+       คืนพื้นที่แนวตั้งให้ท้ายกระดาษ โดยไม่เปลี่ยนหน้าที่ 2 เป็นต้นไป */
+    .contestant-page:first-child .contestant-box {
+      margin-bottom: 2px !important;
+      padding: 2px !important;
+    }
+    .contestant-page:first-child .contestant-title {
+      padding: 1px 5px 2px !important;
+      line-height: 1.05 !important;
+    }
   }
 </style>
 </head>
