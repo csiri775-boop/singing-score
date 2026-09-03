@@ -1,1903 +1,955 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>
-ระบบประมวลผลและตัดสินการประกวดร้องเพลง | Singing Contest Scoring System
-</title>
-
-  <style>
-    #mainTitle{
-      text-align: center;
-      font-size: 34px;
-      font-weight: bold;
-      margin: 20px 0;
-      color: #2c3e50;
-    }
+  <title>ระบบประมวลผลและตัดสินการประกวดร้องเพลง | Singing Contest Scoring System</title>
   
-/* ===== PREVIEW / RESTORE MODAL ===== */
-.modal-backdrop{
-  display:none;
-  position:fixed;
-  z-index:9999;
-  inset:0;
-  background:rgba(0,0,0,.55);
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-  box-sizing:border-box;
-}
-.modal-backdrop.show{display:flex;}
-.modal-box{
-  width:min(1100px,96vw);
-  max-height:90vh;
-  overflow:auto;
-  background:#fff;
-  border-radius:12px;
-  box-shadow:0 8px 30px rgba(0,0,0,.35);
-  padding:20px;
-}
-.modal-box h2{margin-top:0;text-align:center;}
-.preview-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:12px;
-}
-.preview-table th,.preview-table td{
-  border:1px solid #999;
-  padding:7px;
-  text-align:center;
-}
-.preview-table th{background:#eee;}
-.modal-actions{
-  text-align:center;
-  margin-top:15px;
-}
-.tie-name{
-  color:red !important;
-  text-decoration:underline !important;
-  text-decoration-thickness:2px;
-  text-underline-offset:3px;
-  font-weight:bold;
-}
-.tie-note{
-  color:red;
-  font-weight:bold;
-  text-decoration:underline;
-  margin:10px 0;
-}
+  <style id="fullScreenFitCSS">
+    /* ===== RESET & GLOBAL ===== */
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important; /* สำหรับ Full Screen Fit */
+    }
+    body {
+      font-family: Arial, "TH Sarabun New", sans-serif;
+      background: #f5f5f5;
+      font-size: 18px;
+      color: #2c3e50;
+      overscroll-behavior: none;
+    }
 
+    /* ===== TYPOGRAPHY ===== */
+    #mainTitle {
+      text-align: center;
+      font-weight: bold;
+      color: #2c3e50;
+      margin: 4px 0 5px !important;
+      line-height: 1.05 !important;
+      font-size: 28px !important;
+    }
+    #mainTitle span {
+      font-size: 16px !important;
+    }
+    h2, h3 {
+      font-size: 26px;
+    }
 
-.login-copyright{
-  display:block !important;
-  width:100%;
-  margin:16px 0 0;
-  padding:0;
-  text-align:center;
-  font-family:sans-serif;
-  font-size:13px;
-  line-height:1.5;
-  color:#555 !important;
-  visibility:visible !important;
-  opacity:1 !important;
-}
+    /* ===== LOGIN CENTER ===== */
+    #loginWrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: calc(100vh - 70px) !important;
+    }
+    #loginWrapper.hidden {
+      display: none !important;
+    }
+    #loginBox {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    #loginBox input {
+      width: 220px;
+      height: 35px;
+      font-size: 16px;
+      margin: 5px 0;
+      padding: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .login-copyright {
+      display: block !important;
+      width: 100%;
+      margin: 16px 0 0;
+      padding: 0;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #555 !important;
+    }
 
-</style>
+    /* ===== MAIN APP LAYOUT ===== */
+    #appBox {
+      width: 100% !important;
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0 6px !important;
+      height: calc(100vh - 72px) !important;
+      overflow: hidden !important;
+    }
+    #appBox > h2 {
+      margin: 2px 0 !important;
+      font-size: 21px !important;
+      line-height: 1 !important;
+    }
+    #statusBox {
+      margin: 1px 0 3px !important;
+      font-size: 15px !important;
+      line-height: 1 !important;
+    }
+
+    /* ===== CONTROLS ===== */
+    .contestant-select-row {
+      width: 100% !important;
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      gap: 6px !important;
+      margin: 0 !important;
+    }
+    #contestant {
+      width: 32% !important;
+      min-width: 250px !important;
+      height: 34px !important;
+      font-size: 16px !important;
+      margin: 0 !important;
+    }
+    .song-name-box {
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+      height: 34px !important;
+      padding: 5px 10px !important;
+      border: 2px solid #e53935 !important;
+      border-radius: 8px;
+      background: #fff;
+      color: #111;
+      font-size: 17px !important;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      margin: 0 !important;
+    }
+    button {
+      margin: 5px;
+      padding: 6px 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2e7d32;
+    }
+
+    /* ===== TABLES & FORM ===== */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+    table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      font-size: 18px;
+      margin: 0 !important;
+      table-layout: fixed !important;
+    }
+    th, td {
+      border: 1px solid #000;
+      padding: 4px !important;
+      text-align: center;
+    }
+    #formArea {
+      width: 100% !important;
+      margin: 2px 0 0 !important;
+      padding: 0 !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    #formArea h3 {
+      margin: 3px 0 1px !important;
+      font-size: 18px !important;
+    }
+    #formArea th {
+      background: #eee;
+      font-size: 16px !important;
+      height: 34px !important;
+      white-space: normal !important;
+    }
+    #formArea td {
+      height: 48px !important;
+    }
+    #formArea input[type="number"] {
+      width: min(78px, 70%) !important;
+      height: 34px !important;
+      margin: 0 auto !important;
+      padding: 2px !important;
+      font-size: 18px !important;
+      text-align: center !important;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .judge-spacer { height: 1px !important; }
+
+    /* ===== TOOLBAR ===== */
+    .toolbar-row {
+      width: 100% !important;
+      min-height: 42px !important;
+      height: 42px !important;
+      margin: 2px 0 0 !important;
+      padding: 0 !important;
+      display: flex;
+      align-items: center;
+      gap: 5px !important;
+      overflow: hidden !important;
+    }
+    .save-score-btn {
+      font-size: 22px !important;
+      min-width: 120px !important;
+      height: 40px !important;
+      padding: 5px 12px !important;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .toolbar-btn {
+      font-size: 14px !important;
+      height: 36px !important;
+      padding: 5px 10px !important;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    #adminBar {
+      display: flex;
+      align-items: center;
+      margin-left: auto !important;
+      gap: 5px !important;
+      font-size: 15px !important;
+    }
+    #adminBar button {
+      margin: 0 !important;
+      padding: 5px 9px !important;
+      font-size: 14px !important;
+    }
+    hr { margin: 2px 0 !important; }
+
+    /* ===== MODALS ===== */
+    .modal-backdrop, #savePreviewModal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal-box, #savePreviewBox {
+      background: #fff;
+      width: min(1100px, 96vw);
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.35);
+      padding: 20px;
+    }
+    .modal-box h2, #savePreviewBox h2 { margin-top: 0; text-align: center; }
+    .preview-table, #savePreviewTable { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 18px; }
+    .preview-table th, .preview-table td, #savePreviewTable th, #savePreviewTable td { border: 1px solid #999; padding: 7px; text-align: center; }
+    .preview-table th, #savePreviewTable th { background: #eee; }
+    .preview-head {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .preview-total { font-weight: bold; font-size: 20px; }
+    
+    /* Utilities */
+    .gold { background: gold; font-weight: bold; }
+    .tie-name { color: red !important; text-decoration: underline !important; text-decoration-thickness: 2px; text-underline-offset: 3px; font-weight: bold; }
+    .tie-note { color: red; font-weight: bold; text-decoration: underline; margin: 10px 0; }
+
+    /* ===== RESPONSIVE ===== */
+    #appBox.fit-compact #formArea th { font-size: 14px !important; }
+    #appBox.fit-compact #formArea td { height: 38px !important; }
+    #appBox.fit-compact #formArea input[type="number"] { height: 28px !important; font-size: 16px !important; }
+    #appBox.fit-compact #formArea h3 { font-size: 16px !important; margin: 2px 0 1px !important; }
+
+    @media (max-width: 900px) {
+      #mainTitle { font-size: 23px !important; }
+      #mainTitle span { font-size: 14px !important; }
+      #contestant { width: 42% !important; min-width: 180px !important; font-size: 14px !important; }
+      .song-name-box { font-size: 15px !important; }
+      #formArea th { font-size: 13px !important; }
+      #formArea input[type="number"] { width: 60px !important; }
+    }
+    @media (max-width: 800px) {
+      .contestant-select-row { flex-direction: column !important; align-items: stretch !important; }
+      #contestant { width: 100% !important; }
+      .song-name-box { width: 100% !important; max-width: none; }
+    }
+    @media (min-width: 1600px) {
+      body, table, th, input[type="number"], select { font-size: 26px !important; }
+      input[type="number"], select { width: 130px !important; height: 60px !important; }
+    }
+  </style>
 </head>
-
 <body>
 
   <h1 id="mainTitle">
     ระบบประมวลผลและตัดสินการประกวดร้องเพลง<br>
-    <span style="font-size:20px;">
-      Singing Contest Scoring System
-    </span>
+    <span>Singing Contest Scoring System</span>
   </h1>
 
-</div>
-
-</body>
-</html>
-
-<style>
-body{
-  font-family:sans-serif;
-  margin:0;                 /* 🔥 ตัดช่องว่าง */
-  padding:10px;             /* 🔥 ลดจาก 20 */
-  background:#f5f5f5;
-}
-
-/* input เดิม */
-input{
-  width:60px;
-  margin:2px;
-  padding:5px;
-  border-radius:6px;
-  border:1px solid #ccc;
-}
-
-/* ตาราง */
-table{
-  border-collapse:collapse;
-  margin-top:10px;
-  width:100%;
-  background:white;
-  box-shadow:0 2px 8px rgba(0,0,0,0.15);
-}
-
-th,td{
-  border:1px solid #000;
-  padding:4px;
-  text-align:center;
-}
-
-/* ปุ่ม */
-button{
-  margin:5px;
-  padding:6px 12px;
-  background:#4CAF50;
-  color:white;
-  border:none;
-  border-radius:6px;
-}
-button:hover{background:#2e7d32;}
-
-.gold{background:gold;font-weight:bold;}
-
-/* ===== LOGIN CENTER ===== */
-#loginWrapper{
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-/* 🔥 สำคัญ: ซ่อน login หลังเข้า */
-#loginWrapper.hidden{
-  display:none;
-}
-
-/* 🔥 หน้า app ไม่ต้องมีระยะห่าง */
-#appBox{
-  margin:0;
-}
-
-/* กล่อง login */
-#loginBox{
-  background:white;
-  padding:30px;
-  border-radius:12px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.2);
-  text-align:center;
-}
-
-/* input login */
-#loginBox input{
-  width:220px;
-  height:35px;
-  font-size:16px;
-}
-
-/* ===== LOGIN (เดิม) ===== */
-#loginBox input{
-  width:220px;
-  height:35px;
-  font-size:16px;
-}
-
-/* ===== คะแนน (เพิ่มใหม่) ===== */
-table {
-  font-size: 24px;
-}
-
-th {
-  font-size: 28px;
-}
-
-input[type="number"] {
-  font-size: 32px;
-  width: 120px;
-  height: 50px;
-  text-align: center;
-}
-
-/* 🔻 ลดขนาดตัวหนังสือทั้งระบบ */
-body {
-  font-size: 18px;   /* เดิม 24 → ลดลง ~30% */
-}
-
-/* 🔻 หัวข้อ */
-h2, h3 {
-  font-size: 26px;
-}
-
-/* 🔻 หัวตาราง */
-th {
-  font-size: 20px;
-}
-
-/* 🔻 ช่องกรอกคะแนน */
-input[type="number"] {
-  font-size: 22px;   /* เดิม 32 */
-  width: 90px;       /* เดิม 120 */
-  height: 38px;      /* เดิม 50 */
-  text-align: center;
-}
-
-/* 🔻 dropdown (ถ้ามี) */
-select {
-  font-size: 22px;
-  width: 100px;
-  height: 40px;
-}
-
-/* ===== พื้นฐาน ===== */
-body {
-  font-family: sans-serif;
-  margin: 0;
-}
-
-/* ตารางลื่น ไม่ล้นจอ */
-.table-wrap {
-  width: 100%;
-  overflow-x: auto;
-}
-
-/* ขนาดมาตรฐาน (Desktop) */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 18px;
-}
-
-th, td {
-  padding: 10px;
-  border: 1px solid #ccc;
-  text-align: center;
-}
-
-input[type="number"], select {
-  font-size: 20px;
-  width: 90px;
-  height: 40px;
-}
-
-/* ===== 📱 มือถือ ===== */
-@media (max-width: 768px) {
-
-  body {
-    font-size: 16px;
-  }
-
-  table {
-    font-size: 14px;
-  }
-
-  input[type="number"], select {
-    width: 70px;
-    height: 35px;
-    font-size: 16px;
-  }
-
-  th {
-    font-size: 14px;
-  }
-
-}
-
-/* ===== 💻 Tablet ===== */
-@media (min-width: 769px) and (max-width: 1200px) {
-
-  table {
-    font-size: 16px;
-  }
-
-  input[type="number"], select {
-    width: 80px;
-    height: 38px;
-    font-size: 18px;
-  }
-
-}
-
-/* ===== 🎬 จอเวที (ใหญ่) ===== */
-@media (min-width: 1600px) {
-
-  body {
-    font-size: 28px;
-  }
-
-  table {
-    font-size: 26px;
-  }
-
-  input[type="number"], select {
-    width: 130px;
-    height: 60px;
-    font-size: 28px;
-  }
-
-  th {
-    font-size: 26px;
-  }
-
-}
-  
-
-/* ===== PREVIEW / CONFIRM SAVE ===== */
-#savePreviewModal{
-  display:none;
-  position:fixed;
-  z-index:9999;
-  inset:0;
-  background:rgba(15,23,42,.62);
-  -webkit-backdrop-filter:blur(5px);
-  backdrop-filter:blur(5px);
-  align-items:center;
-  justify-content:center;
-  padding:18px;
-}
-#savePreviewBox{
-  background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
-  width:min(1100px,96vw);
-  max-height:92vh;
-  overflow:auto;
-  border-radius:20px;
-  padding:24px;
-  box-shadow:0 24px 70px rgba(0,0,0,.28);
-  border:1px solid rgba(148,163,184,.35);
-}
-#savePreviewBox h2{
-  margin:0 0 12px;
-  text-align:center;
-  font-size:30px;
-  color:#1e293b;
-}
-.preview-head{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  justify-content:center;
-  margin-bottom:16px;
-}
-.preview-head span{
-  background:#fff;
-  border:1px solid #dbe3ec;
-  border-radius:12px;
-  padding:9px 14px;
-  font-size:19px;
-  box-shadow:0 2px 8px rgba(15,23,42,.06);
-}
-#savePreviewTable{
-  width:100%;
-  font-size:18px;
-  border-collapse:separate;
-  border-spacing:0;
-  overflow:hidden;
-  border:1px solid #cbd5e1;
-  border-radius:12px;
-}
-#savePreviewTable th{
-  padding:10px 8px;
-  border:0;
-  border-bottom:1px solid #cbd5e1;
-  background:#eef2f7;
-  color:#1e293b;
-  font-size:19px;
-}
-#savePreviewTable td{
-  padding:9px 8px;
-  border:0;
-  border-bottom:1px solid #e2e8f0;
-}
-#savePreviewTable tbody tr:last-child td{border-bottom:0;}
-.preview-total{font-weight:bold;font-size:20px;background:#fff7db;}
-#savePreviewActions{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:18px;
-}
-#savePreviewActions button{
-  margin:0;
-  min-width:150px;
-  border-radius:10px;
-  padding:10px 16px;
-  font-size:16px;
-  font-weight:bold;
-}
-
-/* ===== MODERN SAVE SUCCESS DIALOG ===== */
-#saveSuccessModal{
-  display:none;
-  position:fixed;
-  z-index:10000;
-  inset:0;
-  background:rgba(15,23,42,.62);
-  -webkit-backdrop-filter:blur(5px);
-  backdrop-filter:blur(5px);
-  align-items:center;
-  justify-content:center;
-  padding:18px;
-}
-#saveSuccessBox{
-  width:min(470px,94vw);
-  background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);
-  border:1px solid rgba(148,163,184,.35);
-  border-radius:20px;
-  padding:26px 24px 22px;
-  box-shadow:0 24px 70px rgba(0,0,0,.30);
-  text-align:center;
-  animation:saveSuccessIn .18s ease-out;
-}
-#saveSuccessIcon{
-  width:68px;height:68px;margin:0 auto 12px;
-  border-radius:50%;background:#dcfce7;color:#15803d;
-  display:flex;align-items:center;justify-content:center;
-  font-size:38px;font-weight:bold;
-}
-#saveSuccessBox h2{margin:0;color:#166534;font-size:27px;}
-#saveSuccessMessage{margin:10px 0 18px;color:#334155;font-size:18px;line-height:1.6;font-weight:bold;}
-#saveSuccessNext{
-  margin:0 auto 18px;
-  padding:11px 14px;
-  border-radius:12px;
-  background:#eff6ff;
-  border:1px solid #bfdbfe;
-  color:#1d4ed8;
-  font-size:17px;
-  font-weight:bold;
-}
-#saveSuccessOkBtn{
-  border:0;border-radius:10px;padding:10px 28px;
-  background:#45ad54;color:#fff;font-size:17px;font-weight:bold;cursor:pointer;
-  min-width:130px;
-}
-@keyframes saveSuccessIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
-@media(max-width:600px){
-  #savePreviewBox{padding:18px 12px;border-radius:16px;}
-  #savePreviewBox h2{font-size:24px;}
-  .preview-head span{font-size:16px;padding:8px 10px;}
-  #savePreviewTable{font-size:15px;}
-  #savePreviewTable th{font-size:16px;}
-  #savePreviewTable th,#savePreviewTable td{padding:7px 5px;}
-  #saveSuccessBox{padding:22px 16px 18px;border-radius:16px;}
-  #saveSuccessBox h2{font-size:23px;}
-  #saveSuccessMessage,#saveSuccessNext{font-size:16px;}
-}
-
-/* ===== จัดเมนูเพิ่ม-ลบ และอัปโหลดรายชื่อให้อยู่แถวเดียวกัน ===== */
-.contestant-tools{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex-wrap:nowrap;
-  margin:5px 0 15px;
-}
-
-.contestant-manage,
-.contestant-import{
-  display:flex;
-  align-items:center;
-  gap:5px;
-  white-space:nowrap;
-}
-
-.contestant-tools input[type="file"]{
-  width:auto;
-  margin:2px;
-}
-
-.contestant-tools input#newName{
-  width:160px;
-}
-
-.contestant-tools button{
-  margin:3px;
-}
-
-@media (max-width:768px){
-  .contestant-tools{
-    flex-wrap:wrap;
-  }
-}
-</style>
-
-</head>
-<body>
-
-<div id="loginWrapper">
-  <div id="loginBox">
-    <h2>🔐 Login</h2>
-    <input id="user" placeholder="Username"><br><br>
-    <input id="pass" type="password" placeholder="Password"><br><br>
-    <button onclick="login()">Login</button>
-
-    <div class="login-copyright">
-      All Rights Reserved by <b>MR.SIRICHAI BUDDASUY</b>, System Developer
-    </div>
-
-  </div>
-</div>
-
-
-<div id="savePreviewModal">
-  <div id="savePreviewBox">
-    <h2>🔎 ตรวจสอบข้อมูลก่อนบันทึก</h2>
-    <div id="savePreviewHead" class="preview-head"></div>
-    <div class="table-wrap">
-      <table id="savePreviewTable"></table>
-    </div>
-    <div id="savePreviewActions">
-      <button onclick="confirmSaveScore()">✅ ยืนยันบันทึก</button>
-      <button onclick="closeSavePreview()" style="background:#777;">↩️ ยกเลิก / กลับไปแก้ไข</button>
+  <!-- LOGIN BOX -->
+  <div id="loginWrapper">
+    <div id="loginBox">
+      <h2>🔐 Login</h2>
+      <input id="user" placeholder="Username"><br>
+      <input id="pass" type="password" placeholder="Password"><br>
+      <button onclick="login()">Login</button>
+      <div class="login-copyright">
+        All Rights Reserved by <b>MR.SIRICHAI BUDDASUY</b>, System Developer
+      </div>
     </div>
   </div>
-</div>
 
-<div id="saveSuccessModal" aria-hidden="true">
-  <div id="saveSuccessBox" role="dialog" aria-modal="true" aria-labelledby="saveSuccessTitle">
-    <div id="saveSuccessIcon">✓</div>
-    <h2 id="saveSuccessTitle">บันทึกข้อมูลเรียบร้อย</h2>
-    <div id="saveSuccessMessage"></div>
-    <div id="saveSuccessNext" style="display:none;"></div>
-    <button id="saveSuccessOkBtn" type="button">ตกลง</button>
-  </div>
-</div>
-
-<div id="restoreModal" class="modal-backdrop">
-  <div class="modal-box">
-    <h2>♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</h2>
-    <div id="restorePreviewContent">
-      <p style="text-align:center;">กำลังรอเลือกไฟล์ Backup...</p>
+  <!-- MAIN APP -->
+  <div id="appBox" style="display:none;">
+    <h2>🎤 ระบบให้คะแนน</h2>
+    
+    <div id="statusBox" style="font-size:18px;margin-bottom:10px;">
+      📊 กำลังโหลด...
     </div>
-    <div class="modal-actions">
-      <button id="restoreConfirmBtn" onclick="confirmRestoreBackup()" disabled>✅ ยืนยันเรียกคืนข้อมูล</button>
-      <button onclick="closeRestoreModal()" style="background:#777;">❌ ยกเลิก</button>
+    
+    <div class="contestant-select-row">
+      <select id="contestant"></select>
+      <div id="songNameBox" class="song-name-box">🎵 ชื่อเพลง: -</div>
+    </div>
+    
+    <div id="formArea"></div>
+    
+    <div class="toolbar-row">
+      <button id="saveScoreBtn" class="save-score-btn" onclick="submitScore()">💾 บันทึก</button>
+      <button class="toolbar-btn" onclick="clearScore()">🧹 ล้างช่อง</button>
+      <button class="toolbar-btn" onclick="openMonitor()">📺 Monitor</button>
+      <button class="toolbar-btn" type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
+      
+      <div id="adminBar">
+        <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
+        <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
+      </div>
+    </div>
+    <hr>
+  </div>
+
+  <!-- SAVE PREVIEW MODAL -->
+  <div id="savePreviewModal">
+    <div id="savePreviewBox">
+      <h2>🔎 ตรวจสอบข้อมูลก่อนบันทึก</h2>
+      <div id="savePreviewHead" class="preview-head"></div>
+      <div class="table-wrap">
+        <table id="savePreviewTable"></table>
+      </div>
+      <div style="text-align:center;margin-top:15px;">
+        <button onclick="confirmSaveScore()">✅ ยืนยันบันทึก</button>
+        <button onclick="closeSavePreview()" style="background:#777;">↩️ ยกเลิก / กลับไปแก้ไข</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div id="appBox" style="display:none;">
+  <!-- JAVASCRIPT -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-<div id="adminBar">
-  <span id="adminUserLabel">👤 ผู้ดูแลระบบ</span>
-  <button onclick="openAdminPage()">⚙️ จัดการแอดมิน</button>
-  <button onclick="logout()" style="background:#d32f2f;">🚪 ล็อกเอาท์</button>
-</div>
+    const firebaseConfig = {
+      apiKey: "AIzaSy...",
+      authDomain: "...",
+      projectId: "singing-contest-85f70"
+    };
 
-<!-- Admin management moved to admin.html -->
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-</div>
+    // ==========================================
+    // GLOBAL VARIABLES
+    // ==========================================
+    let cache = [];
+    let pendingNextContestantId = null;
+    let currentAdmin = null;
+    let items = [];
+    let scoreConfigUnsubscribe = null;
+    let pendingScoreSave = null;
+    let pendingRestoreData = null;
 
-<h2>🎤 ระบบให้คะแนน</h2>
+    const ADMIN_SESSION_KEY = "singingContestAdminSession";
+    const DEVELOPER_USERNAME = "sirichai";
+    const DEVELOPER_PASSWORD = "Sb270887";
+    const DEVELOPER_ROLE = "developer";
 
-<div id="statusBox" style="font-size:18px;margin-bottom:10px;">
-  📊 กำลังโหลด...
-</div>
+    const DEFAULT_SCORE_ITEMS = [
+      {id:"tone", name:"น้ำเสียง", max:30},
+      {id:"technique", name:"เทคนิค", max:10},
+      {id:"rhythm", name:"จังหวะ", max:20},
+      {id:"pronunciation", name:"อักขระ", max:10},
+      {id:"personality", name:"บุคลิก", max:10},
+      {id:"difficulty", name:"ความยาก", max:10},
+      {id:"costume", name:"แต่งกาย", max:10}
+    ];
+    items = DEFAULT_SCORE_ITEMS.map(x => ({...x}));
 
-<select id="contestant" style="width:600px;height:45px;font-size:18px;"></select>
+    // ==========================================
+    // AUTHENTICATION & SESSION
+    // ==========================================
+    window.login = async function(){
+      const u = document.getElementById("user").value.trim();
+      const p = document.getElementById("pass").value;
 
-<br><br>
-
-<div class="contestant-tools">
-  <div class="contestant-manage">
-    <input id="newName" placeholder="ชื่อผู้เข้าแข่งขัน">
-    <button onclick="addContestant()">➕ เพิ่ม</button>
-    <button onclick="deleteContestant()">❌ ลบ</button>
-  </div>
-
-  <div class="contestant-import">
-    <input type="file" id="excelFile" accept=".csv">
-    <button onclick="importExcel()">📥 นำเข้า Excel</button>
-  </div>
-</div>
-
-<div id="formArea"></div>
-
-<button onclick="submitScore()">💾 บันทึก</button>
-<button onclick="clearScore()">🧹 ล้างช่อง</button>
-<button onclick="backupData()">💾 Backup</button>
-<button onclick="resetAll()">🧨 สิ้นสุด</button>
-<hr>
-
-<button onclick="exportExcel()">📊 Excel</button>
-<button onclick="printDetail()">🖨️ รายงาน</button>
-<button onclick="announceResult()">📢 ประกาศผล</button>
-<button onclick="openMonitor()">📺 Monitor</button>
-<button onclick="selectBackupFile()">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
-<input type="file" id="backupFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
-
-</div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "...",
-  projectId: "singing-contest-85f70"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-let cache=[];
-
-// เก็บ ID ผู้ประกวดคนถัดไปที่ต้องการเลือกหลังยืนยันบันทึก
-let pendingNextContestantId = null;
-
-// ===== ADMIN SESSION =====
-const ADMIN_SESSION_KEY = "singingContestAdminSession";
-
-// Developer account: ห้ามลบ ห้ามปิดใช้งาน และห้ามแก้ไขจากหน้า Admin
-const DEVELOPER_USERNAME = "sirichai";
-const DEVELOPER_PASSWORD = "Sb270887";
-const DEVELOPER_ROLE = "developer";
-
-let currentAdmin = null;
-
-window.login = async function(){
-  const u = document.getElementById("user").value.trim();
-  const p = document.getElementById("pass").value;
-
-  if(!u || !p){
-    alert("กรุณากรอก Username และ Password");
-    return;
-  }
-
-  try{
-    const snap = await getDocs(collection(db,"admins"));
-    let found = null;
-
-    snap.forEach(d=>{
-      const a=d.data();
-      if(String(a.username||"").trim()===u &&
-         String(a.password||"")===p &&
-         a.active!==false){
-        found={id:d.id,username:a.username};
+      if(!u || !p){
+        alert("กรุณากรอก Username และ Password");
+        return;
       }
-    });
 
-    // บัญชีผู้พัฒนาระบบถ้ายังไม่มี ให้สร้างอัตโนมัติ
-    // รองรับการย้ายบัญชีเดิม admin/admin1 -> sirichai/Sb270887
-    if(!found){
-      let developerDoc = null;
-      let oldAdminDoc = null;
+      try{
+        const snap = await getDocs(collection(db,"admins"));
+        let found = null;
+        let developerDoc = null;
+        let oldAdminDoc = null;
 
-      snap.forEach(d=>{
-        const a=d.data();
-        const username=String(a.username||"").trim().toLowerCase();
+        snap.forEach(d => {
+          const a = d.data();
+          const username = String(a.username || "").trim().toLowerCase();
 
-        if(username === DEVELOPER_USERNAME.toLowerCase()){
-          developerDoc = {id:d.id, data:a};
-        }
-
-        if(username === "admin"){
-          oldAdminDoc = {id:d.id, data:a};
-        }
-      });
-
-      if(!developerDoc && (snap.empty || oldAdminDoc)){
-        const targetId = oldAdminDoc ? oldAdminDoc.id : null;
-        const targetRef = targetId
-          ? doc(db,"admins",targetId)
-          : doc(collection(db,"admins"));
-
-        await setDoc(targetRef,{
-          username:DEVELOPER_USERNAME,
-          password:DEVELOPER_PASSWORD,
-          active:true,
-          role:DEVELOPER_ROLE,
-          protected:true,
-          createdAt:oldAdminDoc?.data?.createdAt || new Date().toISOString()
+          if(username === u.toLowerCase() && String(a.password || "") === p && a.active !== false){
+            found = { id: d.id, username: a.username, role: a.role, protected: a.protected };
+          }
+          if(username === DEVELOPER_USERNAME.toLowerCase()) developerDoc = { id: d.id, data: a };
+          if(username === "admin") oldAdminDoc = { id: d.id, data: a };
         });
 
-        found={id:targetRef.id,username:DEVELOPER_USERNAME,role:DEVELOPER_ROLE,protected:true};
+        if(!found){
+          if(!developerDoc && (snap.empty || oldAdminDoc)){
+            const targetId = oldAdminDoc ? oldAdminDoc.id : null;
+            const targetRef = targetId ? doc(db,"admins",targetId) : doc(collection(db,"admins"));
+            await setDoc(targetRef,{
+              username: DEVELOPER_USERNAME,
+              password: DEVELOPER_PASSWORD,
+              active: true,
+              role: DEVELOPER_ROLE,
+              protected: true,
+              createdAt: oldAdminDoc?.data?.createdAt || new Date().toISOString()
+            });
+            found = { id: targetRef.id, username: DEVELOPER_USERNAME, role: DEVELOPER_ROLE, protected: true };
+          }
+        }
+
+        if(!found){
+          alert("❌ Username หรือ Password ไม่ถูกต้อง หรือบัญชีถูกปิดใช้งาน");
+          return;
+        }
+
+        currentAdmin = {
+          id: found.id,
+          username: found.username,
+          role: found.role || "admin",
+          protected: found.protected === true || String(found.role||"") === DEVELOPER_ROLE
+        };
+
+        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({
+          id: currentAdmin.id,
+          username: currentAdmin.username,
+          role: currentAdmin.role,
+          protected: currentAdmin.protected,
+          loginAt: Date.now()
+        }));
+        
+        showLoggedIn();
+      }catch(err){
+        console.error(err);
+        alert("❌ ไม่สามารถตรวจสอบบัญชีแอดมินได้\n" + err.message);
       }
-    }
-
-    if(!found){
-      alert("❌ Username หรือ Password ไม่ถูกต้อง หรือบัญชีถูกปิดใช้งาน");
-      return;
-    }
-
-    currentAdmin={
-      id:found.id,
-      username:found.username,
-      role:found.role || "admin",
-      protected:found.protected === true || String(found.role||"") === DEVELOPER_ROLE
     };
 
-    localStorage.setItem(ADMIN_SESSION_KEY,JSON.stringify({
-      id:currentAdmin.id,
-      username:currentAdmin.username,
-      role:currentAdmin.role,
-      protected:currentAdmin.protected,
-      loginAt:Date.now()
-    }));
-    showLoggedIn();
-  }catch(err){
-    console.error(err);
-    alert("❌ ไม่สามารถตรวจสอบบัญชีแอดมินได้\n"+err.message);
-  }
-};
+    function showLoggedIn(){
+      document.getElementById("loginWrapper").classList.add("hidden");
+      document.getElementById("appBox").style.display = "block";
+      const label = document.getElementById("adminUserLabel");
+      if(label) label.textContent = `👤 แอดมิน: ${currentAdmin?.username || "admin"}`;
+    }
 
-function showLoggedIn(){
-  document.getElementById("loginWrapper").classList.add("hidden");
-  document.getElementById("appBox").style.display="block";
-  const label=document.getElementById("adminUserLabel");
-  if(label) label.textContent=`👤 แอดมิน: ${currentAdmin?.username || "admin"}`;
-}
+    function showLoggedOut(){
+      currentAdmin = null;
+      document.getElementById("loginWrapper").classList.remove("hidden");
+      document.getElementById("appBox").style.display = "none";
+      document.getElementById("adminUserLabel").textContent = "👤 ผู้ดูแลระบบ";
+    }
 
-function showLoggedOut(){
-  currentAdmin=null;
-  document.getElementById("loginWrapper").classList.remove("hidden");
-  document.getElementById("appBox").style.display="none";
-  document.getElementById("adminPanel").classList.remove("show");
-  document.getElementById("adminUserLabel").textContent="👤 ผู้ดูแลระบบ";
-}
-
-function openAdminPage(){
-  window.location.href = "admin.html";
-}
-
-window.logout=function(){
-  if(!confirm("ยืนยันล็อกเอาท์ออกจากระบบ?")) return;
-  localStorage.removeItem(ADMIN_SESSION_KEY);
-  showLoggedOut();
-  document.getElementById("user").value="";
-  document.getElementById("pass").value="";
-};
-
-window.toggleAdminPanel=function(){
-  const panel=document.getElementById("adminPanel");
-  if(!panel) return;
-  panel.classList.toggle("show");
-  if(panel.classList.contains("show")) loadAdmins();
-};
-
-async function restoreAdminSession(){
-  const raw=localStorage.getItem(ADMIN_SESSION_KEY);
-  if(!raw) return;
-
-  try{
-    const saved=JSON.parse(raw);
-    if(!saved?.id || !saved?.username) throw new Error("invalid session");
-
-    const snap=await getDocs(collection(db,"admins"));
-    let valid=false;
-    snap.forEach(d=>{
-      const a=d.data();
-      if(d.id===saved.id &&
-         String(a.username||"")===String(saved.username) &&
-         a.active!==false){
-        valid=true;
-        currentAdmin={
-          id:d.id,
-          username:a.username,
-          role:a.role || "admin",
-          protected:a.protected === true || String(a.role||"") === DEVELOPER_ROLE
-        };
-      }
-    });
-
-    if(valid) showLoggedIn();
-    else{
+    window.logout = function(){
+      if(!confirm("ยืนยันล็อกเอาท์ออกจากระบบ?")) return;
       localStorage.removeItem(ADMIN_SESSION_KEY);
       showLoggedOut();
-    }
-  }catch(err){
-    console.error("restoreAdminSession:",err);
-    localStorage.removeItem(ADMIN_SESSION_KEY);
-    showLoggedOut();
-  }
-}
-
-// ===== ADMIN MANAGEMENT =====
-window.loadAdmins=async function(){
-  const body=document.getElementById("adminListBody");
-  if(!body) return;
-  body.innerHTML='<tr><td colspan="3">กำลังโหลด...</td></tr>';
-
-  try{
-    const snap=await getDocs(collection(db,"admins"));
-    if(snap.empty){
-      body.innerHTML='<tr><td colspan="3">ยังไม่มีบัญชีแอดมิน</td></tr>';
-      return;
-    }
-
-    const admins=[];
-    snap.forEach(d=>{
-      const a=d.data();
-      admins.push({
-        id:d.id,
-        username:String(a.username||""),
-        active:a.active!==false,
-        role:String(a.role||"admin"),
-        protected:a.protected===true
-      });
-    });
-    admins.sort((a,b)=>a.username.localeCompare(b.username));
-
-    body.innerHTML=admins.map(a=>{
-      const isDeveloper =
-        a.protected === true ||
-        String(a.role || "").toLowerCase() === DEVELOPER_ROLE ||
-        a.username.toLowerCase() === DEVELOPER_USERNAME.toLowerCase();
-
-      return `
-      <tr>
-        <td class="${isDeveloper ? "admin-protected" : ""}">
-          ${escapeHtml(a.username)}
-          ${isDeveloper ? " 🛡️ ผู้พัฒนาระบบ" : ""}
-        </td>
-        <td class="${isDeveloper ? "admin-status-developer" : (a.active?"admin-status-active":"admin-status-disabled")}">
-          ${isDeveloper ? "ใช้งานถาวร" : (a.active?"ใช้งาน":"ปิดใช้งาน")}
-        </td>
-        <td>
-          ${
-            isDeveloper
-              ? '<span class="admin-protected">🔒 ห้ามลบ / ห้ามแก้ไข</span>'
-              : `
-                <button onclick="toggleAdminStatus('${a.id}',${a.active})">
-                  ${a.active?"🔒 ปิดใช้งาน":"🔓 เปิดใช้งาน"}
-                </button>
-                <button onclick="deleteAdmin('${a.id}','${escapeJs(a.username)}')" style="background:#d32f2f;">
-                  🗑️ ลบ
-                </button>
-              `
-          }
-        </td>
-      </tr>`;
-    }).join("");
-  }catch(err){
-    console.error(err);
-    body.innerHTML='<tr><td colspan="3" style="color:red;">โหลดรายชื่อแอดมินไม่สำเร็จ</td></tr>';
-  }
-};
-
-window.addAdmin=async function(){
-  const username=document.getElementById("adminNewUsername").value.trim();
-  const password=document.getElementById("adminNewPassword").value;
-
-  if(!username || !password) return alert("กรุณากรอกชื่อแอดมินและรหัสผ่าน");
-  if(password.length<4) return alert("รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร");
-
-  try{
-    const snap=await getDocs(collection(db,"admins"));
-    let duplicate=false;
-    snap.forEach(d=>{
-      if(String(d.data().username||"").toLowerCase()===username.toLowerCase()) duplicate=true;
-    });
-    if(duplicate) return alert("❌ มีชื่อแอดมินนี้อยู่แล้ว");
-
-    // ไม่อนุญาตให้สร้างบัญชีอื่นด้วยชื่อผู้พัฒนา
-    if(username.toLowerCase() === DEVELOPER_USERNAME.toLowerCase()){
-      return alert("❌ ชื่อ sirichai สงวนไว้สำหรับผู้พัฒนาระบบ");
-    }
-
-    await addDoc(collection(db,"admins"),{
-      username,
-      password,
-      active:true,
-      role:"admin",
-      protected:false,
-      createdAt:new Date().toISOString()
-    });
-
-    document.getElementById("adminNewUsername").value="";
-    document.getElementById("adminNewPassword").value="";
-    await loadAdmins();
-    alert("✅ เพิ่มแอดมินเรียบร้อยแล้ว");
-  }catch(err){
-    console.error(err);
-    alert("❌ เพิ่มแอดมินไม่สำเร็จ\n"+err.message);
-  }
-};
-
-window.toggleAdminStatus=async function(id,active){
-  if(currentAdmin && id===currentAdmin.id)
-    return alert("ไม่สามารถปิดใช้งานบัญชีที่กำลังล็อกอินอยู่ได้");
-
-  try{
-    const target=await getDoc(doc(db,"admins",id));
-    if(target.exists()){
-      const a=target.data();
-      if(a.protected===true ||
-         String(a.role||"").toLowerCase()===DEVELOPER_ROLE ||
-         String(a.username||"").toLowerCase()===DEVELOPER_USERNAME.toLowerCase()){
-        return alert("🔒 บัญชีผู้พัฒนาระบบห้ามแก้ไขหรือปิดใช้งาน");
-      }
-    }
-    await updateDoc(doc(db,"admins",id),{active:!active});
-    await loadAdmins();
-  }catch(err){
-    console.error(err);
-    alert("❌ เปลี่ยนสถานะแอดมินไม่สำเร็จ\n"+err.message);
-  }
-};
-
-window.deleteAdmin=async function(id,username){
-  if(currentAdmin && id===currentAdmin.id)
-    return alert("ไม่สามารถลบบัญชีแอดมินที่กำลังล็อกอินอยู่ได้");
-
-  try{
-    const target=await getDoc(doc(db,"admins",id));
-    if(target.exists()){
-      const a=target.data();
-      if(a.protected===true ||
-         String(a.role||"").toLowerCase()===DEVELOPER_ROLE ||
-         String(a.username||"").toLowerCase()===DEVELOPER_USERNAME.toLowerCase()){
-        return alert("🔒 บัญชีผู้พัฒนาระบบห้ามลบหรือแก้ไข");
-      }
-    }
-
-    if(!confirm(`ยืนยันลบแอดมิน "${username}" ?`)) return;
-
-    await deleteDoc(doc(db,"admins",id));
-    await loadAdmins();
-    alert("✅ ลบแอดมินเรียบร้อยแล้ว");
-  }catch(err){
-    console.error(err);
-    alert("❌ ลบแอดมินไม่สำเร็จ\n"+err.message);
-  }
-};
-
-function escapeJs(value){
-  return String(value??"")
-    .replaceAll("\\","\\\\")
-    .replaceAll("'","\\'")
-    .replaceAll("\n","\\n")
-    .replaceAll("\r","\\r");
-}
-
-// เพิ่ม
-window.addContestant=async()=>{
-let name=newName.value.trim();
-if(!name) return alert("ใส่ชื่อ");
-await addDoc(collection(db,"contestants"),{
-name:name,totalScore:0,j1:0,j2:0,j3:0});
-newName.value="";
-};
-
-// ลบ
-window.deleteContestant=async()=>{
-let id=contestant.value;
-if(!confirm("ลบ?")) return;
-await deleteDoc(doc(db,"contestants",id));
-};
-
-// IMPORT EXCEL
-window.importExcel = function(){
-
-  const file = excelFile.files[0];
-  if(!file) return alert("เลือกไฟล์");
-
-  const reader = new FileReader();
-
-  reader.onload = async function(e){
-
-    const text = new TextDecoder("utf-8").decode(e.target.result);
-    let rows = text.split("\n");
-
-    let list = [];
-
-    for(let i=1;i<rows.length;i++){
-      let cols = rows[i].split(",");
-
-      let no = Number(cols[0]);
-      let name = cols[1]?.trim();
-
-      if(name){
-        list.push({no, name});
-      }
-    }
-
-    // 🔥 เรียงตามเลข
-    list.sort((a,b)=>a.no - b.no);
-
-    // 🔥 เพิ่มเข้า Firebase
-    for(let item of list){
-      await addDoc(collection(db,"contestants"),{
-        name: `No.${item.no} ${item.name}`,
-        order: item.no,
-        totalScore:0,
-        j1:0,j2:0,j3:0
-      });
-    }
-
-    alert("นำเข้าเรียงลำดับแล้ว");
-  };
-
-  reader.readAsArrayBuffer(file);
-};
-
-// คะแนน
-const items = [
-  {name:"น้ำเสียง",max:30},
-  {name:"เทคนิค",max:10},
-  {name:"จังหวะ",max:20},
-  {name:"อักขระ",max:10},
-  {name:"บุคลิก",max:10},
-  {name:"ความยาก",max:10},
-  {name:"แต่งกาย",max:10}
-];
-
-window.announceResult = function(){
-  if(cache.length === 0){
-    alert("ยังไม่มีข้อมูล");
-    return;
-  }
-
-  let sorted = [...cache]
-    .sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
-
-  // หาคะแนนที่ซ้ำกัน: ผู้ประกวดทุกคนที่อยู่ในกลุ่มคะแนนเดียวกัน
-  // จะถูกแสดงชื่อสีแดงและขีดเส้นใต้
-  const scoreCount = {};
-  sorted.forEach(c=>{
-    const score = Number(c.totalScore || 0);
-    scoreCount[score] = (scoreCount[score] || 0) + 1;
-  });
-
-  let hasTie = Object.values(scoreCount).some(n => n > 1);
-
-  let html = `
-  <html>
-  <head>
-  <meta charset="UTF-8">
-  <style>
-    @page { size: A4; margin: 20mm; }
-    body{
-      font-family:"TH Sarabun New",sans-serif;
-      text-align:center;
-    }
-    h1{
-      font-size:36px;
-      margin-bottom:10px;
-    }
-    table{
-      width:100%;
-      border-collapse:collapse;
-      margin-top:20px;
-    }
-    th,td{
-      border:1px solid #000;
-      padding:8px;
-      font-size:20px;
-    }
-    th{background:#f0f0f0;}
-    .top1{background:gold;font-weight:bold;}
-    .top2{background:#ddd;}
-    .top3{background:#cd7f32;color:white;}
-    @keyframes tieBlinkRed {
-      0%, 49% {
-        color: red !important;
-        opacity: 1;
-      }
-      50%, 100% {
-        color: red !important;
-        opacity: 0.15;
-      }
-    }
-
-    .tie-name,
-    .tie-rank,
-    .tie-score{
-      color:red !important;
-      text-decoration:underline !important;
-      text-decoration-thickness:2px;
-      text-underline-offset:3px;
-      font-weight:bold;
-      animation: tieBlinkRed 1s steps(1, end) infinite;
-    }
-    .tie-note{
-      color:red;
-      font-weight:bold;
-      text-decoration:underline;
-      font-size:20px;
-      margin:8px 0;
-    }
-  
-
-
-/* ===== COMPACT INDEX UI ===== */
-#formArea{
-  margin-top:4px;
-}
-#formArea h3{
-  margin:8px 0 4px;
-}
-#formArea table{
-  margin-top:0;
-  margin-bottom:4px;
-}
-#formArea + button{
-  margin-top:4px;
-}
-.contestant-tools{
-  margin-bottom:4px;
-}
-
-
-.judge-spacer{
-  height:4px;
-}
-
-
-/* ===== ADMIN MANAGEMENT / SESSION ===== */
-#adminBar{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:0 0 8px}
-#adminUserLabel{font-weight:bold}
-#adminPanel{display:none!important;margin:10px 0 15px;padding:12px;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
-#adminPanel.show{display:block}
-#adminPanel h3{margin:0 0 10px}
-.admin-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.admin-row input{width:180px!important;height:36px!important;font-size:16px!important}
-.admin-list{width:100%;border-collapse:collapse;margin-top:8px;box-shadow:none}
-.admin-list th,.admin-list td{border:1px solid #ccc;padding:6px;font-size:16px}
-.admin-list th{background:#eee}
-.admin-status-active{color:green;font-weight:bold}
-.admin-status-disabled{color:#b00000;font-weight:bold}
-.admin-status-developer{color:#6a1b9a;font-weight:bold}
-.admin-protected{font-weight:bold;color:#6a1b9a}
-
-
-</style>
-  </head>
-  <body>
-  <h1>🏆 ผลการประกวดร้องเพลง</h1>
-  ${hasTie ? '<div class="tie-note">หมายเหตุ: อันดับ + รายชื่อ + คะแนน ที่เป็นสีแดงกระพิบและขีดเส้นใต้ = คะแนนเสมอกัน</div>' : ''}
-  <table>
-    <tr>
-      <th>อันดับ</th>
-      <th>ชื่อผู้เข้าแข่งขัน</th>
-      <th>คะแนนรวม</th>
-    </tr>
-  `;
-
-  sorted.forEach((c,i)=>{
-    let cls="";
-    if(i===0) cls="top1";
-    else if(i===1) cls="top2";
-    else if(i===2) cls="top3";
-
-    const score = Number(c.totalScore || 0);
-    const tie = scoreCount[score] > 1;
-    const nameClass = tie ? "tie-name" : "";
-
-    html += `
-      <tr class="${cls}">
-        <td class="${tie ? "tie-rank" : ""}">อันดับที่ ${i+1}</td>
-        <td class="${nameClass}">${escapeHtml(c.name)}</td>
-        <td class="${tie ? "tie-score" : ""}">${score}</td>
-      </tr>
-    `;
-  });
-
-  html += `
-    </table>
-  </body>
-  </html>
-  `;
-
-  let w = window.open("");
-  if(!w){
-    alert("กรุณาอนุญาต Pop-up เพื่อเปิดหน้าประกาศผล");
-    return;
-  }
-  w.document.write(html);
-  w.document.close();
-  setTimeout(()=>w.print(),500);
-};
-
-// FORM
-function createForm(){
-let html="";
-for(let j=1;j<=3;j++){
-html+=`<h3>กรรมการ ${j}</h3><table><tr>`;
-items.forEach(i=>html+=`<th>${i.name}(${i.max})</th>`);
-html+=`</tr><tr>`;
-items.forEach((i,idx)=>{
-  html+=`<td>
-    <input type="number" id="j${j}_s${idx}" data-j="${j}" data-i="${idx}">
-  </td>`;
-});
-html+=`</tr></table><div class="judge-spacer"></div>`;
-}
-formArea.innerHTML=html;
-
-// auto focus
-// // ❌ ไม่เด้งอัตโนมัติอีกต่อไป
-setTimeout(()=>{
-  let inputs = document.querySelectorAll("input[type=number]");
-
-  inputs.forEach((el,i)=>{
-
-    // กด Enter → ไปช่องถัดไป (แทน auto)
-    el.addEventListener("keydown",(e)=>{
-      if(e.key==="Enter"){
-        e.preventDefault();
-        if(inputs[i+1]) inputs[i+1].focus();
-      }
-    });
-
-  });
-
-},300);
-
-}
-createForm();
-
-restoreAdminSession();
-
-
-// LOAD
-async function loadContestants() {
-  const snapshot = await getDocs(collection(db, "contestants"));
-  const select = document.getElementById("contestant");
-
-  let list = [];
-
-  snapshot.forEach(docSnap => {
-    const data = docSnap.data();
-
-    list.push({
-      id: docSnap.id,
-      name: data.name,
-      order: data.order || 9999,
-      locked: data.locked || false   // ✅ เพิ่มตัวนี้
-    });
-  });
-
-  // 🔥 เรียงตามเลข
-  list.sort((a, b) => a.order - b.order);
-
-  // 🔥 ล้างก่อน
-  select.innerHTML = "";
-
-  list.forEach(item => {
-    const opt = document.createElement("option");
-    opt.value = item.id;
-    opt.text = item.name;
-
-    // ✅ สีเขียวถ้ากรอกแล้ว
-    if (item.locked) {
-      opt.style.color = "green";
-      opt.text += " ✔";
-    }
-
-    select.appendChild(opt);
-  });
-}
-
-// CALC
-function calc(p){
-  let arr=[], sum=0;
-
-  for(let i=0;i<items.length;i++){
-
-    let el = document.querySelector(`[id="${p}_s${i}"]`);
-
-    if(!el){
-      console.log("❌ ไม่เจอ:", p+"_s"+i);
-      arr.push(0);
-      continue;
-    }
-
-    if(el.value === ""){
-      alert(`กรุณากรอกคะแนนให้ครบ: ${p.toUpperCase()} / ${items[i].name}`);
-      el.focus();
-      throw "incomplete";
-    }
-
-    let v = Number(el.value);
-
-    if(!Number.isFinite(v) || v < 0){
-      alert(`คะแนนไม่ถูกต้อง: ${p.toUpperCase()} / ${items[i].name}`);
-      el.focus();
-      throw "invalid";
-    }
-
-    if(v > items[i].max){
-      alert("เกิน "+items[i].max);
-      throw "err";
-    }
-
-    arr.push(v);
-    sum += v;
-  }
-
-  console.log("✅", p, arr);
-
-  return {arr,sum};
-}
-
-// SAVE
-let pendingScoreSave = null;
-
-window.submitScore = async () => {
-  let id = contestant.value;
-  if(!id) return alert("กรุณาเลือกผู้ประกวด");
-
-  let c = cache.find(x => x.id === id);
-  if(!c) return alert("ไม่พบข้อมูลผู้ประกวด");
-
-  if(c.locked){
-    if(!confirm("ผู้ประกวดรายนี้บันทึกคะแนนแล้ว\nต้องการแก้ไขและบันทึกคะแนนใหม่หรือไม่?")) return;
-  }
-
-  try{
-    let j1 = calc("j1");
-    let j2 = calc("j2");
-    let j3 = calc("j3");
-
-    pendingScoreSave = {
-      id,
-      name: c.name,
-      order: c.order || 9999,
-      j1, j2, j3,
-      total: j1.sum + j2.sum + j3.sum
+      document.getElementById("user").value = "";
+      document.getElementById("pass").value = "";
     };
 
-    const previewHead = document.getElementById("savePreviewHead");
-    const previewTable = document.getElementById("savePreviewTable");
-    const previewModal = document.getElementById("savePreviewModal");
+    async function restoreAdminSession(){
+      const raw = localStorage.getItem(ADMIN_SESSION_KEY);
+      if(!raw) return;
+      try {
+        const saved = JSON.parse(raw);
+        if(!saved?.id || !saved?.username) throw new Error("invalid session");
 
-    if(!previewHead || !previewTable || !previewModal){
-      throw new Error("ไม่พบหน้าต่างตรวจสอบข้อมูลก่อนบันทึก");
+        const snap = await getDocs(collection(db,"admins"));
+        let valid = false;
+        snap.forEach(d => {
+          const a = d.data();
+          if(d.id === saved.id && String(a.username||"") === String(saved.username) && a.active !== false){
+            valid = true;
+            currentAdmin = {
+              id: d.id,
+              username: a.username,
+              role: a.role || "admin",
+              protected: a.protected === true || String(a.role||"") === DEVELOPER_ROLE
+            };
+          }
+        });
+
+        if(valid) showLoggedIn();
+        else {
+          localStorage.removeItem(ADMIN_SESSION_KEY);
+          showLoggedOut();
+        }
+      }catch(err){
+        console.error("restoreAdminSession:", err);
+        localStorage.removeItem(ADMIN_SESSION_KEY);
+        showLoggedOut();
+      }
     }
 
-    previewHead.innerHTML =
-      `<span><b>หมายเลข:</b> No.${pendingScoreSave.order}</span>
-       <span><b>ชื่อผู้ประกวด:</b> ${escapeHtml(pendingScoreSave.name)}</span>`;
-
-    previewTable.innerHTML = `
-      <thead>
-        <tr>
-          <th>รายการ</th>
-          <th>เต็ม</th>
-          <th>กรรมการ 1</th>
-          <th>กรรมการ 2</th>
-          <th>กรรมการ 3</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${items.map((it,idx)=>`
-          <tr>
-            <td>${escapeHtml(it.name)}</td>
-            <td>${it.max}</td>
-            <td>${pendingScoreSave.j1.arr[idx]}</td>
-            <td>${pendingScoreSave.j2.arr[idx]}</td>
-            <td>${pendingScoreSave.j3.arr[idx]}</td>
-          </tr>
-        `).join("")}
-        <tr class="preview-total">
-          <td colspan="2">รวมกรรมการ</td>
-          <td>${pendingScoreSave.j1.sum}</td>
-          <td>${pendingScoreSave.j2.sum}</td>
-          <td>${pendingScoreSave.j3.sum}</td>
-        </tr>
-        <tr class="preview-total">
-          <td colspan="4">คะแนนรวมทั้งหมด</td>
-          <td>${pendingScoreSave.total}</td>
-        </tr>
-      </tbody>
-    `;
-
-    previewModal.style.display = "flex";
-  }catch(e){
-    console.error(e);
-  }
-};
-
-window.closeSavePreview = function(){
-  pendingScoreSave = null;
-  document.getElementById("savePreviewModal").style.display = "none";
-};
-
-function showSaveSuccess(message, hasNext){
-  const modal=document.getElementById("saveSuccessModal");
-  const msg=document.getElementById("saveSuccessMessage");
-  const next=document.getElementById("saveSuccessNext");
-  if(!modal || !msg || !next){ return; }
-  if(hasNext){
-    msg.textContent="✅ บันทึกข้อมูลคะแนนของผู้ประกวดเรียบร้อยแล้ว";
-    next.textContent=message;
-    next.style.display="block";
-  }else{
-    msg.textContent="✅ บันทึกข้อมูลคะแนนของผู้ประกวดเรียบร้อยแล้ว";
-    next.textContent=message;
-    next.style.display="block";
-  }
-  modal.style.display="flex";
-  modal.setAttribute("aria-hidden","false");
-  document.getElementById("saveSuccessOkBtn")?.focus();
-}
-
-function closeSaveSuccess(){
-  const modal=document.getElementById("saveSuccessModal");
-  if(!modal) return;
-  modal.style.display="none";
-  modal.setAttribute("aria-hidden","true");
-}
-
-document.getElementById("saveSuccessOkBtn")?.addEventListener("click",closeSaveSuccess);
-document.getElementById("saveSuccessModal")?.addEventListener("click",e=>{
-  if(e.target.id==="saveSuccessModal") closeSaveSuccess();
-});
-document.addEventListener("keydown",e=>{
-  if(e.key==="Escape" && document.getElementById("saveSuccessModal")?.style.display==="flex") closeSaveSuccess();
-});
-
-window.confirmSaveScore = async function(){
-  if(!pendingScoreSave) return;
-
-  const p = pendingScoreSave;
-  const btn = document.querySelector('#savePreviewModal button[onclick="confirmSaveScore()"]');
-  if(btn) btn.disabled = true;
-
-  // หาผู้ประกวดคนถัดไปจากลำดับหมายเลข "ก่อน" บันทึก
-  // ไม่อ้างอิงตำแหน่งของ option ใน dropdown เพราะ option อาจถูกสร้างใหม่โดย onSnapshot
-  const orderedContestants = [...cache].sort(
-    (a,b)=>(Number(a.order ?? 9999) - Number(b.order ?? 9999))
-  );
-
-  const currentIndex = orderedContestants.findIndex(x => x.id === p.id);
-  const nextContestant =
-    currentIndex >= 0 && currentIndex + 1 < orderedContestants.length
-      ? orderedContestants[currentIndex + 1]
-      : null;
-
-  try{
-    // สำคัญ: ตั้งค่า "คนถัดไป" ก่อน updateDoc
-    // เพราะ updateDoc จะทำให้ onSnapshot ทำงานและสร้าง dropdown ใหม่
-    pendingNextContestantId = nextContestant ? nextContestant.id : null;
-
-    await updateDoc(doc(db,"contestants",p.id),{
-      score1:p.j1.arr,
-      score2:p.j2.arr,
-      score3:p.j3.arr,
-      j1:p.j1.sum,
-      j2:p.j2.sum,
-      j3:p.j3.sum,
-      totalScore:p.total,
-      locked:true
-    });
-
-    pendingScoreSave = null;
-    document.getElementById("savePreviewModal").style.display = "none";
-    clearScore();
-
-    // ไม่เรียก loadContestants() ที่นี่
-    // เพราะ onSnapshot จะโหลดข้อมูลล่าสุดจาก Firebase ให้อัตโนมัติ
-    // และจะเลือก pendingNextContestantId ให้เอง
-
-    const targetName = nextContestant ? nextContestant.name : "";
-
-    setTimeout(()=>{
-      const first = document.getElementById("j1_s0");
-      if(first) first.focus();
-    },250);
-
-    showSaveSuccess(nextContestant ? `➡️ เลื่อนไป ${targetName} อัตโนมัติ` : "🎉 เป็นผู้ประกวดคนสุดท้าย", Boolean(nextContestant));
-
-  }catch(err){
-    // ถ้าบันทึกไม่สำเร็จ ต้องไม่ค้างค่าเป้าหมายคนถัดไป
-    pendingNextContestantId = null;
-    console.error(err);
-    alert("❌ ไม่สามารถบันทึกข้อมูลได้\n"+err.message);
-
-  } finally {
-    if(btn) btn.disabled = false;
-  }
-};
-
-function escapeHtml(value){
-  return String(value ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-// CLEAR
-window.clearScore=()=>{
-document.querySelectorAll("input[type=number]").forEach(i=>i.value="");
-};
-
-// BACKUP
-window.backupData=()=>{
-let blob=new Blob([JSON.stringify(cache)]);
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="backup.json";
-a.click();
-};
-
-// ===== RESTORE BACKUP =====
-let pendingRestoreData = null;
-
-window.selectBackupFile = function(){
-  const input = document.getElementById("backupFile");
-  const modal = document.getElementById("restoreModal");
-
-  if(!input || !modal){
-    alert("ระบบเรียกคืน Backup ยังไม่พร้อม");
-    return;
-  }
-
-  input.value = "";
-  document.getElementById("restorePreviewContent").innerHTML =
-    "<p style='text-align:center;'>กำลังรอเลือกไฟล์ Backup...</p>";
-  document.getElementById("restoreConfirmBtn").disabled = true;
-  modal.classList.add("show");
-  input.click();
-};
-
-window.restoreBackup = function(event){
-  const file = event?.target?.files?.[0];
-
-  if(!file){
-    return;
-  }
-
-  const reader = new FileReader();
-
-  reader.onload = function(e){
-    try{
-      const parsed = JSON.parse(e.target.result);
-      const list = Array.isArray(parsed) ? parsed :
-                   Array.isArray(parsed.contestants) ? parsed.contestants : null;
-
-      if(!list) throw new Error("รูปแบบไฟล์ Backup ไม่ถูกต้อง");
-
-      pendingRestoreData = list;
-
-      const preview = list.slice(0,20);
-      let html = `
-        <p><b>พบข้อมูล ${list.length} คน</b>
-        ${list.length > 20 ? " (แสดงตัวอย่าง 20 คนแรก)" : ""}</p>
-        <table class="preview-table">
-          <tr>
-            <th>ลำดับ</th>
-            <th>หมายเลข</th>
-            <th>ชื่อผู้ประกวด</th>
-            <th>กก.1</th>
-            <th>กก.2</th>
-            <th>กก.3</th>
-            <th>รวม</th>
-          </tr>
-      `;
-
-      preview.forEach((c,i)=>{
-        html += `
-          <tr>
-            <td>${i+1}</td>
-            <td>No.${c.order ?? (i+1)}</td>
-            <td>${escapeHtml(c.name || "")}</td>
-            <td>${Number(c.j1 || 0)}</td>
-            <td>${Number(c.j2 || 0)}</td>
-            <td>${Number(c.j3 || 0)}</td>
-            <td><b>${Number(c.totalScore || 0)}</b></td>
-          </tr>
-        `;
-      });
-
-      html += `</table>
-        <p style="color:#b00000;font-weight:bold;text-align:center;">
-          ⚠️ การเรียกคืนจะลบข้อมูลผู้ประกวดปัจจุบันทั้งหมดก่อนนำข้อมูลจาก Backup เข้าแทนที่
-        </p>`;
-
-      document.getElementById("restorePreviewContent").innerHTML = html;
-      document.getElementById("restoreConfirmBtn").disabled = false;
-      document.getElementById("restoreModal").classList.add("show");
-
-    }catch(err){
-      pendingRestoreData = null;
-      document.getElementById("restoreConfirmBtn").disabled = true;
-      document.getElementById("restorePreviewContent").innerHTML =
-        `<p style="color:red;font-weight:bold;">❌ ${escapeHtml(err.message)}</p>`;
-      document.getElementById("restoreModal").classList.add("show");
-    }
-  };
-
-  reader.onerror = function(){
-    pendingRestoreData = null;
-    document.getElementById("restoreConfirmBtn").disabled = true;
-    alert("❌ ไม่สามารถอ่านไฟล์ Backup ได้");
-  };
-
-  reader.readAsText(file, "utf-8");
-};
-
-window.closeRestoreModal = function(){
-  pendingRestoreData = null;
-  const input = document.getElementById("backupFile");
-  if(input) input.value = "";
-  document.getElementById("restoreModal").classList.remove("show");
-};
-
-document.getElementById("backupFile").addEventListener("change", restoreBackup);
-
-window.confirmRestoreBackup = async function(){
-  if(!pendingRestoreData || !pendingRestoreData.length){
-    return alert("ไม่พบข้อมูลสำหรับเรียกคืน");
-  }
-
-  if(!confirm(
-    "ยืนยันเรียกคืนข้อมูลจากไฟล์ Backup?\n\n"+
-    "ข้อมูลผู้ประกวดปัจจุบันทั้งหมดจะถูกลบ และแทนที่ด้วยข้อมูลจาก Backup"
-  )) return;
-
-  try{
-    const snap = await getDocs(collection(db,"contestants"));
-
-    for(const d of snap.docs){
-      await deleteDoc(doc(db,"contestants",d.id));
+    // ==========================================
+    // UTILITY FUNCTIONS
+    // ==========================================
+    window.openAdminPage = function(){ window.location.assign("./admin.html"); };
+    window.openMonitor = function(){ window.open("monitor.html", "_blank"); };
+    
+    function escapeHtml(value){
+      return String(value ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#39;");
     }
 
-    for(const item of pendingRestoreData){
-      const clean = {...item};
-      delete clean.id;
-
-      // รองรับ backup ที่มีข้อมูลเก่า/ไม่ครบ
-      clean.name = clean.name || "";
-      clean.order = Number(clean.order ?? 9999);
-      clean.totalScore = Number(clean.totalScore || 0);
-      clean.j1 = Number(clean.j1 || 0);
-      clean.j2 = Number(clean.j2 || 0);
-      clean.j3 = Number(clean.j3 || 0);
-      clean.score1 = Array.isArray(clean.score1) ? clean.score1 : [];
-      clean.score2 = Array.isArray(clean.score2) ? clean.score2 : [];
-      clean.score3 = Array.isArray(clean.score3) ? clean.score3 : [];
-      clean.locked = Boolean(clean.locked);
-
-      await addDoc(collection(db,"contestants"), clean);
+    function getSongName(data){
+      const candidates = [data?.songName, data?.song, data?.songTitle, data?.เพลง, data?.ชื่อเพลง];
+      for(const v of candidates){
+        const text = String(v ?? "").trim();
+        if(text) return text;
+      }
+      const legacyName = String(data?.name ?? "").trim();
+      const commaIndex = legacyName.indexOf(",");
+      if(commaIndex >= 0){
+        const song = legacyName.slice(commaIndex+1).trim();
+        if(song) return song;
+      }
+      return "-";
     }
 
-    const restoredCount = pendingRestoreData.length;
-    closeRestoreModal();
-    alert(`✅ เรียกคืนข้อมูลสำเร็จ ${restoredCount} คน`);
-  }catch(err){
-    console.error(err);
-    alert("❌ เรียกคืนข้อมูลไม่สำเร็จ\n"+err.message);
-  }
-};
+    function getContestantName(data){
+      const raw = String(data?.name ?? "").trim();
+      const hasSeparateSong = [data?.songName, data?.song, data?.songTitle, data?.เพลง, data?.ชื่อเพลง]
+        .some(v => String(v ?? "").trim());
+      if(!hasSeparateSong){
+        const commaIndex = raw.indexOf(",");
+        if(commaIndex >= 0) return raw.slice(0, commaIndex).trim();
+      }
+      return raw;
+    }
 
-// RESET
-window.resetAll=async()=>{
-if(!confirm("Backup ก่อนลบ?")) return;
-backupData();
-if(!confirm("ลบทั้งหมด?")) return;
+    function getContestantNumber(data){
+      const n = Number(data?.order);
+      return Number.isFinite(n) && n > 0 ? n : "";
+    }
 
-const snap=await getDocs(collection(db,"contestants"));
-for(const d of snap.docs){
-await deleteDoc(doc(db,"contestants",d.id));
-}
-alert("ล้างแล้ว");
-};
+    function formatContestantOption(item){
+      const number = item?.number || item?.order || "";
+      const name = String(item?.name || "").trim();
+      return number ? `No.${number} ${name}` : name;
+    }
 
-// TABLE
-onSnapshot(collection(db,"contestants"),snap=>{
+    function updateSongNameBox(song){
+      const box = document.getElementById("songNameBox");
+      if(box){
+        box.textContent = `🎵 ชื่อเพลง: ${song && song !== "-" ? song : "-"}`;
+      }
+    }
 
-  cache=[];
-  let list=[];
-  let done = 0;
+    // ==========================================
+    // DATA LOADING & FORM CREATION
+    // ==========================================
+    function normalizeScoreItems(raw){
+      if(!Array.isArray(raw) || raw.length === 0){
+        return DEFAULT_SCORE_ITEMS.map(x => ({...x}));
+      }
+      return raw.map((x,i) => ({
+        id: String(x?.id || `criterion_${i+1}`),
+        name: String(x?.name || `รายการ ${i+1}`).trim() || `รายการ ${i+1}`,
+        max: Math.max(1, Math.min(1000, Math.floor(Number(x?.max) || 1)))
+      }));
+    }
 
-  snap.forEach(d=>{
-    const data = d.data();
+    async function loadScoreCriteria(){
+      try{
+        const snap = await getDoc(doc(db,"settings","scoringConfig"));
+        if(snap.exists() && Array.isArray(snap.data()?.criteria)){
+          items = normalizeScoreItems(snap.data().criteria);
+        } else {
+          items = DEFAULT_SCORE_ITEMS.map(x => ({...x}));
+        }
+      }catch(err){
+        console.error("โหลดรายการคะแนนไม่สำเร็จ:", err);
+        items = DEFAULT_SCORE_ITEMS.map(x => ({...x}));
+      }
+    }
 
-    if(data.locked) done++;   // 🔥 นับคนที่ให้คะแนนแล้ว
+    function watchScoreCriteria(){
+      if(scoreConfigUnsubscribe) scoreConfigUnsubscribe();
+      scoreConfigUnsubscribe = onSnapshot(
+        doc(db,"settings","scoringConfig"),
+        snap => {
+          if(!snap.exists() || !Array.isArray(snap.data()?.criteria)) return;
+          const next = normalizeScoreItems(snap.data().criteria);
+          if(JSON.stringify(next) === JSON.stringify(items)) return;
 
-    list.push({
-  id:d.id,
-  name:data.name,
-  order:data.order || 9999,
-  totalScore:data.totalScore||0,
-  locked:data.locked || false,
+          const saved = {j1:[], j2:[], j3:[]};
+          for(let j=1; j<=3; j++){
+            saved[`j${j}`] = items.map((_,idx) => {
+              const el = document.getElementById(`j${j}_s${idx}`);
+              return el ? el.value : "";
+            });
+          }
 
-  // 🔥 เพิ่มตรงนี้
-  score1: data.score1 || [],
-  score2: data.score2 || [],
-  score3: data.score3 || [],
-  j1: data.j1 || 0,
-  j2: data.j2 || 0,
-  j3: data.j3 || 0
-});
-  });
+          items = next;
+          createForm();
 
-  // 🔥 เรียง No.
-  list.sort((a,b)=>a.order - b.order);
+          for(let j=1; j<=3; j++){
+            items.forEach((_,idx) => {
+              const el = document.getElementById(`j${j}_s${idx}`);
+              if(el && saved[`j${j}`][idx] !== undefined){
+                el.value = saved[`j${j}`][idx];
+              }
+            });
+          }
+        }
+      );
+    }
 
-  // 🔥 แสดงสถานะ
-  document.getElementById("statusBox").innerHTML =
-    `📊 ให้คะแนนแล้ว <b>${done}</b> / ${list.length} คน`;
+    function createForm(){
+      let html = "";
+      for(let j=1; j<=3; j++){
+        html += `<h3>กรรมการ ${j}</h3><table><tr>`;
+        items.forEach(i => html += `<th>${i.name}(${i.max})</th>`);
+        html += `</tr><tr>`;
+        items.forEach((i,idx) => {
+          html += `<td><input type="number" id="j${j}_s${idx}" data-j="${j}" data-i="${idx}"></td>`;
+        });
+        html += `</tr></table><div class="judge-spacer"></div>`;
+      }
+      
+      document.getElementById("formArea").innerHTML = html;
 
-  // 🔥 dropdown
-  // จำค่าที่ผู้ใช้กำลังเลือกอยู่ก่อนสร้าง option ใหม่
-  // และให้ pendingNextContestantId มีสิทธิ์สูงสุดหลังการบันทึก
-  const select = document.getElementById("contestant");
-  const previousSelectedId = select ? select.value : "";
-  const targetSelectedId = pendingNextContestantId || previousSelectedId;
+      setTimeout(() => {
+        let inputs = document.querySelectorAll("input[type=number]");
+        inputs.forEach((el,i) => {
+          el.addEventListener("keydown", (e) => {
+            if(e.key === "Enter"){
+              e.preventDefault();
+              if(inputs[i+1]) inputs[i+1].focus();
+            }
+          });
+        });
+      }, 300);
+    }
 
-  if(select){
-    select.innerHTML="";
+    // ==========================================
+    // CORE LOGIC (SCORING)
+    // ==========================================
+    function calc(p){
+      let arr = [], sum = 0;
+      for(let i=0; i<items.length; i++){
+        let el = document.querySelector(`[id="${p}_s${i}"]`);
+        if(!el){
+          arr.push(0);
+          continue;
+        }
+        if(el.value === ""){
+          alert(`กรุณากรอกคะแนนให้ครบ: ${p.toUpperCase()} / ${items[i].name}`);
+          el.focus();
+          throw "incomplete";
+        }
+        let v = Number(el.value);
+        if(!Number.isFinite(v) || v < 0){
+          alert(`คะแนนไม่ถูกต้อง: ${p.toUpperCase()} / ${items[i].name}`);
+          el.focus();
+          throw "invalid";
+        }
+        if(v > items[i].max){
+          alert(`คะแนนเกินกำหนด (${items[i].max})`);
+          el.focus();
+          throw "err";
+        }
+        arr.push(v);
+        sum += v;
+      }
+      return { arr, sum };
+    }
 
-    list.forEach(item=>{
-      let o=document.createElement("option");
-      o.value=item.id;
-      o.text=item.name;
-
-      if(item.locked){
-        o.text += " ✔";
-        o.style.color="green";
+    window.submitScore = async () => {
+      const select = document.getElementById("contestant");
+      let id = select.value;
+      if(!id) return alert("กรุณาเลือกผู้ประกวด");
+      let c = cache.find(x => x.id === id);
+      if(!c) return alert("ไม่พบข้อมูลผู้ประกวด");
+      if(c.locked){
+        if(!confirm("ผู้ประกวดรายนี้บันทึกคะแนนแล้ว\nต้องการแก้ไขและบันทึกคะแนนใหม่หรือไม่?")) return;
       }
 
-      select.appendChild(o);
+      try{
+        let j1 = calc("j1");
+        let j2 = calc("j2");
+        let j3 = calc("j3");
+        
+        pendingScoreSave = {
+          id,
+          name: c.name,
+          song: c.song || "-",
+          order: c.order || 9999,
+          j1, j2, j3,
+          total: j1.sum + j2.sum + j3.sum
+        };
+
+        document.getElementById("savePreviewHead").innerHTML =
+          `<span><b>หมายเลข:</b> No.${pendingScoreSave.order}</span>
+           <span><b>ชื่อผู้ประกวด:</b> ${escapeHtml(pendingScoreSave.name)}</span>
+           <span><b>เพลง:</b> ${escapeHtml(c.song || "-")}</span>`;
+
+        document.getElementById("savePreviewTable").innerHTML = `
+          <thead>
+            <tr>
+              <th>รายการ</th>
+              <th>เต็ม</th>
+              <th>กรรมการ 1</th>
+              <th>กรรมการ 2</th>
+              <th>กรรมการ 3</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map((it,idx) => `
+              <tr>
+                <td>${escapeHtml(it.name)}</td>
+                <td>${it.max}</td>
+                <td>${pendingScoreSave.j1.arr[idx]}</td>
+                <td>${pendingScoreSave.j2.arr[idx]}</td>
+                <td>${pendingScoreSave.j3.arr[idx]}</td>
+              </tr>
+            `).join("")}
+            <tr class="preview-total">
+              <td colspan="2">รวมกรรมการ</td>
+              <td>${pendingScoreSave.j1.sum}</td>
+              <td>${pendingScoreSave.j2.sum}</td>
+              <td>${pendingScoreSave.j3.sum}</td>
+            </tr>
+            <tr class="preview-total">
+              <td colspan="4">คะแนนรวมทั้งหมด</td>
+              <td>${pendingScoreSave.total}</td>
+            </tr>
+          </tbody>
+        `;
+        document.getElementById("savePreviewModal").style.display = "flex";
+      }catch(e){
+        console.error(e);
+      }
+    };
+
+    window.closeSavePreview = function(){
+      pendingScoreSave = null;
+      document.getElementById("savePreviewModal").style.display = "none";
+    };
+
+    window.confirmSaveScore = async function(){
+      if(!pendingScoreSave) return;
+      const p = pendingScoreSave;
+      const btn = document.querySelector('#savePreviewModal button[onclick="confirmSaveScore()"]');
+      if(btn) btn.disabled = true;
+
+      const orderedContestants = [...cache].sort((a,b) => (Number(a.order ?? 9999) - Number(b.order ?? 9999)));
+      const currentIndex = orderedContestants.findIndex(x => x.id === p.id);
+      const nextContestant = (currentIndex >= 0 && currentIndex + 1 < orderedContestants.length) ? orderedContestants[currentIndex + 1] : null;
+
+      try{
+        pendingNextContestantId = nextContestant ? nextContestant.id : null;
+        
+        await updateDoc(doc(db,"contestants",p.id),{
+          score1: p.j1.arr,
+          score2: p.j2.arr,
+          score3: p.j3.arr,
+          j1: p.j1.sum,
+          j2: p.j2.sum,
+          j3: p.j3.sum,
+          totalScore: p.total,
+          locked: true
+        });
+
+        pendingScoreSave = null;
+        document.getElementById("savePreviewModal").style.display = "none";
+        clearScore();
+
+        const targetName = nextContestant ? formatContestantOption(nextContestant) : "";
+        setTimeout(() => {
+          const first = document.getElementById("j1_s0");
+          if(first) first.focus();
+        }, 250);
+
+        alert(nextContestant ? `✅ บันทึกข้อมูลเรียบร้อยแล้ว\n➡️ เลื่อนไป ${targetName} อัตโนมัติ` : "✅ บันทึกข้อมูลเรียบร้อยแล้ว\n🎉 เป็นผู้ประกวดคนสุดท้าย");
+      }catch(err){
+        pendingNextContestantId = null;
+        console.error(err);
+        alert("❌ ไม่สามารถบันทึกข้อมูลได้\n" + err.message);
+      } finally {
+        if(btn) btn.disabled = false;
+      }
+    };
+
+    window.clearScore = () => {
+      document.querySelectorAll("input[type=number]").forEach(i => i.value = "");
+    };
+
+    // ==========================================
+    // REALTIME DATABASE LISTENER
+    // ==========================================
+    onSnapshot(collection(db,"contestants"), snap => {
+      cache = [];
+      let list = [];
+      let done = 0;
+      
+      snap.forEach(d => {
+        const data = d.data();
+        if(data.locked) done++;
+        list.push({
+          id: d.id,
+          name: getContestantName(data),
+          song: getSongName(data),
+          number: getContestantNumber(data),
+          order: Number(data.order) || 9999,
+          totalScore: data.totalScore || 0,
+          locked: data.locked || false,
+          score1: data.score1 || [],
+          score2: data.score2 || [],
+          score3: data.score3 || [],
+          j1: data.j1 || 0,
+          j2: data.j2 || 0,
+          j3: data.j3 || 0
+        });
+      });
+
+      list.sort((a,b) => a.order - b.order);
+      
+      const statusBox = document.getElementById("statusBox");
+      if(statusBox) statusBox.innerHTML = `📊 ให้คะแนนแล้ว <b>${done}</b> / ${list.length} คน`;
+
+      const select = document.getElementById("contestant");
+      if(select){
+        const previousSelectedId = select.value;
+        const targetSelectedId = pendingNextContestantId || previousSelectedId;
+        
+        select.innerHTML = "";
+        list.forEach(item => {
+          let o = document.createElement("option");
+          o.value = item.id;
+          o.text = formatContestantOption(item);
+          if(item.locked){
+            o.text += " ✔";
+            o.style.color = "green";
+          }
+          select.appendChild(o);
+        });
+
+        const targetExists = list.some(item => item.id === targetSelectedId);
+        if(targetExists){
+          select.value = targetSelectedId;
+        }else if(select.options.length > 0){
+          select.selectedIndex = 0;
+        }
+
+        const selectedNow = list.find(item => item.id === select.value);
+        updateSongNameBox(selectedNow?.song || "-");
+      }
+      
+      pendingNextContestantId = null;
+      cache = [...list];
+      cache.sort((a,b) => (b.totalScore||0) - (a.totalScore||0));
     });
 
-    // ถ้ามีผู้ประกวดคนถัดไป ให้เลือกคนนั้น
-    // ถ้าไม่มี/หาไม่พบ ให้รักษาคนเดิม ถ้ายังมีอยู่
-    const targetExists = list.some(item => item.id === targetSelectedId);
+    // ==========================================
+    // INIT & UI RESPONSIVENESS
+    // ==========================================
+    (async function initIndex(){
+      await loadScoreCriteria();
+      createForm();
+      restoreAdminSession();
+      watchScoreCriteria();
+      const select = document.getElementById("contestant");
+      if(select){
+        select.addEventListener("change", () => {
+          const selected = cache.find(x => x.id === select.value);
+          updateSongNameBox(selected?.song || "-");
+        });
+      }
+    })();
 
-    if(targetExists){
-      select.value = targetSelectedId;
-    }else if(select.options.length > 0){
-      select.selectedIndex = 0;
-    }
-  }
+    (function setupResponsiveScaling(){
+      function fitScoringScreen(){
+        const app = document.getElementById('appBox');
+        if(!app || getComputedStyle(app).display === 'none') return;
+        const form = document.getElementById('formArea');
+        if(!form) return;
 
-  // ใช้เป้าหมายนี้เพียงครั้งเดียว แล้วปล่อยให้การเลือกครั้งต่อไป
-  // ทำงานตามปกติ ไม่เด้งกลับไปคนที่ 1
-  pendingNextContestantId = null;
+        app.style.zoom = '1';
+        app.style.width = '100%';
+        app.classList.remove('fit-compact');
 
-  // ตารางคะแนนในหน้า index ถูกนำออกแล้ว
-  // ยังคง cache สำหรับรายงานและประกาศผล
-  cache=[...list];
-  cache.sort((a,b)=>(b.totalScore||0)-(a.totalScore||0));
-});
+        const criteriaCount = form.querySelectorAll('table:first-of-type th').length;
+        if(criteriaCount >= 8) app.classList.add('fit-compact');
 
-// ✅ REPORT (แก้แล้ว)
-window.printDetail = function(){
+        const available = Math.max(260, window.innerHeight - 72);
+        let needed = app.scrollHeight;
+        let scale = needed > available ? available / needed : 1;
+        scale = Math.max(0.58, Math.min(1, scale));
 
-  if(cache.length===0){
-    alert("ยังไม่มีข้อมูล");
-    return;
-  }
+        if(scale < 0.995){
+          app.style.zoom = String(scale);
+          app.style.width = (100 / scale) + '%';
+        }
+      }
 
-  let html = `
-  <html>
-  <head>
-  <meta charset="UTF-8">
-  <style>
-    @page{
-      size:A4 portrait;
-      margin:8mm;
-    }
-    *{box-sizing:border-box;}
-    html,body{
-      width:100%;
-      margin:0;
-      padding:0;
-      font-family:sans-serif;
-    }
-    .page{
-      page-break-after:always;
-      width:100%;
-    }
-    .box{
-      width:100%;
-      display:block;
-      border:1px solid #000;
-      margin:0 0 4px 0;
-      padding:3px 5px;
-      font-size:11px;
-      page-break-inside:avoid;
-    }
-    .box table{
-      width:100%;
-      border-collapse:collapse;
-      table-layout:fixed;
-      font-size:10px;
-      margin:0;
-    }
-    .box td,.box th{
-      border:1px solid #000;
-      padding:2px 3px;
-      text-align:center;
-    }
-    .box td:first-child,
-    .box th:first-child{
-      width:32%;
-      text-align:left;
-    }
-    .box td:not(:first-child),
-    .box th:not(:first-child){
-      width:17%;
-    }
-  </style>
-  </head>
-  <body>
-  `;
-
-  cache.forEach((c,i)=>{
-
-    if(i % 10 === 0){
-      html += `<div class="page">`;
-    }
-
-    html+=`
-    <div class="box">
-    <b>No.${i+1} ${c.name}</b>
-
-    <table>
-    <tr>
-      <th>รายการ</th>
-      <th>เต็ม</th>
-      <th>กก1</th>
-      <th>กก2</th>
-      <th>กก3</th>
-    </tr>`;
-
-    items.forEach((it,idx)=>{
-      html+=`
-      <tr>
-        <td>${it.name}</td>
-        <td>${it.max}</td>
-        <td>${c.score1?.[idx]||0}</td>
-        <td>${c.score2?.[idx]||0}</td>
-        <td>${c.score3?.[idx]||0}</td>
-      </tr>`;
-    });
-
-    html+=`
-    <tr>
-      <td colspan="2"><b>รวม</b></td>
-      <td><b>${c.j1||0}</b></td>
-      <td><b>${c.j2||0}</b></td>
-      <td><b>${c.j3||0}</b></td>
-    </tr>
-
-    <tr>
-      <td colspan="5"><b>รวมทั้งหมด ${c.totalScore||0}</b></td>
-    </tr>
-
-    </table>
-    </div>
-    `;
-
-    if((i+1)%10===0){
-      html += `</div>`;
-    }
-  });
-
-  if(cache.length % 10 !== 0){
-    html += `</div>`;
-  }
-
-  html+="</body></html>";
-
-  let w=window.open("");
-  w.document.write(html);
-  w.document.close();
-
-  setTimeout(()=>w.print(),500);
-};
-
-</script>
-
+      window.addEventListener('resize', () => setTimeout(fitScoringScreen, 80));
+      window.addEventListener('load', () => setTimeout(fitScoringScreen, 250));
+      const observer = new MutationObserver(() => setTimeout(fitScoringScreen, 30));
+      
+      window.addEventListener('load', () => {
+        const form = document.getElementById('formArea');
+        if(form) observer.observe(form, {childList: true, subtree: true, characterData: true});
+      });
+      setInterval(fitScoringScreen, 1000);
+    })();
   </script>
-
-<script>
-function openMonitor() {
-  window.open("monitor.html", "_blank");
-}
-</script>
 
 </body>
 </html>
