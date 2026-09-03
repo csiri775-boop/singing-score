@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ระบบกรรมการแยก 3 คน - Singing Contest</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#f5f5f5;color:#222;font-family:Arial,sans-serif}
+body{min-height:100vh}
+.hidden{display:none!important}
+.page{width:100%;padding:18px}
+.header{text-align:center;margin-bottom:14px}
+.header h1{margin:0;font-size:30px}
+.header p{margin:4px 0 0;font-weight:bold;color:#555}
+.card{
+  background:#fff;border-radius:10px;padding:16px;margin-top:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.10)
+}
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:10px;flex-wrap:wrap
+}
+.user-badge{font-weight:bold}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button{
+  border:0;border-radius:6px;padding:9px 14px;background:#45ad54;
+  color:#fff;cursor:pointer;font-size:14px
+}
+button:hover{opacity:.9}
+.btn-blue{background:#1976d2}
+.btn-red{background:#d9363e}
+.btn-gray{background:#777}
+.btn-orange{background:#ef8b17}
+input,select{
+  height:40px;padding:7px 10px;border:1px solid #ccc;border-radius:6px;
+  font-size:16px
+}
+#judgeContestant{min-width:360px}
+.song-box{
+  margin-top:10px;padding:10px 14px;border:2px solid #e53935;
+  border-radius:8px;background:#fff;font-size:18px;font-weight:bold
+}
+.status{
+  margin-top:10px;padding:9px 12px;background:#f7f7f7;
+  border-left:4px solid #1976d2;font-weight:bold
+}
+.score-table{width:100%;border-collapse:collapse;margin-top:12px}
+.score-table th,.score-table td{
+  border:1px solid #ccc;padding:9px;text-align:center
+}
+.score-table th{background:#eee}
+.score-table th:first-child,.score-table td:first-child{text-align:left}
+.score-input{
+  width:86px!important;height:42px!important;text-align:center;
+  font-size:20px!important;font-weight:bold
+}
+.step{
+  min-width:38px;padding:7px 10px;margin:0 2px
+}
+.minus{background:#d9363e}
+.plus{background:#45ad54}
+.total-row{font-weight:bold;background:#fafafa}
+.total-row td{font-size:18px}
+.notice{
+  padding:10px;background:#eef6ff;border-left:4px solid #1976d2;
+  color:#174a7e;margin-top:10px
+}
+.login-wrap{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px
+}
+.login-box{
+  width:min(420px,95%);background:#fff;padding:28px;border-radius:12px;
+  box-shadow:0 3px 18px rgba(0,0,0,.15);text-align:center
+}
+.login-box input{width:100%;margin:6px 0}
+.login-box button{width:100%;margin-top:10px}
+.login-status{min-height:22px;margin-top:10px;color:#b00000}
+.role-box{
+  display:inline-block;background:#eef6ff;color:#174a7e;
+  padding:7px 12px;border-radius:20px;font-weight:bold
+}
+@media(max-width:800px){
+  .page{padding:10px}
+  #judgeContestant{min-width:0;width:100%}
+  .score-table{font-size:13px}
+  .score-input{width:60px!important}
+}
+</style>
+</head>
+<body>
+
+<section id="loginPage" class="login-wrap">
+  <div class="login-box">
+    <h2>🎤 ระบบกรรมการแยก</h2>
+    <p>ระบบให้คะแนนกรรมการรายบุคคล 3 ท่าน</p>
+    <input id="loginUser" placeholder="Username" autocomplete="username">
+    <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" type="button">เข้าสู่ระบบกรรมการ</button>
+    <div id="loginStatus" class="login-status"></div>
+    <div style="margin-top:12px;color:#666;font-size:13px">
+      กรรมการ 1 / 2 / 3 • กรอกคะแนนได้ครั้งเดียวต่อผู้ประกวด
+    </div>
+  </div>
+</section>
+
+<section id="appPage" class="hidden">
+  <div class="page">
+    <div class="header">
+      <h1>🎤 ระบบให้คะแนนกรรมการรายบุคคล</h1>
+      <p>Singing Contest Scoring System • Individual Judge Mode</p>
+    </div>
+
+    <div class="card topbar">
+      <div>
+        <span class="user-badge" id="userLabel">👤 ผู้ใช้</span>
+        <span class="role-box" id="judgeRoleLabel">กรรมการ</span>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn-gray" onclick="window.location.assign('./index.html')">↔️ ระบบกลาง</button>
+        <button type="button" class="btn-red" id="logoutBtn">🚪 Logout</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="actions">
+        <select id="judgeContestant">
+          <option value="">-- เลือกผู้ประกวด --</option>
+        </select>
+        <button type="button" id="reloadBtn" class="btn-blue">🔄 โหลดใหม่</button>
+      </div>
+
+      <div id="songBox" class="song-box">🎵 ชื่อเพลง: -</div>
+      <div id="status" class="status">กำลังโหลด...</div>
+
+      <table class="score-table">
+        <thead>
+          <tr>
+            <th>รายการคะแนน</th>
+            <th>คะแนนเต็ม</th>
+            <th>คะแนนของกรรมการ</th>
+          </tr>
+        </thead>
+        <tbody id="scoreBody">
+          <tr><td colspan="3">กรุณาเลือกผู้ประกวด</td></tr>
+        </tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="2">รวมคะแนนของกรรมการ</td>
+            <td id="judgeTotal">0</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="actions" style="margin-top:12px">
+        <button type="button" class="btn-orange" id="saveBtn">💾 บันทึกคะแนนครั้งแรก</button>
+        <button type="button" class="btn-gray" id="clearBtn">🧹 ล้างช่อง</button>
+      </div>
+
+      <div class="notice">
+        🔒 กรรมการแต่ละท่านมีสิทธิ์เฉพาะ “กรอกคะแนนและบันทึกครั้งแรก” เท่านั้น
+        หลังบันทึกแล้วจะไม่สามารถแก้ไขหรือบันทึกซ้ำได้ การแก้ไขทั้งหมดทำที่ระบบกลาง
+      </div>
+    </div>
+  </div>
+</section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, getDoc, doc,
+  onSnapshot, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "...",
+  projectId: "singing-contest-85f70"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const SESSION_KEY = "singingContestJudgeSession";
+
+const DEFAULT_CRITERIA = [
+  {id:"tone",name:"น้ำเสียง",max:30},
+  {id:"technique",name:"เทคนิค",max:10},
+  {id:"rhythm",name:"จังหวะ",max:20},
+  {id:"pronunciation",name:"อักขระ",max:10},
+  {id:"personality",name:"บุคลิก",max:10},
+  {id:"difficulty",name:"ความยาก",max:10},
+  {id:"costume",name:"แต่งกาย",max:10}
+];
+
+let criteria = DEFAULT_CRITERIA.map(x=>({...x}));
+let currentJudge = null;
+let contestants = [];
+let selectedContestantId = "";
+let unsubscribeCriteria = null;
+let unsubscribeContestants = null;
+
+function esc(v){
+  return String(v ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function normalizeCriteria(list){
+  if(!Array.isArray(list) || !list.length){
+    return DEFAULT_CRITERIA.map(x=>({...x}));
+  }
+  return list.map((x,i)=>({
+    id:String(x?.id || `criterion_${i+1}`),
+    name:String(x?.name || `รายการ ${i+1}`).trim() || `รายการ ${i+1}`,
+    max:Math.max(1,Math.min(1000,Math.floor(Number(x?.max)||1)))
+  }));
+}
+
+function getSongName(x){
+  for(const value of [x?.songName,x?.song,x?.songTitle,x?.เพลง,x?.ชื่อเพลง]){
+    const s=String(value ?? "").trim();
+    if(s) return s;
+  }
+  const name=String(x?.name ?? "");
+  const comma=name.indexOf(",");
+  return comma>=0 ? (name.slice(comma+1).trim() || "-") : "-";
+}
+
+function getCleanName(x){
+  let name=String(x?.name ?? "").trim();
+  const hasSong=[x?.songName,x?.song,x?.songTitle,x?.เพลง,x?.ชื่อเพลง]
+    .some(v=>String(v ?? "").trim());
+  if(!hasSong && name.includes(",")) name=name.split(",")[0].trim();
+  const no=Number(x?.order ?? 999999);
+  if(Number.isFinite(no) && no<999999){
+    name=name.replace(new RegExp(`^No\\.\\s*${no}\\s*`,"i"),"").trim();
+  }
+  return name;
+}
+
+async function verifyLogin(username,password){
+  const snap=await getDocs(collection(db,"admins"));
+  let found=null;
+
+  snap.forEach(d=>{
+    const a=d.data();
+    const role=String(a.role||"").trim().toLowerCase();
+
+    if(
+      String(a.username||"").trim().toLowerCase()===username.toLowerCase() &&
+      String(a.password||"")===password &&
+      a.active!==false &&
+      ["judge1","judge2","judge3"].includes(role)
+    ){
+      found={
+        id:d.id,
+        username:String(a.username||"").trim(),
+        role
+      };
+    }
+  });
+
+  return found;
+}
+
+function showLogin(msg=""){
+  document.getElementById("loginPage").classList.remove("hidden");
+  document.getElementById("appPage").classList.add("hidden");
+  document.getElementById("loginStatus").textContent=msg;
+}
+
+function showApp(){
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("appPage").classList.remove("hidden");
+
+  const n=currentJudge.role.replace("judge","");
+  document.getElementById("userLabel").textContent=`👤 ${currentJudge.username}`;
+  document.getElementById("judgeRoleLabel").textContent=`กรรมการ ${n}`;
+}
+
+function judgeIndex(){
+  return Number(currentJudge.role.replace("judge",""));
+}
+
+function scoreFieldName(){
+  return "score"+judgeIndex();
+}
+
+function readScore(index){
+  const el=document.getElementById(`score_${index}`);
+  if(!el) return 0;
+  const n=Number(el.value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function updateTotal(){
+  const total=criteria.reduce((sum,_,i)=>sum+readScore(i),0);
+  document.getElementById("judgeTotal").textContent=total;
+  return total;
+}
+
+function renderScoreInputs(){
+  const body=document.getElementById("scoreBody");
+
+  if(!selectedContestantId){
+    body.innerHTML='<tr><td colspan="3">กรุณาเลือกผู้ประกวด</td></tr>';
+    updateTotal();
+    return;
+  }
+
+  const c=contestants.find(x=>x.id===selectedContestantId);
+  if(!c){
+    body.innerHTML='<tr><td colspan="3">ไม่พบผู้ประกวด</td></tr>';
+    updateTotal();
+    return;
+  }
+
+  const arr=Array.isArray(c[scoreFieldName()]) ? c[scoreFieldName()] : [];
+  const submittedField=`judge${judgeIndex()}Submitted`;
+  const submitted=Boolean(c[submittedField]);
+
+  body.innerHTML=criteria.map((item,i)=>`
+    <tr>
+      <td>${i+1}.${esc(item.name)}</td>
+      <td>${item.max}</td>
+      <td>
+        <button type="button" class="step minus" data-i="${i}" ${submitted ? "disabled" : ""}>−</button>
+        <input
+          id="score_${i}"
+          class="score-input"
+          type="number"
+          min="0"
+          max="${item.max}"
+          step="1"
+          ${submitted ? "disabled" : ""}
+          value="${Math.max(0,Math.min(item.max,Number(arr[i] ?? 0)||0))}">
+        <button type="button" class="step plus" data-i="${i}" ${submitted ? "disabled" : ""}>+</button>
+      </td>
+    </tr>
+  `).join("");
+
+  const saveBtn=document.getElementById("saveBtn");
+  const clearBtn=document.getElementById("clearBtn");
+  saveBtn.disabled=submitted;
+  clearBtn.disabled=submitted;
+
+  if(submitted){
+    document.getElementById("status").textContent=
+      `🔒 กรรมการ ${judgeIndex()} บันทึกคะแนนของผู้ประกวดรายนี้แล้ว • ไม่สามารถแก้ไขหรือบันทึกซ้ำได้`;
+  }
+
+  criteria.forEach((item,i)=>{
+    const input=document.getElementById(`score_${i}`);
+    input.addEventListener("input",()=>{
+      let v=Number(input.value||0);
+      if(!Number.isFinite(v)) v=0;
+      v=Math.max(0,Math.min(item.max,Math.floor(v)));
+      input.value=v;
+      updateTotal();
+    });
+  });
+
+  body.querySelectorAll(".minus").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const i=Number(btn.dataset.i);
+      const input=document.getElementById(`score_${i}`);
+      input.value=Math.max(0,Number(input.value||0)-1);
+      updateTotal();
+    });
+  });
+
+  body.querySelectorAll(".plus").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const i=Number(btn.dataset.i);
+      const input=document.getElementById(`score_${i}`);
+      input.value=Math.min(criteria[i].max,Number(input.value||0)+1);
+      updateTotal();
+    });
+  });
+
+  updateTotal();
+}
+
+function updateContestantUI(){
+  const c=contestants.find(x=>x.id===selectedContestantId);
+  document.getElementById("songBox").textContent=`🎵 ชื่อเพลง: ${c ? getSongName(c) : "-"}`;
+  renderScoreInputs();
+}
+
+function renderContestants(){
+  const select=document.getElementById("judgeContestant");
+  const old=selectedContestantId;
+
+  select.innerHTML='<option value="">-- เลือกผู้ประกวด --</option>';
+
+  contestants
+    .sort((a,b)=>a.order-b.order)
+    .forEach(c=>{
+      const opt=document.createElement("option");
+      opt.value=c.id;
+      opt.textContent=`No.${c.order} ${c.name}`;
+      select.appendChild(opt);
+    });
+
+  if(old && contestants.some(x=>x.id===old)){
+    select.value=old;
+  }else{
+    selectedContestantId="";
+  }
+
+  updateContestantUI();
+  document.getElementById("status").textContent=
+    `กรรมการ ${judgeIndex()} • ${contestants.length} คน • ${criteria.length} รายการคะแนน`;
+}
+
+async function loadDataRealtime(){
+  if(unsubscribeCriteria) unsubscribeCriteria();
+  if(unsubscribeContestants) unsubscribeContestants();
+
+  unsubscribeCriteria=onSnapshot(
+    doc(db,"settings","scoringConfig"),
+    snap=>{
+      criteria = snap.exists() && Array.isArray(snap.data()?.criteria)
+        ? normalizeCriteria(snap.data().criteria)
+        : DEFAULT_CRITERIA.map(x=>({...x}));
+      renderScoreInputs();
+    },
+    err=>{
+      console.error("criteria:",err);
+      criteria=DEFAULT_CRITERIA.map(x=>({...x}));
+      renderScoreInputs();
+    }
+  );
+
+  unsubscribeContestants=onSnapshot(
+    collection(db,"contestants"),
+    snap=>{
+      contestants=[];
+      snap.forEach(d=>{
+        const x=d.data();
+        contestants.push({
+          id:d.id,
+          order:Number(x.order ?? 999999),
+          name:getCleanName(x),
+          songName:x.songName ?? "",
+          song:x.song ?? "",
+          songTitle:x.songTitle ?? "",
+          เพลง:x.เพลง ?? "",
+          ชื่อเพลง:x.ชื่อเพลง ?? "",
+          score1:Array.isArray(x.score1)?x.score1:[],
+          score2:Array.isArray(x.score2)?x.score2:[],
+          score3:Array.isArray(x.score3)?x.score3:[],
+          judge1Submitted:Boolean(x.judge1Submitted),
+          judge2Submitted:Boolean(x.judge2Submitted),
+          judge3Submitted:Boolean(x.judge3Submitted)
+        });
+      });
+      renderContestants();
+    },
+    err=>{
+      console.error("contestants:",err);
+      document.getElementById("status").textContent="❌ โหลดรายชื่อผู้ประกวดไม่ได้";
+    }
+  );
+}
+
+async function saveScores(){
+  if(!selectedContestantId) return alert("กรุณาเลือกผู้ประกวด");
+
+  const c=contestants.find(x=>x.id===selectedContestantId);
+  if(!c) return alert("ไม่พบผู้ประกวด");
+
+  const index=judgeIndex();
+  const field=`score${index}`;
+  const submittedField=`judge${index}Submitted`;
+
+  if(c[submittedField]){
+    alert(`กรรมการ ${index} ได้บันทึกคะแนนผู้ประกวดรายนี้แล้ว\nไม่สามารถแก้ไขหรือบันทึกซ้ำได้\n\nหากต้องการแก้ไข ให้ใช้ระบบกลาง`);
+    renderScoreInputs();
+    return;
+  }
+
+  const scores=criteria.map((item,i)=>{
+    const input=document.getElementById(`score_${i}`);
+    const value=Math.floor(Number(input?.value||0));
+
+    if(!Number.isFinite(value) || value<0 || value>item.max){
+      throw new Error(`รายการ "${item.name}" ต้องอยู่ระหว่าง 0-${item.max}`);
+    }
+    return value;
+  });
+
+  const total=scores.reduce((a,b)=>a+b,0);
+
+  if(!confirm(
+    `ยืนยันบันทึกคะแนน?\n\n`+
+    `กรรมการ ${index}\n`+
+    `No.${c.order} ${c.name}\n`+
+    `คะแนนของกรรมการ: ${total}`
+  )) return;
+
+  const contestantRef=doc(db,"contestants",selectedContestantId);
+
+  await runTransaction(db,async transaction=>{
+    const snap=await transaction.get(contestantRef);
+    if(!snap.exists()) throw new Error("ไม่พบข้อมูลผู้ประกวด");
+
+    const data=snap.data();
+
+    if(Boolean(data[submittedField])){
+      throw new Error(`กรรมการ ${index} บันทึกคะแนนผู้ประกวดรายนี้ไปแล้ว ไม่สามารถบันทึกซ้ำได้`);
+    }
+
+    const other1=Number(data.j1||0);
+    const other2=Number(data.j2||0);
+    const other3=Number(data.j3||0);
+
+    const newJ=[other1,other2,other3];
+    newJ[index-1]=total;
+
+    transaction.update(contestantRef,{
+      [field]:scores,
+      [`j${index}`]:total,
+      totalScore:newJ[0]+newJ[1]+newJ[2],
+      locked:false,
+      [submittedField]:true,
+      [`judge${index}SubmittedAt`]:new Date().toISOString(),
+      [`judge${index}SubmittedBy`]:currentJudge.username
+    });
+  });
+
+  const refreshed=contestants.find(x=>x.id===selectedContestantId);
+  if(refreshed){
+    refreshed[field]=scores.slice();
+    refreshed[submittedField]=true;
+  }
+
+  renderScoreInputs();
+  document.getElementById("status").textContent=
+    `✅ บันทึกคะแนนกรรมการ ${index} สำเร็จ • ${total} คะแนน • ล็อกการแก้ไขแล้ว`;
+}
+
+function clearInputs(){
+  criteria.forEach((_,i)=>{
+    const input=document.getElementById(`score_${i}`);
+    if(input) input.value=0;
+  });
+  updateTotal();
+}
+
+async function login(){
+  const u=document.getElementById("loginUser").value.trim();
+  const p=document.getElementById("loginPass").value;
+
+  if(!u||!p){
+    showLogin("กรุณากรอก Username และ Password");
+    return;
+  }
+
+  const btn=document.getElementById("loginBtn");
+  btn.disabled=true;
+  document.getElementById("loginStatus").textContent="กำลังตรวจสอบ...";
+
+  try{
+    const found=await verifyLogin(u,p);
+    if(!found){
+      showLogin("❌ บัญชีนี้ไม่มีสิทธิ์เป็นกรรมการ 1–3 หรือรหัสผ่านไม่ถูกต้อง");
+      document.getElementById("loginPass").value="";
+      return;
+    }
+
+    currentJudge=found;
+    localStorage.setItem(SESSION_KEY,JSON.stringify(found));
+    showApp();
+    await loadDataRealtime();
+
+  }catch(err){
+    console.error(err);
+    showLogin("❌ เข้าสู่ระบบไม่ได้: "+(err?.message||err));
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+async function restoreSession(){
+  const raw=localStorage.getItem(SESSION_KEY);
+  if(!raw){ showLogin(); return; }
+
+  try{
+    const saved=JSON.parse(raw);
+    if(!saved?.id || !saved?.username || !/^judge[123]$/.test(String(saved.role||""))){
+      throw new Error("Invalid judge session");
+    }
+
+    const snap=await getDoc(doc(db,"admins",saved.id));
+    if(!snap.exists()) throw new Error("ไม่พบบัญชี");
+
+    const a=snap.data();
+    const role=String(a.role||"").trim().toLowerCase();
+
+    if(
+      a.active===false ||
+      String(a.username||"").trim().toLowerCase()!==String(saved.username).toLowerCase() ||
+      !/^judge[123]$/.test(role)
+    ){
+      throw new Error("บัญชีกรรมการถูกปิดใช้งาน");
+    }
+
+    currentJudge={
+      id:snap.id,
+      username:String(a.username||"").trim(),
+      role
+    };
+
+    localStorage.setItem(SESSION_KEY,JSON.stringify(currentJudge));
+    showApp();
+    await loadDataRealtime();
+
+  }catch(err){
+    console.error(err);
+    localStorage.removeItem(SESSION_KEY);
+    showLogin("กรุณาเข้าสู่ระบบใหม่");
+  }
+}
+
+document.getElementById("loginBtn").addEventListener("click",login);
+document.getElementById("logoutBtn").addEventListener("click",()=>{
+  if(unsubscribeCriteria) unsubscribeCriteria();
+  if(unsubscribeContestants) unsubscribeContestants();
+  localStorage.removeItem(SESSION_KEY);
+  currentJudge=null;
+  location.reload();
+});
+document.getElementById("saveBtn").addEventListener("click",async()=>{
+  try{
+    await saveScores();
+  }catch(err){
+    console.error(err);
+    alert("❌ บันทึกคะแนนไม่สำเร็จ\n\n"+(err?.message||err));
+  }
+});
+document.getElementById("clearBtn").addEventListener("click",clearInputs);
+document.getElementById("reloadBtn").addEventListener("click",async()=>{
+  await loadDataRealtime();
+});
+document.getElementById("judgeContestant").addEventListener("change",e=>{
+  selectedContestantId=e.target.value;
+  updateContestantUI();
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter" && !document.getElementById("loginPage").classList.contains("hidden")){
+    login();
+  }
+});
+
+restoreSession();
+</script>
+</body>
+</html>
