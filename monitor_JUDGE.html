@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Monitor คะแนนกรรมการ - Singing Contest</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#f5f5f5;color:#222;font-family:Arial,sans-serif}
+body{min-height:100vh}
+.hidden{display:none!important}
+.page{width:100%;padding:16px}
+.header{text-align:center;margin-bottom:14px}
+.header h1{margin:0;font-size:30px}
+.header p{margin:4px 0 0;font-weight:bold;color:#555}
+.card{background:#fff;border-radius:10px;padding:14px;margin-top:12px;box-shadow:0 2px 8px rgba(0,0,0,.10)}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.user-badge{font-weight:bold}
+.role-box{display:inline-block;background:#eef6ff;color:#174a7e;padding:6px 11px;border-radius:18px;font-weight:bold;margin-left:6px}
+.actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+button{border:0;border-radius:6px;padding:8px 12px;background:#45ad54;color:#fff;cursor:pointer;font-size:14px}
+button:hover{opacity:.9}
+button:disabled{opacity:.5;cursor:not-allowed}
+.btn-blue{background:#1976d2}.btn-red{background:#d9363e}.btn-gray{background:#777}.btn-orange{background:#ef8b17}
+input,select{height:38px;padding:6px 9px;border:1px solid #ccc;border-radius:6px;font-size:15px}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{width:min(420px,95%);background:#fff;padding:28px;border-radius:12px;box-shadow:0 3px 18px rgba(0,0,0,.15);text-align:center}
+.login-box input{width:100%;margin:6px 0}.login-box button{width:100%;margin-top:10px}
+.login-status{min-height:22px;margin-top:10px;color:#b00000}
+.notice{padding:9px 12px;background:#eef6ff;border-left:4px solid #1976d2;font-weight:bold;color:#174a7e}
+.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#searchBox{flex:1 1 260px;min-width:220px}
+.status-summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.stat{background:#fafafa;border:1px solid #ddd;border-radius:8px;padding:8px 12px;font-weight:bold}
+.table-wrap{width:100%;overflow:auto}
+table{width:100%;border-collapse:collapse;margin-top:12px;min-width:1250px}
+th,td{border:1px solid #ccc;padding:7px;text-align:center;vertical-align:middle}
+th{background:#eee;font-size:14px}
+td.name{text-align:left;font-weight:bold;white-space:nowrap}
+.group-head{background:#dfefff;font-weight:bold}
+.submitted{color:#178238;font-weight:bold}
+.pending{color:#b46a00;font-weight:bold}
+.total-good{font-weight:bold;background:#f3fbf4}
+.score-list{font-size:13px;line-height:1.45;text-align:left;white-space:nowrap}
+.score-list span{display:block}
+.total-box{font-size:18px;font-weight:bold}
+.edit-btn{font-size:13px;padding:7px 10px}
+.modal-backdrop{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:12px}
+.modal-backdrop.show{display:flex}
+.modal-box{width:min(900px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:12px;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.modal-head h2{margin:0;font-size:22px}
+.edit-grid{display:grid;grid-template-columns:1fr 110px 140px;gap:8px;align-items:center;margin-top:12px}
+.edit-grid .head{font-weight:bold;background:#eee;padding:7px;text-align:center}
+.edit-grid .cell{padding:6px;text-align:center;border:1px solid #ddd}
+.edit-grid input{width:100%;text-align:center}
+.edit-total{margin-top:12px;padding:10px;background:#fff3cd;font-size:20px;font-weight:bold;text-align:center}
+.modal-actions{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.footer-note{margin-top:10px;color:#666;font-size:12px;text-align:center}
+@media(max-width:900px){
+  .page{padding:8px}.header h1{font-size:23px}.header p{font-size:13px}
+  .card{padding:10px}.topbar{align-items:flex-start}
+  .actions{width:100%}.actions button{flex:1 1 auto}
+  #searchBox{min-width:0;width:100%}
+  table{min-width:1050px;font-size:12px}
+  th,td{padding:5px}
+  .score-list{font-size:11px}
+  .modal-box{padding:12px}.edit-grid{grid-template-columns:1fr 90px 120px}
+}
+@media(max-width:600px){
+  .role-box{margin-left:0;margin-top:4px}.topbar>div:first-child{width:100%}
+  .filters>*{width:100%}.filters button{width:100%}
+  .edit-grid{grid-template-columns:1fr 78px 100px;font-size:13px}
+}
+</style>
+</head>
+<body>
+<section id="loginPage" class="login-wrap">
+  <div class="login-box">
+    <h2>📊 Monitor คะแนนกรรมการ</h2>
+    <p>ตรวจสอบการส่งคะแนนของกรรมการ 1–3</p>
+    <input id="loginUser" placeholder="Username" autocomplete="username">
+    <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" type="button">เข้าสู่ระบบ</button>
+    <div id="loginStatus" class="login-status"></div>
+    <div class="footer-note">เฉพาะ Admin และผู้พัฒนาระบบ</div>
+  </div>
+</section>
+
+<section id="appPage" class="hidden">
+  <div class="page">
+    <div class="header">
+      <h1>📊 Monitor คะแนนกรรมการ</h1>
+      <p>Singing Contest Scoring System • Judge Monitoring</p>
+    </div>
+
+    <div class="card topbar">
+      <div>
+        <span class="user-badge" id="userLabel">👤 ผู้ใช้</span>
+        <span class="role-box" id="roleLabel">Admin</span>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn-gray" onclick="window.location.assign('./index.html')">↔️ ระบบกลาง</button>
+        <button type="button" class="btn-gray" id="reloadBtn">🔄 รีเฟรช</button>
+        <button type="button" class="btn-red" id="logoutBtn">🚪 Logout</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="notice">📡 ข้อมูลคะแนนและสถานะการส่งของกรรมการอัปเดตแบบเรียลไทม์ • Admin และผู้พัฒนาสามารถเปิดแก้ไขคะแนนได้</div>
+      <div class="filters" style="margin-top:10px">
+        <input id="searchBox" placeholder="🔎 ค้นหา No. หรือชื่อผู้ประกวด">
+        <select id="statusFilter" style="min-width:190px">
+          <option value="all">แสดงทั้งหมด</option>
+          <option value="complete">ส่งครบ 3 กรรมการ</option>
+          <option value="partial">ส่งบางกรรมการ</option>
+          <option value="none">ยังไม่ส่งคะแนน</option>
+        </select>
+      </div>
+      <div class="status-summary">
+        <div class="stat" id="statContestants">ผู้ประกวด: 0</div>
+        <div class="stat" id="statJudge1">กรรมการ 1: 0/0</div>
+        <div class="stat" id="statJudge2">กรรมการ 2: 0/0</div>
+        <div class="stat" id="statJudge3">กรรมการ 3: 0/0</div>
+        <div class="stat" id="statComplete">ส่งครบ 3 คน: 0</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th rowspan="2">NO.</th>
+              <th rowspan="2">ชื่อผู้ประกวด</th>
+              <th colspan="3" class="group-head">กรรมการ 1</th>
+              <th colspan="3" class="group-head">กรรมการ 2</th>
+              <th colspan="3" class="group-head">กรรมการ 3</th>
+              <th rowspan="2">คะแนนรวม<br>ทั้ง 3 กรรมการ</th>
+              <th rowspan="2">จัดการ</th>
+            </tr>
+            <tr>
+              <th>ผู้ใช้</th><th>สถานะ</th><th>คะแนน</th>
+              <th>ผู้ใช้</th><th>สถานะ</th><th>คะแนน</th>
+              <th>ผู้ใช้</th><th>สถานะ</th><th>คะแนน</th>
+            </tr>
+          </thead>
+          <tbody id="monitorBody">
+            <tr><td colspan="13">กำลังโหลดข้อมูล...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="editModal" class="modal-backdrop">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h2>✏️ แก้ไขคะแนนกรรมการ</h2>
+        <div id="editContestantInfo" style="margin-top:5px;font-weight:bold"></div>
+      </div>
+      <div class="role-box" id="editJudgeInfo">กรรมการ</div>
+    </div>
+    <div id="editGrid" class="edit-grid"></div>
+    <div id="editTotal" class="edit-total">รวมคะแนน: 0</div>
+    <div class="modal-actions">
+      <button type="button" class="btn-orange" id="saveEditBtn">💾 บันทึกการแก้ไข</button>
+      <button type="button" class="btn-gray" id="closeEditBtn">↩️ ยกเลิก</button>
+    </div>
+    <div class="footer-note">การแก้ไขจะบันทึกลงคะแนนของกรรมการที่เลือก และคำนวณคะแนนรวมใหม่อัตโนมัติ</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getFirestore, collection, getDocs, getDoc, doc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+const firebaseConfig={
+  apiKey:"AIzaSy...",
+  authDomain:"...",
+  projectId:"singing-contest-85f70"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const SESSION_KEY="singingContestAdminSession";
+const DEVELOPER_USERNAME="sirichai";
+const DEVELOPER_ROLE="developer";
+
+const DEFAULT_CRITERIA=[
+  {id:"tone",name:"น้ำเสียง",max:30},
+  {id:"technique",name:"เทคนิค",max:10},
+  {id:"rhythm",name:"จังหวะ",max:20},
+  {id:"pronunciation",name:"อักขระ",max:10},
+  {id:"personality",name:"บุคลิก",max:10},
+  {id:"difficulty",name:"ความยาก",max:10},
+  {id:"costume",name:"แต่งกาย",max:10}
+];
+
+let currentAdmin=null;
+let criteria=DEFAULT_CRITERIA.map(x=>({...x}));
+let contestants=[];
+let judgeUsers={1:"-",2:"-",3:"-"};
+let unsubscribeCriteria=null;
+let unsubscribeContestants=null;
+let unsubscribeAdmins=null;
+let editing={contestantId:"",judgeNo:0};
+
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+function normalizeCriteria(list){
+  if(!Array.isArray(list)||!list.length)return DEFAULT_CRITERIA.map(x=>({...x}));
+  return list.map((x,i)=>({id:String(x?.id||`criterion_${i+1}`),name:String(x?.name||`รายการ ${i+1}`).trim()||`รายการ ${i+1}`,max:Math.max(1,Math.min(1000,Math.floor(Number(x?.max)||1)))}));
+}
+function cleanName(a){
+  let name=String(a?.name??"").trim();
+  const no=Number(a?.order??999999);
+  if(Number.isFinite(no)&&no<999999)name=name.replace(new RegExp(`^No\\.\\s*${no}\\s*`,`i`),"").trim();
+  return name;
+}
+function songName(a){
+  for(const v of [a?.songName,a?.song,a?.songTitle,a?.เพลง,a?.ชื่อเพลง]){const s=String(v??"").trim();if(s)return s;}
+  return "-";
+}
+function isPrivileged(a){
+  if(!a)return false;
+  return a.protected===true || String(a.role||"").toLowerCase()===DEVELOPER_ROLE || String(a.username||"").trim().toLowerCase()===DEVELOPER_USERNAME.toLowerCase() || String(a.role||"").toLowerCase()==="admin";
+}
+function roleLabel(a){
+  const role=String(a?.role||"").toLowerCase();
+  if(a?.protected||role===DEVELOPER_ROLE||String(a?.username||"").toLowerCase()===DEVELOPER_USERNAME.toLowerCase())return "ผู้พัฒนาระบบ";
+  return role==="admin"?"Admin":"-";
+}
+function showLogin(msg=""){
+  document.getElementById("loginPage").classList.remove("hidden");
+  document.getElementById("appPage").classList.add("hidden");
+  document.getElementById("loginStatus").textContent=msg;
+}
+function showApp(){
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("appPage").classList.remove("hidden");
+  document.getElementById("userLabel").textContent=`👤 ${currentAdmin.username}`;
+  document.getElementById("roleLabel").textContent=roleLabel(currentAdmin);
+}
+async function authenticate(u,p){
+  const snap=await getDocs(collection(db,"admins"));
+  let found=null;
+  snap.forEach(d=>{
+    const a=d.data();
+    if(String(a.username||"").trim().toLowerCase()===u.toLowerCase() && String(a.password||"")===p && a.active!==false && isPrivileged(a)){
+      found={id:d.id,username:String(a.username||"").trim(),role:a.role||"admin",protected:a.protected===true};
+    }
+  });
+  return found;
+}
+async function login(){
+  const u=document.getElementById("loginUser").value.trim();
+  const p=document.getElementById("loginPass").value;
+  if(!u||!p){showLogin("กรุณากรอก Username และ Password");return;}
+  const btn=document.getElementById("loginBtn");btn.disabled=true;document.getElementById("loginStatus").textContent="กำลังตรวจสอบ...";
+  try{
+    const found=await authenticate(u,p);
+    if(!found){showLogin("❌ อนุญาตเฉพาะ Admin และผู้พัฒนาระบบ");document.getElementById("loginPass").value="";return;}
+    currentAdmin=found;
+    localStorage.setItem(SESSION_KEY,JSON.stringify(found));
+    showApp();
+    await loadRealtime();
+  }catch(err){console.error(err);showLogin("❌ เข้าสู่ระบบไม่ได้: "+(err?.message||err));}
+  finally{btn.disabled=false;}
+}
+async function restoreSession(){
+  const raw=localStorage.getItem(SESSION_KEY);
+  if(!raw){showLogin();return;}
+  try{
+    const saved=JSON.parse(raw);
+    if(!saved?.id||!saved?.username)throw new Error("Invalid session");
+    const snap=await getDoc(doc(db,"admins",saved.id));
+    if(!snap.exists())throw new Error("ไม่พบบัญชี");
+    const a=snap.data();
+    const restored={id:snap.id,username:String(a.username||"").trim(),role:a.role||"admin",protected:a.protected===true};
+    if(a.active===false||String(a.username||"").trim().toLowerCase()!==String(saved.username).toLowerCase()||!isPrivileged(restored))throw new Error("บัญชีไม่มีสิทธิ์");
+    currentAdmin=restored;showApp();await loadRealtime();
+  }catch(err){localStorage.removeItem(SESSION_KEY);showLogin("กรุณาเข้าสู่ระบบใหม่");}
+}
+
+function setStats(){
+  const total=contestants.length;
+  const counts=[1,2,3].map(n=>contestants.filter(c=>c[`judge${n}Submitted`]).length);
+  const complete=contestants.filter(c=>c.judge1Submitted&&c.judge2Submitted&&c.judge3Submitted).length;
+  document.getElementById("statContestants").textContent=`ผู้ประกวด: ${total}`;
+  document.getElementById("statJudge1").textContent=`กรรมการ 1: ${counts[0]}/${total}`;
+  document.getElementById("statJudge2").textContent=`กรรมการ 2: ${counts[1]}/${total}`;
+  document.getElementById("statJudge3").textContent=`กรรมการ 3: ${counts[2]}/${total}`;
+  document.getElementById("statComplete").textContent=`ส่งครบ 3 คน: ${complete}`;
+}
+function judgeBlock(c,n){
+  const submitted=Boolean(c[`judge${n}Submitted`]);
+  const scores=Array.isArray(c[`score${n}`])?c[`score${n}`]:[];
+  const total=Number(c[`j${n}`]||0);
+  const scoreHtml=criteria.map((x,i)=>`<span>${i+1}. ${esc(x.name)}: ${Number(scores[i]||0)}/${x.max}</span>`).join("");
+  return {
+    user:esc(judgeUsers[n]||"-"),
+    status:submitted?`<span class="submitted">✅ ส่งแล้ว</span>`:`<span class="pending">⏳ ยังไม่ส่ง</span>`,
+    scores:`<div class="score-list">${scoreHtml||"-"}<span><b>รวม: ${total}</b></span></div>`,
+    total
+  };
+}
+function render(){
+  const body=document.getElementById("monitorBody");
+  const q=document.getElementById("searchBox").value.trim().toLowerCase();
+  const sf=document.getElementById("statusFilter").value;
+  const list=contestants.filter(c=>{
+    const text=`${c.order} ${c.name}`.toLowerCase();
+    if(q&&!text.includes(q))return false;
+    const submitted=[c.judge1Submitted,c.judge2Submitted,c.judge3Submitted].filter(Boolean).length;
+    if(sf==="complete"&&submitted!==3)return false;
+    if(sf==="partial"&&(submitted===0||submitted===3))return false;
+    if(sf==="none"&&submitted!==0)return false;
+    return true;
+  }).sort((a,b)=>a.order-b.order);
+  setStats();
+  if(!list.length){body.innerHTML='<tr><td colspan="13">ไม่พบข้อมูลตามเงื่อนไข</td></tr>';return;}
+  body.innerHTML=list.map(c=>{
+    const j1=judgeBlock(c,1),j2=judgeBlock(c,2),j3=judgeBlock(c,3);
+    const grand=j1.total+j2.total+j3.total;
+    return `<tr>
+      <td>${c.order}</td>
+      <td class="name">${esc(c.name)}<div style="font-size:11px;font-weight:normal;color:#666">🎵 ${esc(songName(c.data||{}))}</div></td>
+      <td>${j1.user}</td><td>${j1.status}</td><td>${j1.scores}</td>
+      <td>${j2.user}</td><td>${j2.status}</td><td>${j2.scores}</td>
+      <td>${j3.user}</td><td>${j3.status}</td><td>${j3.scores}</td>
+      <td class="total-good"><div class="total-box">${grand}</div></td>
+      <td>
+        <button type="button" class="edit-btn btn-blue" data-id="${esc(c.id)}" data-judge="1">✏️ กก.1</button>
+        <button type="button" class="edit-btn btn-blue" data-id="${esc(c.id)}" data-judge="2">✏️ กก.2</button>
+        <button type="button" class="edit-btn btn-blue" data-id="${esc(c.id)}" data-judge="3">✏️ กก.3</button>
+      </td>
+    </tr>`;
+  }).join("");
+  body.querySelectorAll("button[data-id]").forEach(btn=>btn.addEventListener("click",()=>openEditor(btn.dataset.id,Number(btn.dataset.judge))));
+}
+
+async function loadRealtime(){
+  if(unsubscribeCriteria)unsubscribeCriteria();
+  if(unsubscribeContestants)unsubscribeContestants();
+  if(unsubscribeAdmins)unsubscribeAdmins();
+  unsubscribeCriteria=onSnapshot(doc(db,"settings","scoringConfig"),snap=>{
+    criteria=snap.exists()&&Array.isArray(snap.data()?.criteria)?normalizeCriteria(snap.data().criteria):DEFAULT_CRITERIA.map(x=>({...x}));
+    render();
+    if(editing.contestantId)refreshEditor();
+  },err=>{console.error(err);criteria=DEFAULT_CRITERIA.map(x=>({...x}));render();});
+  unsubscribeContestants=onSnapshot(collection(db,"contestants"),snap=>{
+    contestants=[];
+    snap.forEach(d=>{
+      const a=d.data();
+      contestants.push({id:d.id,data:a,order:Number(a.order??999999),name:cleanName(a),score1:Array.isArray(a.score1)?a.score1:[],score2:Array.isArray(a.score2)?a.score2:[],score3:Array.isArray(a.score3)?a.score3:[],j1:Number(a.j1||0),j2:Number(a.j2||0),j3:Number(a.j3||0),totalScore:Number(a.totalScore||0),judge1Submitted:Boolean(a.judge1Submitted),judge2Submitted:Boolean(a.judge2Submitted),judge3Submitted:Boolean(a.judge3Submitted)});
+    });
+    render();
+    refreshEditor();
+  },err=>{console.error(err);document.getElementById("monitorBody").innerHTML='<tr><td colspan="13">❌ โหลดข้อมูลคะแนนไม่ได้</td></tr>';});
+  unsubscribeAdmins=onSnapshot(collection(db,"admins"),snap=>{
+    const map={1:"-",2:"-",3:"-"};
+    snap.forEach(d=>{const a=d.data();const role=String(a.role||"").toLowerCase();const n=Number(a.judgeNo||0);if(role==="user"&&[1,2,3].includes(n)&&a.active!==false)map[n]=String(a.username||"-");});
+    judgeUsers=map;render();
+  },err=>{console.error(err);render();});
+}
+
+function updateEditTotal(){
+  let total=0;criteria.forEach((_,i)=>{total+=Number(document.getElementById(`edit_score_${i}`)?.value||0);});
+  document.getElementById("editTotal").textContent=`รวมคะแนน: ${total}`;
+  return total;
+}
+function openEditor(id,judgeNo){
+  editing={contestantId:id,judgeNo};
+  const c=contestants.find(x=>x.id===id);if(!c)return;
+  document.getElementById("editContestantInfo").textContent=`No.${c.order} ${c.name} • 🎵 ${songName(c.data||{})}`;
+  document.getElementById("editJudgeInfo").textContent=`กรรมการ ${judgeNo} • ผู้ใช้: ${judgeUsers[judgeNo]||"-"}`;
+  const arr=Array.isArray(c[`score${judgeNo}`])?c[`score${judgeNo}`]:[];
+  const grid=document.getElementById("editGrid");
+  grid.innerHTML=`<div class="head">รายการคะแนน</div><div class="head">คะแนนเต็ม</div><div class="head">คะแนน</div>`+
+    criteria.map((x,i)=>`<div class="cell" style="text-align:left">${i+1}. ${esc(x.name)}</div><div class="cell">${x.max}</div><div class="cell"><input id="edit_score_${i}" type="number" min="0" max="${x.max}" step="1" value="${Math.max(0,Math.min(x.max,Number(arr[i]||0)))}"></div>`).join("");
+  criteria.forEach((x,i)=>document.getElementById(`edit_score_${i}`).addEventListener("input",()=>{let v=Math.floor(Number(document.getElementById(`edit_score_${i}`).value||0));v=Math.max(0,Math.min(x.max,Number.isFinite(v)?v:0));document.getElementById(`edit_score_${i}`).value=v;updateEditTotal();}));
+  updateEditTotal();
+  document.getElementById("editModal").classList.add("show");
+}
+function refreshEditor(){if(editing.contestantId&&document.getElementById("editModal").classList.contains("show"))openEditor(editing.contestantId,editing.judgeNo);}
+function closeEditor(){editing={contestantId:"",judgeNo:0};document.getElementById("editModal").classList.remove("show");}
+async function saveEdit(){
+  if(!editing.contestantId||![1,2,3].includes(editing.judgeNo))return;
+  const judgeNo=editing.judgeNo;
+  const scores=criteria.map((x,i)=>{const n=Math.floor(Number(document.getElementById(`edit_score_${i}`)?.value||0));if(!Number.isFinite(n)||n<0||n>x.max)throw new Error(`${x.name}: ต้องอยู่ระหว่าง 0-${x.max}`);return n;});
+  const total=scores.reduce((a,b)=>a+b,0);
+  const c=contestants.find(x=>x.id===editing.contestantId);
+  if(!c)return;
+  if(!confirm(`ยืนยันแก้ไขคะแนน?\n\nNo.${c.order} ${c.name}\nกรรมการ ${judgeNo}\nคะแนนรวมของกรรมการ: ${total}`))return;
+  const ref=doc(db,"contestants",editing.contestantId);
+  const btn=document.getElementById("saveEditBtn");btn.disabled=true;
+  try{
+    await runTransaction(db,async tx=>{
+      const snap=await tx.get(ref);if(!snap.exists())throw new Error("ไม่พบข้อมูลผู้ประกวด");
+      const data=snap.data();
+      const j=[Number(data.j1||0),Number(data.j2||0),Number(data.j3||0)];
+      j[judgeNo-1]=total;
+      tx.update(ref,{
+        [`score${judgeNo}`]:scores,
+        [`j${judgeNo}`]:total,
+        totalScore:j[0]+j[1]+j[2],
+        scoreCriteria:criteria.map(x=>({id:x.id,name:x.name,max:x.max})),
+        adminEdited:true,
+        adminEditedAt:new Date().toISOString(),
+        adminEditedBy:currentAdmin?.username||"unknown"
+      });
+    });
+    closeEditor();
+  }catch(err){console.error(err);alert("❌ แก้ไขคะแนนไม่สำเร็จ\n\n"+(err?.message||err));}
+  finally{btn.disabled=false;}
+}
+
+document.getElementById("loginBtn").addEventListener("click",login);
+document.getElementById("reloadBtn").addEventListener("click",async()=>{await loadRealtime();});
+document.getElementById("logoutBtn").addEventListener("click",()=>{if(unsubscribeCriteria)unsubscribeCriteria();if(unsubscribeContestants)unsubscribeContestants();if(unsubscribeAdmins)unsubscribeAdmins();localStorage.removeItem(SESSION_KEY);location.reload();});
+document.getElementById("searchBox").addEventListener("input",render);
+document.getElementById("statusFilter").addEventListener("change",render);
+document.getElementById("closeEditBtn").addEventListener("click",closeEditor);
+document.getElementById("saveEditBtn").addEventListener("click",async()=>{try{await saveEdit();}catch(err){console.error(err);alert("❌ แก้ไขคะแนนไม่สำเร็จ\n\n"+(err?.message||err));}});
+document.getElementById("editModal").addEventListener("click",e=>{if(e.target.id==="editModal")closeEditor();});
+restoreSession();
+</script>
+</body>
+</html>
