@@ -404,8 +404,19 @@ function renderContestants(){
     .sort((a,b)=>a.order-b.order)
     .forEach(c=>{
       const opt=document.createElement("option");
+      const submittedField=`judge${judgeIndex()}Submitted`;
+      const submitted=Boolean(c[submittedField]);
+
       opt.value=c.id;
-      opt.textContent=`No.${c.order} ${c.name}`;
+      opt.textContent=submitted
+        ? `No.${c.order} ${c.name} ✅`
+        : `No.${c.order} ${c.name}`;
+
+      if(submitted){
+        opt.style.color="green";
+        opt.style.fontWeight="bold";
+      }
+
       select.appendChild(opt);
     });
 
