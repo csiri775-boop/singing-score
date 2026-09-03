@@ -587,15 +587,34 @@ async function saveScores(){
     });
   });
 
+  const completedOrder=c.order;
+
   const refreshed=contestants.find(x=>x.id===selectedContestantId);
   if(refreshed){
     refreshed[field]=scores.slice();
     refreshed[submittedField]=true;
   }
 
-  renderScoreInputs();
-  document.getElementById("status").textContent=
-    `✅ บันทึกคะแนนกรรมการ ${index} สำเร็จ • ${total} คะแนน • ล็อกการแก้ไขแล้ว`;
+  // ล้างคะแนนที่กรอกทันทีหลังบันทึก และเลื่อนไปผู้ประกวดถัดไปตามลำดับ
+  clearInputs();
+
+  const nextContestant=contestants
+    .filter(x=>x.order>completedOrder)
+    .sort((a,b)=>a.order-b.order)[0];
+
+  if(nextContestant){
+    selectedContestantId=nextContestant.id;
+    document.getElementById("judgeContestant").value=nextContestant.id;
+    updateContestantUI();
+    document.getElementById("status").textContent=
+      `✅ บันทึกคะแนนกรรมการ ${index} สำเร็จ • ${total} คะแนน • เลื่อนไป No.${nextContestant.order} อัตโนมัติ`;
+  }else{
+    selectedContestantId="";
+    document.getElementById("judgeContestant").value="";
+    updateContestantUI();
+    document.getElementById("status").textContent=
+      `✅ บันทึกคะแนนกรรมการ ${index} สำเร็จ • ${total} คะแนน • ถึงผู้ประกวดลำดับสุดท้ายแล้ว`;
+  }
 }
 
 function clearInputs(){
