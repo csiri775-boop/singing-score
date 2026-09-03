@@ -661,7 +661,6 @@ hr{margin:2px 0 !important;}
   <button class="toolbar-btn" onclick="clearScore()">🧹 ล้างช่อง</button>
   <button class="toolbar-btn" onclick="openMonitor()">📺 Monitor</button>
   <button class="toolbar-btn" type="button" onclick="window.openAdminPage()">⚙️ จัดการแอดมิน</button>
-  <button class="toolbar-btn" onclick="resetAll()">🧨 สิ้นสุด</button>
 
   <!-- แถบผู้ดูแล: ย้ายมาอยู่แถวเดียวกับเมนูบันทึก ชิดขวาสุดของหน้าจอ -->
   <div id="adminBar">
@@ -1787,15 +1786,6 @@ window.clearScore=()=>{
 document.querySelectorAll("input[type=number]").forEach(i=>i.value="");
 };
 
-// BACKUP
-window.backupData=()=>{
-let blob=new Blob([JSON.stringify(cache)]);
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="backup.json";
-a.click();
-};
-
 // ===== RESTORE BACKUP =====
 let pendingRestoreData = null;
 
@@ -1947,19 +1937,6 @@ window.confirmRestoreBackup = async function(){
     console.error(err);
     alert("❌ เรียกคืนข้อมูลไม่สำเร็จ\n"+err.message);
   }
-};
-
-// RESET
-window.resetAll=async()=>{
-if(!confirm("Backup ก่อนลบ?")) return;
-backupData();
-if(!confirm("ลบทั้งหมด?")) return;
-
-const snap=await getDocs(collection(db,"contestants"));
-for(const d of snap.docs){
-await deleteDoc(doc(db,"contestants",d.id));
-}
-alert("ล้างแล้ว");
 };
 
 // TABLE
