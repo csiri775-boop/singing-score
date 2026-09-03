@@ -41,6 +41,7 @@ td.name{text-align:left;font-weight:bold;white-space:nowrap}
 .submitted{color:#178238;font-weight:bold}
 .pending{color:#b46a00;font-weight:bold}
 .total-good{font-weight:bold;background:#f3fbf4}
+.tie-red{color:red!important;font-weight:bold!important}
 .score-list{font-size:13px;line-height:1.45;text-align:left;white-space:nowrap}
 .score-list span{display:block}
 .total-box{font-size:18px;font-weight:bold}
@@ -318,16 +319,26 @@ function render(){
   }).sort((a,b)=>a.order-b.order);
   setStats();
   if(!list.length){body.innerHTML='<tr><td colspan="13">ไม่พบข้อมูลตามเงื่อนไข</td></tr>';return;}
+
+  // ทำเครื่องหมายเฉพาะผู้ประกวดที่มีคะแนนรวม 3 กรรมการเท่ากันกับผู้ประกวดรายอื่น
+  const grandTotals=list.map(c=>({id:c.id,total:Number(c.j1||0)+Number(c.j2||0)+Number(c.j3||0)}));
+  const grandCounts=new Map();
+  grandTotals.forEach(x=>{
+    if(x.total>0) grandCounts.set(x.total,(grandCounts.get(x.total)||0)+1);
+  });
+
   body.innerHTML=list.map(c=>{
     const j1=judgeBlock(c,1),j2=judgeBlock(c,2),j3=judgeBlock(c,3);
     const grand=j1.total+j2.total+j3.total;
+    const tied=grand>0 && (grandCounts.get(grand)||0)>1;
+    const tieClass=tied ? ' tie-red' : '';
     return `<tr>
-      <td>${c.order}</td>
-      <td class="name">${esc(c.name)}<div style="font-size:11px;font-weight:normal;color:#666">🎵 ${esc(songName(c.data||{}))}</div></td>
+      <td class="${tieClass.trim()}">${c.order}</td>
+      <td class="name${tieClass}">${esc(c.name)}<div style="font-size:11px;font-weight:normal;color:#666">🎵 ${esc(songName(c.data||{}))}</div></td>
       <td>${j1.user}</td><td>${j1.status}</td><td>${j1.scores}</td>
       <td>${j2.user}</td><td>${j2.status}</td><td>${j2.scores}</td>
       <td>${j3.user}</td><td>${j3.status}</td><td>${j3.scores}</td>
-      <td class="total-good"><div class="total-box">${grand}</div></td>
+      <td class="total-good${tieClass}"><div class="total-box">${grand}</div></td>
       <td>
         <button type="button" class="edit-btn btn-blue" data-id="${esc(c.id)}" data-judge="1">✏️ กก.1</button>
         <button type="button" class="edit-btn btn-blue" data-id="${esc(c.id)}" data-judge="2">✏️ กก.2</button>
