@@ -55,6 +55,19 @@ button{
   font-size:14px;
 }
 button:hover{opacity:.9}
+/* ===== ADMIN TOPBAR: keep all menus on one row ===== */
+.topbar .actions{
+  flex-wrap:nowrap;
+  gap:5px;
+  min-width:0;
+}
+.topbar .actions button{
+  flex:0 1 auto;
+  padding:8px 10px;
+  font-size:13px;
+  white-space:nowrap;
+  margin:0;
+}
 .btn-red{background:#d9363e}
 .btn-gray{background:#777}
 .card{
@@ -253,6 +266,7 @@ td:first-child{text-align:left}
     <div class="user" id="userLabel">👤 แอดมิน</div>
     <div class="actions">
       <button type="button" onclick="window.goIndex()">⬅️ กลับหน้าหลัก</button>
+      <button type="button" id="judgeLinkBtn" onclick="window.open('./judge.html','_blank')">🎤 ลิงค์คะแนนกรรมการ</button>
       <button type="button" id="restoreBtn" class="developer-only" onclick="window.open('./backup.html','_blank')">♻️ เรียกคืนข้อมูลจากไฟล์แบ็คอัพ</button>
       <button type="button" id="backupBtn" class="developer-only" onclick="window.open('./backup.html','_blank')">💾 Backup</button>
       <button type="button" id="scoreSheetBtn" onclick="window.open('./print-score.html','_blank')">📝 พิมพ์ใบบันทึกคะแนน</button>
