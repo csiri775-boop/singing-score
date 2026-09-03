@@ -101,7 +101,7 @@ td.name{text-align:left;font-weight:bold;white-space:nowrap}
         <span class="role-box" id="roleLabel">Admin</span>
       </div>
       <div class="actions">
-        <button type="button" class="btn-gray" onclick="window.location.assign('./index.html')">↔️ ระบบกลาง</button>
+        <button type="button" class="btn-gray" onclick="window.location.assign('./admin.html')">↔️ กลับระบบแอดมิน</button>
         <button type="button" class="btn-gray" id="reloadBtn">🔄 รีเฟรช</button>
         <button type="button" class="btn-red" id="logoutBtn">🚪 Logout</button>
       </div>
@@ -426,7 +426,7 @@ async function saveEdit(){
 }
 
 document.getElementById("loginBtn").addEventListener("click",login);
-document.getElementById("reloadBtn").addEventListener("click",async()=>{await loadRealtime();});
+document.getElementById("reloadBtn").addEventListener("click", () => { window.location.reload(); });
 document.getElementById("logoutBtn").addEventListener("click",()=>{if(unsubscribeCriteria)unsubscribeCriteria();if(unsubscribeContestants)unsubscribeContestants();if(unsubscribeAdmins)unsubscribeAdmins();localStorage.removeItem(SESSION_KEY);location.reload();});
 document.getElementById("searchBox").addEventListener("input",render);
 document.getElementById("statusFilter").addEventListener("change",render);
