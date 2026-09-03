@@ -488,6 +488,7 @@ td:first-child{text-align:left}
       <select id="newRole" onchange="toggleJudgeNoField()">
         <option value="admin">Admin (ให้คะแนน + จัดการแอดมิน)</option>
         <option value="user">User (ให้คะแนนอย่างเดียว)</option>
+        <option value="system">ระบบคะแนนกลาง (ให้คะแนนหน้า index.html)</option>
       </select>
       <select id="newJudgeNo" disabled>
         <option value="">-- เลือกกรรมการ --</option>
@@ -683,17 +684,12 @@ function showLogin(){
   document.getElementById("loginBox").classList.remove("hidden");
 }
 
-// สิทธิ์เข้าหน้า Admin: developer, admin และ user เข้าได้
-// developer = เห็น/ใช้เมนูจัดการทั้งหมด
-// admin/user = เห็นและใช้งาน 4 เมนูสาธารณะ:
-// พิมพ์ใบบันทึกคะแนน, Excel, พิมพ์รายงานคะแนน และประกาศผล
+// สิทธิ์เข้าหน้า Admin: อนุญาตเฉพาะ developer และ admin เท่านั้น (ไม่อนุญาต user และ system)
 function canAccessAdminPage(admin){
   if(!admin) return false;
   if(admin.protected) return true;
   const role=String(admin.role||"admin").toLowerCase();
-  // admin และ developer เข้าหน้า Admin ได้
-  // user ก็เข้าหน้า Admin ได้เช่นกัน แต่เห็นเฉพาะ Excel / รายงาน / ประกาศผล
-  return role==="admin" || role==="user" || role===DEVELOPER_ROLE;
+  return role==="admin" || role===DEVELOPER_ROLE;
 }
 
 function isDeveloper(){
@@ -721,8 +717,6 @@ function applyRolePermissions(){
   if(scoreCard) scoreCard.classList.toggle("role-hidden", !developer);
   if(adminCard) adminCard.classList.toggle("role-hidden", !developer);
 
-  // 4 เมนูสาธารณะสำหรับผู้ใช้ทุกระดับ (developer / admin / user)
-  // ทุก User ที่เข้าสู่ระบบได้ต้องเห็นและใช้งานเมนูเหล่านี้ได้
   const publicIds=["scoreSheetBtn","excelBtn","reportBtn","announceBtn"];
   publicIds.forEach(id=>{
     const el=document.getElementById(id);
@@ -793,7 +787,7 @@ window.login=async function(){
     }
 
     if(!canAccessAdminPage(found)){
-      alert("🔒 ไม่สามารถเข้าสู่หน้า Admin ได้");
+      alert("🔒 บัญชีนี้ไม่มีสิทธิ์เข้าสู่หน้า Admin (อนุญาตเฉพาะ Admin และผู้พัฒนาระบบเท่านั้น)");
       return;
     }
 
@@ -850,7 +844,7 @@ async function restoreSession(){
 
       if(!canAccessAdminPage(restored)){
         localStorage.removeItem(SESSION_KEY);
-        alert("🔒 ไม่สามารถเข้าสู่หน้า Admin ได้");
+        alert("🔒 บัญชีนี้ไม่มีสิทธิ์เข้าสู่หน้า Admin");
         window.location.assign("./index.html");
         return;
       }
@@ -1624,12 +1618,17 @@ window.loadAdmins=async function(){
         a.role.toLowerCase()===DEVELOPER_ROLE ||
         a.username.toLowerCase()===DEVELOPER_USERNAME;
 
-      // บัญชีเดิมที่ยังไม่มีค่า role ให้แสดงเป็น Admin (ของเดิม)
-      const roleLabel = developer
-        ? ""
-        : (a.role.toLowerCase()==="user"
-            ? ` (User${[1,2,3].includes(a.judgeNo) ? ` • กรรมการ ${a.judgeNo}` : ""})`
-            : " (Admin)");
+      let roleLabel = "";
+      if(!developer){
+        const r = a.role.toLowerCase();
+        if(r==="user"){
+          roleLabel = ` (User${[1,2,3].includes(a.judgeNo) ? ` • กรรมการ ${a.judgeNo}` : ""})`;
+        }else if(r==="system"||r==="scorer"){
+          roleLabel = " (ระบบคะแนนกลาง)";
+        }else{
+          roleLabel = " (Admin)";
+        }
+      }
 
       return `
       <tr>
@@ -1685,8 +1684,19 @@ window.addAdmin=async function(){
   const password=document.getElementById("newPassword").value;
   const roleSelect=document.getElementById("newRole");
   const judgeNoSelect=document.getElementById("newJudgeNo");
-  const role=(roleSelect?.value==="user") ? "user" : "admin";
-  const judgeNo=(role==="user") ? Number(judgeNoSelect?.value||0) : 0;
+  
+  const rawRole = roleSelect?.value || "admin";
+  let role = "admin";
+  let judgeNo = 0;
+
+  if(rawRole === "user"){
+    role = "user";
+    judgeNo = Number(judgeNoSelect?.value||0);
+  } else if(rawRole === "system" || rawRole === "scorer"){
+    role = "system"; // หรือ "scorer" สำหรับใช้สิทธิ์กรอกคะแนนหน้า index.html อย่างเดียว
+  } else {
+    role = "admin";
+  }
 
   if(!username || !password){
     return showMessage("กรุณากรอกชื่อแอดมินและรหัสผ่าน",false);
