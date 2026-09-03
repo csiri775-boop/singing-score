@@ -45,26 +45,46 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      gap: 30px;
       height: calc(100vh - 70px) !important;
+      flex-wrap: wrap; /* รองรับหน้าจอขนาดเล็ก */
     }
     #loginWrapper.hidden {
       display: none !important;
     }
-    #loginBox {
+    .login-card {
       background: white;
       padding: 30px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.2);
       text-align: center;
+      width: 320px;
     }
-    #loginBox input {
-      width: 220px;
-      height: 35px;
+    .login-card h2 {
+      margin-top: 0;
+      font-size: 22px;
+    }
+    .login-card input {
+      width: 100%;
+      height: 38px;
       font-size: 16px;
-      margin: 5px 0;
-      padding: 5px;
+      margin: 8px 0;
+      padding: 5px 10px;
       border-radius: 6px;
       border: 1px solid #ccc;
+    }
+    .login-card button {
+      width: 100%;
+      margin-top: 15px;
+      padding: 10px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .btn-admin {
+      background: #1976d2;
+    }
+    .btn-admin:hover {
+      background: #115293;
     }
     .login-copyright {
       display: block !important;
@@ -308,11 +328,23 @@
 
   <!-- LOGIN BOX -->
   <div id="loginWrapper">
-    <div id="loginBox">
-      <h2>🔐 Login</h2>
-      <input id="user" placeholder="Username"><br>
-      <input id="pass" type="password" placeholder="Password"><br>
-      <button onclick="login()">Login</button>
+    <!-- ล็อกอินสำหรับกรรมการ (เข้าหน้าให้คะแนน) -->
+    <div class="login-card">
+      <h2>🎤 Login ให้คะแนน</h2>
+      <input id="judgeUser" placeholder="Username"><br>
+      <input id="judgePass" type="password" placeholder="Password"><br>
+      <button onclick="login('judge')">เข้าสู่ระบบให้คะแนน</button>
+      <div class="login-copyright">
+        All Rights Reserved by <b>MR.SIRICHAI BUDDASUY</b>, System Developer
+      </div>
+    </div>
+
+    <!-- ล็อกอินสำหรับจัดการระบบ (เข้าหน้าแอดมิน) -->
+    <div class="login-card">
+      <h2>⚙️ Login แอดมิน</h2>
+      <input id="adminUser" placeholder="Username"><br>
+      <input id="adminPass" type="password" placeholder="Password"><br>
+      <button class="btn-admin" onclick="login('admin')">เข้าสู่ระบบจัดการแอดมิน</button>
       <div class="login-copyright">
         All Rights Reserved by <b>MR.SIRICHAI BUDDASUY</b>, System Developer
       </div>
@@ -407,9 +439,18 @@
     // ==========================================
     // AUTHENTICATION & SESSION
     // ==========================================
-    window.login = async function(){
-      const u = document.getElementById("user").value.trim();
-      const p = document.getElementById("pass").value;
+    window.login = async function(target){
+      let u = "";
+      let p = "";
+
+      // ตรวจสอบว่าคลิกล็อกอินจากกล่องไหน
+      if(target === 'judge'){
+        u = document.getElementById("judgeUser").value.trim();
+        p = document.getElementById("judgePass").value;
+      } else {
+        u = document.getElementById("adminUser").value.trim();
+        p = document.getElementById("adminPass").value;
+      }
 
       if(!u || !p){
         alert("กรุณากรอก Username และ Password");
@@ -469,7 +510,12 @@
           loginAt: Date.now()
         }));
         
-        showLoggedIn();
+        // แยกลิงก์ไปยังหน้าที่ต้องการตามกล่องที่ล็อกอิน
+        if(target === 'admin'){
+          window.location.assign("./admin.html");
+        } else {
+          showLoggedIn();
+        }
       }catch(err){
         console.error(err);
         alert("❌ ไม่สามารถตรวจสอบบัญชีแอดมินได้\n" + err.message);
@@ -494,8 +540,10 @@
       if(!confirm("ยืนยันล็อกเอาท์ออกจากระบบ?")) return;
       localStorage.removeItem(ADMIN_SESSION_KEY);
       showLoggedOut();
-      document.getElementById("user").value = "";
-      document.getElementById("pass").value = "";
+      document.getElementById("judgeUser").value = "";
+      document.getElementById("judgePass").value = "";
+      document.getElementById("adminUser").value = "";
+      document.getElementById("adminPass").value = "";
     };
 
     async function restoreAdminSession(){
