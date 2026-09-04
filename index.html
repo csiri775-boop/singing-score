@@ -395,6 +395,20 @@
     </div>
   </div>
 
+  <!-- ADMIN AUTH MODAL FOR SYSTEM/USER ROLE -->
+  <div id="adminAuthModal" class="modal-backdrop">
+    <div class="modal-box" style="width:min(380px, 92vw); text-align:center; padding:24px;">
+      <h2>🔐 ยืนยันสิทธิ์แอดมิน</h2>
+      <p style="font-size:15px; color:#555; margin-bottom:15px;">กรุณากรอก Username และ Password ของ Admin หรือผู้พัฒนาเพื่อเข้าสู่หน้าจัดการ</p>
+      <input id="verifyUser" placeholder="Username" style="width:100%; height:38px; font-size:16px; margin:6px 0; padding:5px 10px; border-radius:6px; border:1px solid #ccc;"><br>
+      <input id="verifyPass" type="password" placeholder="Password" style="width:100%; height:38px; font-size:16px; margin:6px 0; padding:5px 10px; border-radius:6px; border:1px solid #ccc;"><br>
+      <div style="display:flex; gap:10px; margin-top:15px;">
+        <button onclick="verifyAndOpenAdmin()" class="btn-admin" style="flex:1; margin:0;">ยืนยัน</button>
+        <button onclick="closeAdminAuthModal()" style="background:#777; flex:1; margin:0;">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
   <!-- JAVASCRIPT -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
@@ -581,9 +595,56 @@
     }
 
     // ==========================================
-    // UTILITY FUNCTIONS
+    // UTILITY FUNCTIONS & ADMIN VERIFICATION
     // ==========================================
-    window.openAdminPage = function(){ window.location.assign("./admin.html"); };
+    window.openAdminPage = function(){
+      const role = String(currentAdmin?.role || "").toLowerCase();
+      const isDev = currentAdmin?.protected === true || role === DEVELOPER_ROLE || role === "admin";
+      if(isDev){
+        window.location.assign("./admin.html");
+      } else {
+        // หากเป็นบัญชีระบบคะแนนกลางหรือผู้ใช้ทั่วไป ให้เปิด Modal ขอยืนยันสิทธิ์แอดมินโดยไม่ต้องออกจากระบบ
+        document.getElementById("verifyUser").value = "";
+        document.getElementById("verifyPass").value = "";
+        document.getElementById("adminAuthModal").classList.add("show");
+      }
+    };
+
+    window.closeAdminAuthModal = function(){
+      document.getElementById("adminAuthModal").classList.remove("show");
+    };
+
+    window.verifyAndOpenAdmin = async function(){
+      const u = document.getElementById("verifyUser").value.trim();
+      const p = document.getElementById("verifyPass").value;
+      if(!u || !p){
+        alert("กรุณากรอก Username และ Password");
+        return;
+      }
+      try{
+        const snap = await getDocs(collection(db,"admins"));
+        let authorized = false;
+        snap.forEach(d => {
+          const a = d.data();
+          const username = String(a.username || "").trim().toLowerCase();
+          const r = String(a.role || "").toLowerCase();
+          if(username === u.toLowerCase() && String(a.password || "") === p && a.active !== false){
+            if(r === "admin" || r === DEVELOPER_ROLE || a.protected === true){
+              authorized = true;
+            }
+          }
+        });
+        if(authorized){
+          window.location.assign("./admin.html");
+        } else {
+          alert("❌ บัญชีนี้ไม่มีสิทธิ์เข้าหน้าจัดการแอดมิน (ต้องใช้บัญชีระดับ Admin หรือผู้พัฒนาเท่านั้น)");
+        }
+      }catch(err){
+        console.error(err);
+        alert("❌ เกิดข้อผิดพลาดในการตรวจสอบสิทธิ์: " + err.message);
+      }
+    };
+
     window.openMonitor = function(){ window.open("monitor.html", "_blank"); };
     
     function escapeHtml(value){
